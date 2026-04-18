@@ -39,15 +39,19 @@ model: sonnet
 - 不写默认导出（除页面组件）
 - 所有交互元素必须有键盘可访问性（tabIndex、aria-label）
 
-# 视觉规范（Linear/Vercel 风深色）
+# 视觉规范（明亮清新风）
 
-- 背景：`bg-zinc-950`
-- 一级面板：`bg-zinc-900`
-- 边框：`border-zinc-800`
-- 文字：主文 `text-zinc-100`，次文 `text-zinc-400`
-- 强调色：`bg-blue-500`（按钮主操作）/ `text-blue-400`（链接）
+- 所有颜色通过 `src/index.css` 的 CSS 变量消费，类名统一用 shadcn token：`bg-background` / `bg-card` / `bg-muted` / `bg-accent`
+- 主背景：`bg-background`（暖 off-white）
+- 侧边栏/卡片：`bg-card`（纯白）
+- 文字：主文 `text-foreground`（深蓝灰），次文 `text-muted-foreground`
+- 强调色：`bg-primary` / `text-primary`（柔和 sky blue）；避免饱和蓝紫
+- 边框：`border-border`（极浅灰），选中态可用 `border-primary/60`
 - 圆角：`rounded-lg`（卡片）/ `rounded-md`（按钮/输入）
+- 阴影：克制使用 `shadow-sm`
 - 间距：8px 网格（p-2/p-4/p-6）
+
+**禁止**：直接写 `bg-zinc-*` / `bg-slate-*` / `bg-neutral-*` 等具体色，一律走 CSS 变量
 
 # 工作流
 

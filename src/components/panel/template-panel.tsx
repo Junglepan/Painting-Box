@@ -25,14 +25,18 @@ export function TemplatePanel() {
                 type="button"
                 onClick={() => setKind(t.kind)}
                 className={cn(
-                  "flex w-full flex-col items-start gap-0.5 rounded-md border px-3 py-2 text-left transition-colors",
+                  "flex w-full flex-col items-start gap-0.5 rounded-md border px-3 py-2.5 text-left transition-colors",
                   currentKind === t.kind
-                    ? "border-primary bg-primary/10 text-foreground"
-                    : "border-border bg-card/30 text-muted-foreground hover:border-border hover:text-foreground",
+                    ? "border-primary/60 bg-accent text-foreground shadow-sm"
+                    : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:bg-accent/40 hover:text-foreground",
                 )}
               >
-                <span className="text-sm font-medium">{t.name}</span>
-                <span className="text-[11px] opacity-70">{t.desc}</span>
+                <span className="text-sm font-medium text-foreground">
+                  {t.name}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {t.desc}
+                </span>
               </button>
             </li>
           ))}
@@ -42,7 +46,7 @@ export function TemplatePanel() {
         <button
           type="button"
           disabled
-          className="h-9 w-full rounded-md bg-primary text-sm font-medium text-primary-foreground opacity-60"
+          className="h-9 w-full rounded-md bg-primary text-sm font-medium text-primary-foreground opacity-50 transition-opacity hover:opacity-60 disabled:cursor-not-allowed"
         >
           导出（待接入）
         </button>

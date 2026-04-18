@@ -25,7 +25,7 @@ export function PhotoList() {
                     "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
                     selectedId === p.id
                       ? "bg-accent text-accent-foreground"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
                   )}
                 >
                   <div className="h-8 w-8 shrink-0 rounded bg-muted" />

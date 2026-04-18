@@ -18,7 +18,7 @@ export function PreviewPane() {
       </div>
       <div className="flex flex-1 items-center justify-center overflow-hidden p-6">
         {selected ? (
-          <div className="h-full w-full rounded-lg border border-border bg-card/30" />
+          <div className="h-full w-full rounded-lg border border-border bg-card shadow-sm" />
         ) : (
           <PreviewEmpty />
         )}

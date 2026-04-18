@@ -25,7 +25,7 @@
 | 语言 | 仅中文（首版） |
 | 发布方式 | GitHub Release（CI 构建） |
 | 分支策略 | `master` 主干 + `feat/*` 功能分支 |
-| 视觉风格 | 现代简约（Linear/Vercel 深色主题） |
+| 视觉风格 | 明亮清新（off-white 背景 + 白色卡片 + 柔和 sky blue 强调） |
 
 ## 3. 架构分层
 
