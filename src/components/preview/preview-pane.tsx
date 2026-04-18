@@ -1,50 +1,45 @@
 import { usePhotoStore } from "@/stores/photo-store";
+import { useTemplateStore } from "@/stores/template-store";
 import { ImageOff } from "lucide-react";
 
 export function PreviewPane() {
   const selected = usePhotoStore((s) =>
     s.photos.find((p) => p.id === s.selectedId),
   );
+  const { frameParams } = useTemplateStore();
 
   return (
-    <div className="flex h-full w-full flex-col">
-      <div className="flex h-10 shrink-0 items-center justify-between border-b border-border/60 px-5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-        <span>预览</span>
-        {selected ? (
-          <span className="font-mono text-[10px]">
-            {selected.width} × {selected.height}
-          </span>
-        ) : null}
-      </div>
-      <div className="flex flex-1 items-center justify-center overflow-hidden p-8">
-        {selected ? (
+    <div className="surface-inset flex h-full w-full items-center justify-center p-8">
+      {selected ? (
+        <div
+          className="bg-card shadow-[var(--shadow-apple-elevated)]"
+          style={{
+            width: "min(100%, 520px)",
+            aspectRatio: `${selected.width} / ${selected.height}`,
+            borderRadius: frameParams.radius,
+            paddingTop: frameParams.paddingTop,
+            paddingRight: frameParams.paddingRight,
+            paddingBottom: frameParams.paddingBottom,
+            paddingLeft: frameParams.paddingLeft,
+            background:
+              frameParams.background === "black"
+                ? "#111827"
+                : frameParams.background === "blur"
+                  ? "linear-gradient(135deg,#dbe4ff,#f0e4ff)"
+                  : "#ffffff",
+          }}
+        >
           <div
-            className="h-full w-full rounded-lg bg-background transition-shadow duration-300 ease-out"
-            style={{ boxShadow: "var(--shadow-neu-inset)" }}
+            className="h-full w-full rounded-md bg-muted"
+            style={{ borderRadius: Math.max(frameParams.radius - 4, 0) }}
           />
-        ) : (
-          <PreviewEmpty />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function PreviewEmpty() {
-  return (
-    <div className="flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div
-        className="flex h-16 w-16 items-center justify-center rounded-full bg-background"
-        style={{ boxShadow: "var(--shadow-neu-inset)" }}
-      >
-        <ImageOff className="h-6 w-6 text-muted-foreground" />
-      </div>
-      <p className="text-sm font-medium text-foreground">
-        选择一张照片以预览效果
-      </p>
-      <p className="text-xs text-muted-foreground">
-        从左侧选择照片或拖入图片文件
-      </p>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-3 text-muted-foreground animate-in fade-in duration-500">
+          <ImageOff className="h-7 w-7" />
+          <p className="text-[11px]">选一张照片开始</p>
+        </div>
+      )}
     </div>
   );
 }

@@ -35,6 +35,19 @@ export type TemplateConfig = {
   showGps: boolean;
 };
 
+export type FrameBackground = "white" | "black" | "blur";
+
+export type FrameParams = {
+  paddingTop: number;
+  paddingRight: number;
+  paddingBottom: number;
+  paddingLeft: number;
+  radius: number;
+  background: FrameBackground;
+  shadow: boolean;
+  fontSize: number;
+};
+
 export type WatermarkTemplate = {
   id: string;
   name: string;
