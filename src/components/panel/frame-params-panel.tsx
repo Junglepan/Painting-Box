@@ -567,6 +567,10 @@ function SliderRow({
   unit?: string;
   onChange: (v: number) => void;
 }) {
+  const clamp = (v: number) => Math.min(max, Math.max(min, v));
+  const isInt = Number.isInteger(step);
+  const display = isInt ? String(value) : value.toFixed(1);
+
   return (
     <div className="flex items-center gap-2 py-1">
       <span className="w-8 shrink-0 text-[10px] text-muted-foreground">
@@ -581,10 +585,29 @@ function SliderRow({
         onChange={(e) => onChange(Number(e.target.value))}
         className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-muted accent-primary"
       />
-      <span className="w-10 shrink-0 text-right text-[11px] tabular-nums text-muted-foreground">
-        {Number.isInteger(step) ? value : value.toFixed(1)}
-        {unit ?? ""}
-      </span>
+      <div className="relative flex shrink-0 items-center">
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={display}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            if (!Number.isNaN(n)) onChange(n);
+          }}
+          onBlur={(e) => {
+            const n = Number(e.target.value);
+            onChange(Number.isNaN(n) ? min : clamp(n));
+          }}
+          className="num-input h-6 w-11 px-1 text-[11px]"
+        />
+        {unit ? (
+          <span className="pointer-events-none absolute right-1 text-[9px] text-muted-foreground">
+            {unit}
+          </span>
+        ) : null}
+      </div>
     </div>
   );
 }

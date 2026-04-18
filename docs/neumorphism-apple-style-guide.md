@@ -186,4 +186,5 @@ Apple 质感的关键是**多层叠加**，而不是单一模糊阴影：
 - 下凹画布：`src/components/preview/preview-pane.tsx`（`.surface-inset`）
 - 下凹数据列表：`src/components/photo-list/photo-list.tsx`（`.surface-inset`）
 - 下凹模板库：`src/components/gallery/template-gallery.tsx`（`.surface-inset` + 横向滚动）
-- 扁平工具区：`src/components/panel/frame-params-panel.tsx`（富滑条 + 折叠分组）
+- 下凹预设库：`src/components/gallery/preset-gallery.tsx`（横向滚动 + inline 命名 + 持久化）
+- 扁平工具区：`src/components/panel/frame-params-panel.tsx`（富滑条 + 直接数字输入 + 折叠分组）

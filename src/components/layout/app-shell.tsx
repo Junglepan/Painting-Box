@@ -2,6 +2,7 @@ import { PhotoList } from "@/components/photo-list/photo-list";
 import { PreviewPane } from "@/components/preview/preview-pane";
 import { FrameParamsPanel } from "@/components/panel/frame-params-panel";
 import { TemplateGallery } from "@/components/gallery/template-gallery";
+import { PresetGallery } from "@/components/gallery/preset-gallery";
 import { AppHeader } from "@/components/layout/app-header";
 
 export function AppShell() {
@@ -21,8 +22,14 @@ export function AppShell() {
           <PhotoList />
         </aside>
       </div>
-      <div className="h-36 shrink-0 border-t border-border/60">
-        <TemplateGallery />
+      <div className="flex h-36 shrink-0 border-t border-border/60">
+        <div className="min-w-0 flex-1">
+          <TemplateGallery />
+        </div>
+        <div className="divider-v" />
+        <div className="w-80 shrink-0">
+          <PresetGallery />
+        </div>
       </div>
     </div>
   );

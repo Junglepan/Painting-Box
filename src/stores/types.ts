@@ -108,12 +108,13 @@ export type WatermarkTemplate = {
 export type Preset = {
   id: string;
   name: string;
-  templateId: string;
-  overrides: Partial<TemplateConfig>;
-  fieldVisibility: Partial<Record<keyof ExifData, boolean>>;
-  fieldOverrides: Partial<Record<keyof ExifData, string>>;
+  kind: TemplateKind;
+  frameParams: FrameParams;
+  config: TemplateConfig;
   createdAt: string;
 };
+
+export const PRESET_NAME_MAX = 12;
 
 export type ExportJob = {
   id: string;
