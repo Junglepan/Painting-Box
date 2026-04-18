@@ -5,6 +5,17 @@
 
 :root {
   --background: #eef1f6;
+  --background-gradient: radial-gradient(
+      1200px 800px at 20% 0%,
+      rgba(47, 111, 237, 0.06),
+      transparent 60%
+    ),
+    radial-gradient(
+      1000px 700px at 100% 100%,
+      rgba(47, 111, 237, 0.04),
+      transparent 55%
+    ),
+    #eef1f6;
   --foreground: #1f2937;
   --card: #ffffff;
   --card-foreground: #1f2937;
@@ -14,7 +25,7 @@
   --primary-foreground: #ffffff;
   --secondary: #e5e9f0;
   --secondary-foreground: #1f2937;
-  --muted: #e5e9f0;
+  --muted: #eceff5;
   --muted-foreground: #6b7280;
   --accent: #dde7ff;
   --accent-foreground: #1f3b8f;
@@ -27,17 +38,54 @@
   --ring: #2f6fed;
   --radius: 0.875rem;
 
-  --shadow-apple-card: 0 1px 2px rgba(17, 24, 39, 0.04),
-    0 4px 12px rgba(17, 24, 39, 0.06);
-  --shadow-apple-card-hover: 0 1px 2px rgba(17, 24, 39, 0.05),
-    0 8px 20px rgba(17, 24, 39, 0.1);
-  --shadow-neu-raised: 0 1px 2px rgba(17, 24, 39, 0.05),
-    0 2px 8px rgba(17, 24, 39, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  --shadow-neu-pressed: inset 0 2px 4px rgba(17, 24, 39, 0.12),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+  /* Apple 层级阴影：crisp hairline + near + mid + far halo */
+  --shadow-apple-card: 0 0 0 0.5px rgba(17, 24, 39, 0.04),
+    0 1px 2px rgba(17, 24, 39, 0.04),
+    0 6px 16px rgba(17, 24, 39, 0.06),
+    0 16px 40px rgba(17, 24, 39, 0.04);
+  --shadow-apple-elevated: 0 0 0 0.5px rgba(17, 24, 39, 0.05),
+    0 2px 6px rgba(17, 24, 39, 0.06),
+    0 12px 28px rgba(17, 24, 39, 0.1),
+    0 28px 60px rgba(17, 24, 39, 0.06);
+  --shadow-apple-popover: 0 0 0 0.5px rgba(17, 24, 39, 0.06),
+    0 8px 24px rgba(17, 24, 39, 0.12),
+    0 32px 80px rgba(17, 24, 39, 0.1);
+
+  /* 拟态触感（按钮/输入）*/
+  --shadow-neu-raised: 0 1px 1px rgba(17, 24, 39, 0.04),
+    0 2px 6px rgba(17, 24, 39, 0.08),
+    0 8px 20px rgba(17, 24, 39, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  --shadow-neu-raised-hover: 0 2px 3px rgba(17, 24, 39, 0.05),
+    0 6px 14px rgba(17, 24, 39, 0.12),
+    0 16px 32px rgba(17, 24, 39, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 1);
+  --shadow-neu-pressed: inset 0 2px 4px rgba(17, 24, 39, 0.14),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5),
+    0 1px 1px rgba(255, 255, 255, 0.8);
   --shadow-neu-inset: inset 0 1px 3px rgba(17, 24, 39, 0.08),
     inset 0 -1px 0 rgba(255, 255, 255, 0.9);
+
+  /* Apple 主按钮（带色阶高光）*/
+  --shadow-primary-raised: 0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.15) inset,
+    0 2px 6px rgba(47, 111, 237, 0.3),
+    0 8px 20px rgba(47, 111, 237, 0.22);
+  --shadow-primary-hover: 0 1px 0 rgba(255, 255, 255, 0.3) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.18) inset,
+    0 4px 10px rgba(47, 111, 237, 0.36),
+    0 14px 28px rgba(47, 111, 237, 0.26);
+  --shadow-primary-pressed: inset 0 2px 4px rgba(0, 0, 0, 0.18),
+    0 1px 2px rgba(47, 111, 237, 0.2);
+
+  /* 选中态环 */
+  --ring-selected: 0 0 0 1px rgba(255, 255, 255, 1),
+    0 0 0 3px rgba(47, 111, 237, 0.35);
+
+  /* Apple 缓动 */
+  --ease-apple: cubic-bezier(0.32, 0.72, 0, 1);
+  --ease-apple-spring: cubic-bezier(0.2, 0.8, 0.2, 1.1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @theme inline {
@@ -67,10 +115,18 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --shadow-apple: var(--shadow-apple-card);
-  --shadow-apple-hover: var(--shadow-apple-card-hover);
+  --shadow-apple-elevated: var(--shadow-apple-elevated);
+  --shadow-apple-popover: var(--shadow-apple-popover);
   --shadow-neu-raised: var(--shadow-neu-raised);
+  --shadow-neu-raised-hover: var(--shadow-neu-raised-hover);
   --shadow-neu-pressed: var(--shadow-neu-pressed);
   --shadow-neu-inset: var(--shadow-neu-inset);
+  --shadow-primary-raised: var(--shadow-primary-raised);
+  --shadow-primary-hover: var(--shadow-primary-hover);
+  --shadow-primary-pressed: var(--shadow-primary-pressed);
+  --ease-apple: var(--ease-apple);
+  --ease-apple-spring: var(--ease-apple-spring);
+  --ease-out-expo: var(--ease-out-expo);
 }
 
 @layer base {
@@ -83,44 +139,132 @@
     @apply h-full;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply text-foreground antialiased;
+    background: var(--background-gradient);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
       "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei",
       sans-serif;
     font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* macOS 风细滚动条 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(17, 24, 39, 0.14);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(17, 24, 39, 0.22);
+    background-clip: padding-box;
+    border: 2px solid transparent;
   }
 }
 
 @layer components {
+  .card-apple {
+    @apply rounded-lg bg-card;
+    box-shadow: var(--shadow-apple-card);
+    transition: box-shadow 280ms var(--ease-apple),
+      transform 280ms var(--ease-apple);
+  }
+  .card-apple-elevated {
+    box-shadow: var(--shadow-apple-elevated);
+  }
+
   .btn-neu {
-    @apply relative inline-flex items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium transition-all duration-150 ease-out;
+    @apply relative inline-flex items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium;
     box-shadow: var(--shadow-neu-raised);
+    transition: box-shadow 220ms var(--ease-apple),
+      transform 180ms var(--ease-apple),
+      filter 180ms var(--ease-apple);
+    will-change: transform, box-shadow;
   }
   .btn-neu:hover:not(:disabled) {
-    filter: brightness(1.02);
+    box-shadow: var(--shadow-neu-raised-hover);
+    transform: translateY(-1px);
   }
   .btn-neu:active:not(:disabled) {
-    transform: scale(0.98);
+    transform: translateY(0) scale(0.98);
     box-shadow: var(--shadow-neu-pressed);
+    transition-duration: 80ms;
   }
   .btn-neu:disabled {
-    @apply cursor-not-allowed opacity-50;
+    @apply cursor-not-allowed opacity-55;
     box-shadow: var(--shadow-neu-inset);
+    transform: none;
   }
   .btn-neu:focus-visible {
     @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
   }
 
-  .input-neu {
-    @apply h-9 w-full rounded-md bg-background px-3 text-sm transition-shadow duration-150;
+  .btn-primary {
+    @apply relative inline-flex items-center justify-center gap-1.5 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground;
+    box-shadow: var(--shadow-primary-raised);
+    transition: box-shadow 220ms var(--ease-apple),
+      transform 180ms var(--ease-apple),
+      filter 180ms var(--ease-apple);
+    will-change: transform, box-shadow;
+  }
+  .btn-primary:hover:not(:disabled) {
+    box-shadow: var(--shadow-primary-hover);
+    transform: translateY(-1px);
+    filter: brightness(1.04);
+  }
+  .btn-primary:active:not(:disabled) {
+    box-shadow: var(--shadow-primary-pressed);
+    transform: translateY(0) scale(0.985);
+    transition-duration: 80ms;
+  }
+  .btn-primary:disabled {
+    @apply cursor-not-allowed opacity-55;
     box-shadow: var(--shadow-neu-inset);
+    filter: grayscale(0.3);
+  }
+  .btn-primary:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  .input-neu {
+    @apply h-9 w-full rounded-md bg-background px-3 text-sm;
+    box-shadow: var(--shadow-neu-inset);
+    transition: box-shadow 200ms var(--ease-apple);
   }
   .input-neu:focus {
     @apply outline-none ring-2 ring-ring ring-offset-0;
   }
 
-  .card-apple {
-    @apply rounded-lg bg-card;
-    box-shadow: var(--shadow-apple-card);
+  .tile {
+    @apply relative flex w-full items-center gap-3 rounded-md border border-transparent bg-card px-3 py-2.5 text-left;
+    box-shadow: var(--shadow-neu-raised);
+    transition: box-shadow 260ms var(--ease-apple),
+      transform 260ms var(--ease-apple),
+      border-color 180ms var(--ease-apple),
+      background-color 180ms var(--ease-apple);
+    will-change: transform, box-shadow;
+  }
+  .tile:hover:not(.tile-active) {
+    box-shadow: var(--shadow-neu-raised-hover);
+    transform: translateY(-1px);
+  }
+  .tile:active:not(.tile-active) {
+    transform: translateY(0) scale(0.99);
+  }
+  .tile-active {
+    background: linear-gradient(
+      180deg,
+      rgba(221, 231, 255, 0.9),
+      rgba(221, 231, 255, 0.5)
+    );
+    border-color: rgba(47, 111, 237, 0.35);
+    box-shadow: var(--shadow-apple-elevated), var(--ring-selected);
   }
 }

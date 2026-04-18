@@ -5,13 +5,13 @@ import { AppHeader } from "@/components/layout/app-header";
 
 export function AppShell() {
   return (
-    <div className="flex h-full flex-col bg-background text-foreground">
+    <div className="flex h-full flex-col text-foreground">
       <AppHeader />
-      <div className="flex flex-1 gap-2 overflow-hidden p-2">
+      <div className="flex flex-1 gap-3 overflow-hidden p-3">
         <aside className="card-apple flex w-64 shrink-0 overflow-hidden">
           <PhotoList />
         </aside>
-        <main className="card-apple flex flex-1 overflow-hidden">
+        <main className="card-apple card-apple-elevated flex flex-1 overflow-hidden">
           <PreviewPane />
         </main>
         <aside className="card-apple flex w-80 shrink-0 overflow-hidden">

@@ -19,7 +19,7 @@ export function TemplatePanel() {
         模板
       </div>
       <div className="flex-1 overflow-y-auto p-3">
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {TEMPLATES.map((t) => {
             const active = currentKind === t.kind;
             return (
@@ -27,27 +27,17 @@ export function TemplatePanel() {
                 <button
                   type="button"
                   onClick={() => setKind(t.kind)}
-                  className={cn(
-                    "group relative flex w-full items-center gap-3 rounded-md border bg-background px-3 py-2.5 text-left transition-all duration-150 ease-out",
-                    active
-                      ? "border-primary/70 bg-accent"
-                      : "border-border/80 hover:border-primary/30 hover:bg-card",
-                  )}
-                  style={{
-                    boxShadow: active
-                      ? "var(--shadow-neu-pressed)"
-                      : "var(--shadow-neu-raised)",
-                  }}
+                  className={cn("tile", active && "tile-active")}
                 >
                   <div
                     className={cn(
-                      "flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-[10px] font-semibold transition-colors",
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[11px] font-semibold transition-all duration-200 ease-out",
                       active
-                        ? "bg-primary text-primary-foreground"
+                        ? "bg-primary text-primary-foreground shadow-[0_4px_10px_rgba(47,111,237,0.35)]"
                         : "bg-muted text-muted-foreground",
                     )}
                   >
-                    {active ? <Check className="h-3.5 w-3.5" /> : t.name[0]}
+                    {active ? <Check className="h-4 w-4" /> : t.name[0]}
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col">
                     <span className="text-[13px] font-medium text-foreground">
@@ -64,11 +54,7 @@ export function TemplatePanel() {
         </ul>
       </div>
       <div className="shrink-0 border-t border-border/60 p-3">
-        <button
-          type="button"
-          disabled
-          className="btn-neu h-10 w-full bg-primary text-primary-foreground"
-        >
+        <button type="button" disabled className="btn-primary h-10 w-full">
           <Download className="h-3.5 w-3.5" />
           导出（待接入）
         </button>
