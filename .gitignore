@@ -14,10 +14,15 @@ src-tauri/gen/
 .env.*.local
 
 # 编辑器
-.vscode/
+.vscode/*
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
+
+# Vite 本地/SSR 缓存
+dist-ssr/
+*.local
 
 # 系统
 .DS_Store
