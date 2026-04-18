@@ -23,11 +23,11 @@ export function AppShell() {
         </aside>
       </div>
       <div className="flex h-36 shrink-0 border-t border-border/60">
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-[3]">
           <TemplateGallery />
         </div>
         <div className="divider-v" />
-        <div className="w-80 shrink-0">
+        <div className="min-w-0 flex-[2]">
           <PresetGallery />
         </div>
       </div>
