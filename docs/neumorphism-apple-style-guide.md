@@ -1,8 +1,10 @@
-# 拟态 x Apple 融合风格文档（v1.1 · Painting-Box 实践版）
+# 拟态 x Apple 融合风格文档（v1.2 · Painting-Box 实践版）
 
 > v1.0 为通用理论（Apple 70% + 拟态 30%）。
-> v1.1 基于 Painting-Box 落地后的经验修订，新增"唯一下凹"、"同层级扁平"、
-> "Icon-first"、"多层 Apple 阴影"四条核心原则，并对齐 `src/index.css` 的 tokens。
+> v1.1 基于 Painting-Box 落地后的经验修订，提出"唯一下凹"等四条核心原则。
+> v1.2 依据实践结果**修订"唯一下凹"** → **"下凹承载内容/数据区"**：
+> 画布、照片列表、模板库等**可滚动的内容/数据展示区**均使用 `.surface-inset`，
+> 参数面板、工具栏等**工具/控制区**保持扁平。
 
 ## 1. 风格定位
 以 **Apple 的清晰层级与克制秩序** 为骨架，叠加 **Soft UI（拟态）的轻触感**，
@@ -13,12 +15,26 @@
 
 ## 3. 核心原则（v1.1 新增 / 强调）
 
-### 3.1 唯一下凹原则 🔑
-**整个界面中只有一个区域是下凹（inset）的** —— 即主内容的展示画布（预览区 / 画布 / 编辑区）。
-其余所有面板（侧边栏、工具栏、参数面板、列表）**保持扁平、同层级**，
-只通过细分隔线区分区域。
+### 3.1 内容区下凹原则 🔑（v1.2 修订）
+**「下凹（inset）用于承载内容/数据的展示区域」**，包括：
+- 主画布 / 预览区
+- 照片 / 素材 / 资产列表
+- 模板库 / 预设库 / 导出队列
+- 任何可滚动的结果展示面板
 
-> 反模式：三栏都套 `card-apple`，嵌套多层阴影造成"漂浮板堆叠"。
+**工具 / 控制区保持扁平**，包括：
+- 参数面板（滑条、色选、开关）
+- 工具栏、header、footer
+- 设置、弹层触发器
+
+判断法：这块区域是"给用户看内容的"还是"给用户操作的"？
+- 看内容 → 下凹（`.surface-inset`）
+- 做操作 → 扁平
+
+> 反模式：
+> - 整个界面三栏都套 `card-apple`，造成"漂浮板堆叠"
+> - 参数面板做成下凹（把工具区当内容区）
+> - 所有区域都扁平，内容区失去焦点
 
 实现：`.surface-inset`
 
@@ -149,8 +165,8 @@ Apple 质感的关键是**多层叠加**，而不是单一模糊阴影：
 - 标签字号：`text-[11px]` uppercase + tracking-wider（区域标题）；`text-[13px]`（主要标签）；
   `tabular-nums` 处理所有数值显示。
 
-## 8. 禁止项（v1.1 新增）
-- ❌ 多区域同时使用下凹阴影（破坏"唯一下凹"原则）。
+## 8. 禁止项
+- ❌ 在**工具/控制区**使用下凹阴影（`.surface-inset` 只用于内容/数据区）。
 - ❌ 每个面板都套 `.card-apple`（过度堆叠层级）。
 - ❌ 双重 focus 描边（`ring-offset` + `ring`）。
 - ❌ 区域标题全部用长文字 + 图标（优先 icon-led，再看是否需要文字）。
@@ -161,12 +177,13 @@ Apple 质感的关键是**多层叠加**，而不是单一模糊阴影：
 - ❌ 单靠颜色表达状态（v1.0 已有，强调）。
 
 ## 9. 一句话规范
-> **"唯一下凹展示画布，其余同层级扁平；Apple 分层阴影定秩序，拟态微凹凸给反馈，
+> **"内容区下凹、工具区扁平；Apple 分层阴影定秩序，拟态微凹凸给反馈，
 > 图标引导、文字克制、动效分档。"**
 
 ## 10. 参考实现
 - CSS tokens & 组件类：`src/index.css`
-- 三栏扁平 + 细线分隔：`src/components/layout/app-shell.tsx`
+- 三栏 + 底部画廊布局：`src/components/layout/app-shell.tsx`
 - 下凹画布：`src/components/preview/preview-pane.tsx`（`.surface-inset`）
-- Icon-first 参数面板：`src/components/panel/frame-params-panel.tsx`
-- 弱化次要列表：`src/components/photo-list/photo-list.tsx`
+- 下凹数据列表：`src/components/photo-list/photo-list.tsx`（`.surface-inset`）
+- 下凹模板库：`src/components/gallery/template-gallery.tsx`（`.surface-inset` + 横向滚动）
+- 扁平工具区：`src/components/panel/frame-params-panel.tsx`（富滑条 + 折叠分组）

@@ -1,6 +1,7 @@
 import { PhotoList } from "@/components/photo-list/photo-list";
 import { PreviewPane } from "@/components/preview/preview-pane";
 import { FrameParamsPanel } from "@/components/panel/frame-params-panel";
+import { TemplateGallery } from "@/components/gallery/template-gallery";
 import { AppHeader } from "@/components/layout/app-header";
 
 export function AppShell() {
@@ -12,13 +13,16 @@ export function AppShell() {
           <FrameParamsPanel />
         </section>
         <div className="divider-v" />
-        <main className="flex flex-1 items-center justify-center overflow-hidden p-6">
+        <main className="flex flex-1 items-center justify-center overflow-hidden p-4">
           <PreviewPane />
         </main>
         <div className="divider-v" />
-        <aside className="flex w-48 shrink-0 flex-col overflow-hidden">
+        <aside className="flex w-52 shrink-0 flex-col overflow-hidden">
           <PhotoList />
         </aside>
+      </div>
+      <div className="h-36 shrink-0 border-t border-border/60">
+        <TemplateGallery />
       </div>
     </div>
   );
