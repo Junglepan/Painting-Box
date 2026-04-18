@@ -39,19 +39,53 @@ model: sonnet
 - 不写默认导出（除页面组件）
 - 所有交互元素必须有键盘可访问性（tabIndex、aria-label）
 
-# 视觉规范（明亮清新风）
+# 视觉规范（Apple 70% + 拟态 30% 融合）
 
-- 所有颜色通过 `src/index.css` 的 CSS 变量消费，类名统一用 shadcn token：`bg-background` / `bg-card` / `bg-muted` / `bg-accent`
-- 主背景：`bg-background`（暖 off-white）
-- 侧边栏/卡片：`bg-card`（纯白）
-- 文字：主文 `text-foreground`（深蓝灰），次文 `text-muted-foreground`
-- 强调色：`bg-primary` / `text-primary`（柔和 sky blue）；避免饱和蓝紫
-- 边框：`border-border`（极浅灰），选中态可用 `border-primary/60`
-- 圆角：`rounded-lg`（卡片）/ `rounded-md`（按钮/输入）
-- 阴影：克制使用 `shadow-sm`
-- 间距：8px 网格（p-2/p-4/p-6）
+遵循 `docs/neumorphism-apple-style-guide.md` 的完整规则。一句话规范：**"结构按 Apple，触感用拟态，始终以可读性和效率为第一优先级。"**
 
-**禁止**：直接写 `bg-zinc-*` / `bg-slate-*` / `bg-neutral-*` 等具体色，一律走 CSS 变量
+## 色彩 Token（不可硬编码，统一走 `src/index.css` 的 CSS 变量）
+
+- `bg-background` `#EEF1F6` — 外层冷调浅灰，承载内容岛
+- `bg-card` `#FFFFFF` — Apple 式卡片，用于侧栏/主区/弹窗
+- `text-foreground` `#1F2937` — 主文字
+- `text-muted-foreground` `#6B7280` — 次文字
+- `bg-primary` `#2F6FED` — 主操作与强调
+- `bg-accent` `#DDE7FF` — 选中态背景
+- `border-border` `#D7DCE6` — 细分隔线
+
+**禁止**：直接写 `bg-zinc-*` / `bg-slate-*` 等 Tailwind 默认色；禁止浅灰字配浅灰底。
+
+## 层次与阴影
+
+| 用途 | 类名/样式变量 | 规则 |
+|------|--------------|------|
+| Apple 式卡片（侧栏、预览、弹窗） | `.card-apple` | 干净分层，只用 `--shadow-apple-card` |
+| 主按钮、tab、切换控件 | `.btn-neu` + `bg-primary` | 默认 raised，按下 pressed，scale(0.98) |
+| 输入框、滑块轨道 | `.input-neu` 或 `--shadow-neu-inset` | 常态内凹，聚焦 2px ring |
+| 选中状态 | `bg-accent` + 2px ring 或 `--shadow-neu-pressed` | 颜色+形态双重信号 |
+
+## 圆角与间距
+
+- 卡片：`rounded-lg` (14px) — 对应 `--radius`
+- 控件：`rounded-md` (12px) — 对应 `--radius-md`
+- 小标签/chip：`rounded-sm` (10px)
+- 间距：8px 网格（p-2/p-3/p-4/p-6）
+
+## 动效
+
+- 时长：120-180ms（Tailwind `duration-150`）
+- 曲线：`ease-out`
+- 悬停：亮度或阴影微调
+- 激活：`scale-[0.98]` + 阴影由 raised 翻转为 pressed
+- 聚焦：`ring-2 ring-ring ring-offset-2` 高对比，不靠单独阴影
+
+## 禁止（结合风格文档）
+
+- 全页面/大容器用重拟态 — 会脏 + 影响可读
+- 浅灰字配浅灰底
+- 单靠颜色表达状态（必须伴随形态/图标/文案）
+- 阴影半径 > 20px 或模糊过大导致糊边
+- 直接写十六进制色，一律走 token
 
 # 工作流
 

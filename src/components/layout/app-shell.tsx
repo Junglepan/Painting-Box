@@ -7,14 +7,14 @@ export function AppShell() {
   return (
     <div className="flex h-full flex-col bg-background text-foreground">
       <AppHeader />
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="w-64 shrink-0 border-r border-border bg-card">
+      <div className="flex flex-1 gap-2 overflow-hidden p-2">
+        <aside className="card-apple flex w-64 shrink-0 overflow-hidden">
           <PhotoList />
         </aside>
-        <main className="flex-1 overflow-hidden bg-background">
+        <main className="card-apple flex flex-1 overflow-hidden">
           <PreviewPane />
         </main>
-        <aside className="w-80 shrink-0 border-l border-border bg-card">
+        <aside className="card-apple flex w-80 shrink-0 overflow-hidden">
           <TemplatePanel />
         </aside>
       </div>

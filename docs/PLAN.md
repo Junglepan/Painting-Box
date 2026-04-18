@@ -25,7 +25,7 @@
 | 语言 | 仅中文（首版） |
 | 发布方式 | GitHub Release（CI 构建） |
 | 分支策略 | `master` 主干 + `feat/*` 功能分支 |
-| 视觉风格 | 明亮清新（off-white 背景 + 白色卡片 + 柔和 sky blue 强调） |
+| 视觉风格 | Apple 70% + 拟态 30% 融合（见 `docs/neumorphism-apple-style-guide.md`） |
 
 ## 3. 架构分层
 

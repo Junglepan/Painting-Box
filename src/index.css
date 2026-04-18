@@ -4,26 +4,40 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.985 0.002 95);
-  --foreground: oklch(0.22 0.01 260);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.22 0.01 260);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.22 0.01 260);
-  --primary: oklch(0.65 0.12 220);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.96 0.005 250);
-  --secondary-foreground: oklch(0.3 0.01 260);
-  --muted: oklch(0.965 0.003 250);
-  --muted-foreground: oklch(0.5 0.01 260);
-  --accent: oklch(0.96 0.02 200);
-  --accent-foreground: oklch(0.3 0.05 220);
-  --destructive: oklch(0.6 0.2 25);
-  --destructive-foreground: oklch(1 0 0);
-  --border: oklch(0.92 0.004 250);
-  --input: oklch(0.92 0.004 250);
-  --ring: oklch(0.65 0.12 220);
-  --radius: 0.625rem;
+  --background: #eef1f6;
+  --foreground: #1f2937;
+  --card: #ffffff;
+  --card-foreground: #1f2937;
+  --popover: #ffffff;
+  --popover-foreground: #1f2937;
+  --primary: #2f6fed;
+  --primary-foreground: #ffffff;
+  --secondary: #e5e9f0;
+  --secondary-foreground: #1f2937;
+  --muted: #e5e9f0;
+  --muted-foreground: #6b7280;
+  --accent: #dde7ff;
+  --accent-foreground: #1f3b8f;
+  --destructive: #c64b4b;
+  --destructive-foreground: #ffffff;
+  --success: #2e9b57;
+  --warning: #c58a1a;
+  --border: #d7dce6;
+  --input: #d7dce6;
+  --ring: #2f6fed;
+  --radius: 0.875rem;
+
+  --shadow-apple-card: 0 1px 2px rgba(17, 24, 39, 0.04),
+    0 4px 12px rgba(17, 24, 39, 0.06);
+  --shadow-apple-card-hover: 0 1px 2px rgba(17, 24, 39, 0.05),
+    0 8px 20px rgba(17, 24, 39, 0.1);
+  --shadow-neu-raised: 0 1px 2px rgba(17, 24, 39, 0.05),
+    0 2px 8px rgba(17, 24, 39, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-neu-pressed: inset 0 2px 4px rgba(17, 24, 39, 0.12),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.5);
+  --shadow-neu-inset: inset 0 1px 3px rgba(17, 24, 39, 0.08),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.9);
 }
 
 @theme inline {
@@ -43,6 +57,8 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -50,6 +66,11 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --shadow-apple: var(--shadow-apple-card);
+  --shadow-apple-hover: var(--shadow-apple-card-hover);
+  --shadow-neu-raised: var(--shadow-neu-raised);
+  --shadow-neu-pressed: var(--shadow-neu-pressed);
+  --shadow-neu-inset: var(--shadow-neu-inset);
 }
 
 @layer base {
@@ -63,7 +84,43 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-      "Microsoft YaHei", sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+      "SF Pro Display", "Segoe UI", "PingFang SC", "Microsoft YaHei",
+      sans-serif;
+    font-feature-settings: "ss01", "cv11";
+  }
+}
+
+@layer components {
+  .btn-neu {
+    @apply relative inline-flex items-center justify-center gap-1.5 rounded-md px-4 text-sm font-medium transition-all duration-150 ease-out;
+    box-shadow: var(--shadow-neu-raised);
+  }
+  .btn-neu:hover:not(:disabled) {
+    filter: brightness(1.02);
+  }
+  .btn-neu:active:not(:disabled) {
+    transform: scale(0.98);
+    box-shadow: var(--shadow-neu-pressed);
+  }
+  .btn-neu:disabled {
+    @apply cursor-not-allowed opacity-50;
+    box-shadow: var(--shadow-neu-inset);
+  }
+  .btn-neu:focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  .input-neu {
+    @apply h-9 w-full rounded-md bg-background px-3 text-sm transition-shadow duration-150;
+    box-shadow: var(--shadow-neu-inset);
+  }
+  .input-neu:focus {
+    @apply outline-none ring-2 ring-ring ring-offset-0;
+  }
+
+  .card-apple {
+    @apply rounded-lg bg-card;
+    box-shadow: var(--shadow-apple-card);
   }
 }
