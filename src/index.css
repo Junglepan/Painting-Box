@@ -285,21 +285,37 @@
       inset 0 -1px 0 rgba(255, 255, 255, 0.7);
   }
 
-  /* 浮块标签：凸起 + 系统字体（与区域标题一致）+ 居中 */
+  /* 浮块标签：Apple key-cap 质感 + 居中 */
   .label-raised {
-    @apply inline-flex items-center justify-center rounded-md
-      text-[11px] font-medium uppercase tracking-wider;
-    color: #4b5a78;
+    @apply relative inline-flex items-center justify-center rounded-md
+      text-[10px] font-semibold uppercase;
+    letter-spacing: 0.09em;
+    color: rgba(31, 41, 55, 0.72);
     background: linear-gradient(
       180deg,
-      rgba(247, 249, 253, 0.92) 0%,
-      rgba(233, 238, 247, 0.88) 100%
+      #ffffff 0%,
+      #f1f4fa 100%
     );
     box-shadow:
-      0 0 0 0.5px rgba(47, 111, 237, 0.08),
+      0 0 0 0.5px rgba(17, 24, 39, 0.08),
       0 1px 1px rgba(17, 24, 39, 0.04),
-      0 2px 6px rgba(47, 111, 237, 0.06),
-      inset 0 1px 0 rgba(255, 255, 255, 1);
+      0 3px 6px rgba(17, 24, 39, 0.05),
+      0 8px 20px rgba(17, 24, 39, 0.03),
+      inset 0 1px 0 rgba(255, 255, 255, 1),
+      inset 0 -1px 0 rgba(17, 24, 39, 0.05);
+  }
+  .label-raised::before {
+    content: "";
+    position: absolute;
+    inset: 1px 1px auto 1px;
+    height: 40%;
+    border-radius: calc(var(--radius) - 6px) calc(var(--radius) - 6px) 0 0;
+    background: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    pointer-events: none;
   }
 
   /* 数字微调输入 */
