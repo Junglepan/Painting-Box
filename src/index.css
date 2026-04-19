@@ -278,9 +278,9 @@
     @apply rounded px-1.5 py-0 text-[10px];
   }
 
-  /* 朴素小标签：Section 内上下结构的类别名，无背景降低视觉密度 */
+  /* 朴素小标签：Section 内变量类别，无背景降低视觉密度 */
   .label-plain {
-    @apply block text-[10px] font-semibold uppercase text-muted-foreground/75;
+    @apply text-[10px] font-semibold uppercase text-muted-foreground/75;
     letter-spacing: 0.1em;
   }
   .label-inset-active {
@@ -326,11 +326,13 @@
 
   /* 数字微调输入 */
   .num-input {
-    @apply h-7 w-14 rounded-md px-2 text-center text-[12px] tabular-nums text-foreground;
-    background: rgba(230, 234, 242, 0.55);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    box-shadow: var(--shadow-neu-inset);
+    @apply h-6 w-11 rounded-md px-1.5 text-center text-[11px] tabular-nums text-foreground;
+    background: rgba(230, 234, 242, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow:
+      inset 0 1px 2px rgba(17, 24, 39, 0.06),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.7);
     transition: box-shadow 180ms var(--ease-apple),
       background-color 180ms var(--ease-apple);
     font-feature-settings: "tnum", "ss01", "cv11";
@@ -375,7 +377,7 @@
     -webkit-appearance: none;
   }
   .range-neu::-webkit-slider-runnable-track {
-    height: 6px;
+    height: 5px;
     border-radius: 999px;
     background: linear-gradient(
       90deg,
@@ -385,59 +387,59 @@
       rgba(215, 220, 230, 0.7) 100%
     );
     box-shadow:
-      inset 0 1px 2px rgba(17, 24, 39, 0.12),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+      inset 0 1px 1.5px rgba(17, 24, 39, 0.1),
+      inset 0 -0.5px 0 rgba(255, 255, 255, 0.6);
   }
   .range-neu::-moz-range-track {
-    height: 6px;
+    height: 5px;
     border-radius: 999px;
     background: rgba(215, 220, 230, 0.7);
     box-shadow:
-      inset 0 1px 2px rgba(17, 24, 39, 0.12),
-      inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+      inset 0 1px 1.5px rgba(17, 24, 39, 0.1),
+      inset 0 -0.5px 0 rgba(255, 255, 255, 0.6);
   }
   .range-neu::-moz-range-progress {
-    height: 6px;
+    height: 5px;
     border-radius: 999px;
     background: var(--primary);
   }
   .range-neu::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border-radius: 999px;
-    margin-top: -4px;
+    margin-top: -3px;
     background: radial-gradient(
       circle at 35% 30%,
       #ffffff 0%,
-      #f3f5fa 55%,
-      #e2e7f0 100%
+      #f5f7fb 60%,
+      #e6ebf4 100%
     );
     box-shadow:
       0 0 0 0.5px rgba(17, 24, 39, 0.08),
-      0 1px 2px rgba(17, 24, 39, 0.18),
-      0 2px 6px rgba(17, 24, 39, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 1);
+      0 1px 1.5px rgba(17, 24, 39, 0.14),
+      0 1.5px 4px rgba(17, 24, 39, 0.08),
+      inset 0 0.5px 0 rgba(255, 255, 255, 1);
     transition: transform 120ms var(--ease-apple),
       box-shadow 160ms var(--ease-apple);
   }
   .range-neu::-moz-range-thumb {
-    width: 14px;
-    height: 14px;
+    width: 12px;
+    height: 12px;
     border: none;
     border-radius: 999px;
     background: radial-gradient(
       circle at 35% 30%,
       #ffffff 0%,
-      #f3f5fa 55%,
-      #e2e7f0 100%
+      #f5f7fb 60%,
+      #e6ebf4 100%
     );
     box-shadow:
       0 0 0 0.5px rgba(17, 24, 39, 0.08),
-      0 1px 2px rgba(17, 24, 39, 0.18),
-      0 2px 6px rgba(17, 24, 39, 0.1),
-      inset 0 1px 0 rgba(255, 255, 255, 1);
+      0 1px 1.5px rgba(17, 24, 39, 0.14),
+      0 1.5px 4px rgba(17, 24, 39, 0.08),
+      inset 0 0.5px 0 rgba(255, 255, 255, 1);
   }
   .range-neu:hover::-webkit-slider-thumb {
     transform: scale(1.08);

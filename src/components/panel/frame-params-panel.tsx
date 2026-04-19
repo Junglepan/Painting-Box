@@ -212,7 +212,7 @@ export function FrameParamsPanel() {
             />
           </div>
           <div className="mt-4">
-            <span className="label-plain mb-2">信息位置</span>
+            <span className="label-plain mb-2 block">信息位置</span>
             <div className="grid grid-cols-4 gap-1.5">
               {INFO_POS.map((p) => (
                 <button
@@ -355,7 +355,7 @@ export function FrameParamsPanel() {
             onChange={(v) => set({ fontSize: v })}
           />
           <div className="mb-3 mt-3">
-            <span className="label-plain mb-2">字重</span>
+            <span className="label-plain mb-2 block">字重</span>
             <div className="grid grid-cols-4 gap-1.5">
               {([400, 500, 600, 700] as const).map((w) => (
                 <button
@@ -395,7 +395,7 @@ export function FrameParamsPanel() {
             onChange={(v) => set({ textColor: v })}
           />
           <div className="mt-3">
-            <span className="label-plain mb-2">对齐</span>
+            <span className="label-plain mb-2 block">对齐</span>
             <div className="grid grid-cols-3 gap-1.5">
               {ALIGNS.map((a) => {
                 const Icon = a.icon;
@@ -440,7 +440,7 @@ export function FrameParamsPanel() {
             onChange={(v) => set({ logoGap: v })}
           />
           <div className="mt-3">
-            <span className="label-plain mb-2">颜色</span>
+            <span className="label-plain mb-2 block">颜色</span>
             <div className="grid grid-cols-3 gap-1.5">
               {LOGO_COLORS.map((l) => (
                 <button
@@ -608,7 +608,7 @@ function SliderRow({
             const n = Number(e.target.value);
             onChange(Number.isNaN(n) ? min : clamp(n));
           }}
-          className="num-input h-6 w-11 px-1 text-[11px]"
+          className="num-input"
         />
         {unit ? (
           <span className="pointer-events-none absolute right-1 text-[9px] text-muted-foreground">
@@ -631,7 +631,7 @@ function ColorRow({
 }) {
   return (
     <label className="flex items-center justify-between gap-2 py-1">
-      <span className="label-inset">{label}</span>
+      <span className="label-plain">{label}</span>
       <div className="flex items-center gap-1.5">
         <input
           type="color"
