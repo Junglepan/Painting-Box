@@ -277,6 +277,12 @@
   .label-inset-sm {
     @apply rounded px-1.5 py-0 text-[10px];
   }
+
+  /* 朴素小标签：Section 内上下结构的类别名，无背景降低视觉密度 */
+  .label-plain {
+    @apply block text-[10px] font-semibold uppercase text-muted-foreground/75;
+    letter-spacing: 0.1em;
+  }
   .label-inset-active {
     @apply text-primary;
     background: rgba(221, 231, 255, 0.7);

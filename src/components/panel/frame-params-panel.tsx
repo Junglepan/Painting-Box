@@ -211,8 +211,8 @@ export function FrameParamsPanel() {
               onChange={(v) => set({ infoBarHeight: v })}
             />
           </div>
-          <div className="mt-3">
-            <span className="label-inset mb-1.5">信息位置</span>
+          <div className="mt-4">
+            <span className="label-plain mb-2">信息位置</span>
             <div className="grid grid-cols-4 gap-1.5">
               {INFO_POS.map((p) => (
                 <button
@@ -354,8 +354,8 @@ export function FrameParamsPanel() {
             value={frameParams.fontSize}
             onChange={(v) => set({ fontSize: v })}
           />
-          <div className="mb-2 mt-2">
-            <span className="label-inset mb-1.5">字重</span>
+          <div className="mb-3 mt-3">
+            <span className="label-plain mb-2">字重</span>
             <div className="grid grid-cols-4 gap-1.5">
               {([400, 500, 600, 700] as const).map((w) => (
                 <button
@@ -394,8 +394,8 @@ export function FrameParamsPanel() {
             value={frameParams.textColor}
             onChange={(v) => set({ textColor: v })}
           />
-          <div className="mt-2">
-            <span className="label-inset mb-1.5">对齐</span>
+          <div className="mt-3">
+            <span className="label-plain mb-2">对齐</span>
             <div className="grid grid-cols-3 gap-1.5">
               {ALIGNS.map((a) => {
                 const Icon = a.icon;
@@ -439,8 +439,8 @@ export function FrameParamsPanel() {
             value={frameParams.logoGap}
             onChange={(v) => set({ logoGap: v })}
           />
-          <div className="mt-2">
-            <span className="label-inset mb-1.5">颜色</span>
+          <div className="mt-3">
+            <span className="label-plain mb-2">颜色</span>
             <div className="grid grid-cols-3 gap-1.5">
               {LOGO_COLORS.map((l) => (
                 <button
@@ -528,7 +528,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-b border-border/40 py-2 last:border-b-0">
+    <div className="border-b border-border/40 py-2.5 last:border-b-0">
       <button
         type="button"
         onClick={() => onToggle(id)}
@@ -550,7 +550,7 @@ function Section({
           )}
         />
       </button>
-      {open ? <div className="mt-1.5 pb-1">{children}</div> : null}
+      {open ? <div className="mt-2.5 pb-1.5">{children}</div> : null}
     </div>
   );
 }
