@@ -285,13 +285,10 @@
       inset 0 -1px 0 rgba(255, 255, 255, 0.7);
   }
 
-  /* 浮块标签：凸起 + 衬线字体 + 居中，用于滑条左侧参数名称 */
+  /* 浮块标签：凸起 + 系统字体（与区域标题一致）+ 居中 */
   .label-raised {
     @apply inline-flex items-center justify-center rounded-md
-      text-[12px] italic tracking-[0.03em];
-    font-family: "New York", "SF Pro", ui-serif, "Iowan Old Style",
-      "Apple Garamond", Georgia, "Songti SC", "STSong", serif;
-    font-weight: 500;
+      text-[11px] font-medium uppercase tracking-wider;
     color: #4b5a78;
     background: linear-gradient(
       180deg,
