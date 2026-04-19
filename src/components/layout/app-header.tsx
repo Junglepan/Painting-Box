@@ -1,4 +1,4 @@
-import { Camera, Download, Settings2 } from "lucide-react";
+import { Camera, Settings2 } from "lucide-react";
 
 export function AppHeader() {
   return (
@@ -18,14 +18,6 @@ export function AppHeader() {
           className="btn-neu h-8 w-8 px-0"
         >
           <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-        </button>
-        <button
-          type="button"
-          aria-label="导出"
-          disabled
-          className="btn-primary h-8 w-8 px-0"
-        >
-          <Download className="h-3.5 w-3.5" />
         </button>
       </div>
     </header>
