@@ -580,7 +580,7 @@ function SliderRow({
 
   return (
     <div className="flex items-center gap-2 py-1">
-      <span className="w-10 shrink-0 text-center text-[11px] font-medium text-muted-foreground">
+      <span className="w-10 shrink-0 text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/75">
         {hint}
       </span>
       <input

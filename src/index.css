@@ -280,8 +280,7 @@
 
   /* 朴素小标签：Section 内变量类别，无背景降低视觉密度 */
   .label-plain {
-    @apply text-[10px] font-semibold uppercase text-muted-foreground/75;
-    letter-spacing: 0.1em;
+    @apply text-[11px] font-medium text-muted-foreground;
   }
   .label-inset-active {
     @apply text-primary;
