@@ -285,18 +285,23 @@
       inset 0 -1px 0 rgba(255, 255, 255, 0.7);
   }
 
-  /* 浮块标签：凸起 + Apple 字体 + 居中，用于滑条左侧参数名称 */
+  /* 浮块标签：凸起 + 衬线字体 + 居中，用于滑条左侧参数名称 */
   .label-raised {
     @apply inline-flex items-center justify-center rounded-md
-      text-[11px] font-medium tracking-[0.02em] text-foreground;
-    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded",
-      "SF Pro Display", "SF Pro Text", "PingFang SC", sans-serif;
-    font-feature-settings: "ss01", "cv11";
-    background: linear-gradient(180deg, #ffffff 0%, #f3f5fa 100%);
+      text-[12px] italic tracking-[0.03em];
+    font-family: "New York", "SF Pro", ui-serif, "Iowan Old Style",
+      "Apple Garamond", Georgia, "Songti SC", "STSong", serif;
+    font-weight: 500;
+    color: #4b5a78;
+    background: linear-gradient(
+      180deg,
+      rgba(247, 249, 253, 0.92) 0%,
+      rgba(233, 238, 247, 0.88) 100%
+    );
     box-shadow:
-      0 0 0 0.5px rgba(17, 24, 39, 0.05),
+      0 0 0 0.5px rgba(47, 111, 237, 0.08),
       0 1px 1px rgba(17, 24, 39, 0.04),
-      0 2px 4px rgba(17, 24, 39, 0.06),
+      0 2px 6px rgba(47, 111, 237, 0.06),
       inset 0 1px 0 rgba(255, 255, 255, 1);
   }
 
