@@ -639,7 +639,7 @@ function ColorRow({
           onChange={(e) => onChange(e.target.value)}
           className="h-6 w-8 cursor-pointer rounded-md border border-border/60 bg-transparent p-0.5"
         />
-        <span className="font-mono text-[10px] tabular-nums uppercase text-muted-foreground">
+        <span className="text-[10px] font-medium tabular-nums uppercase text-muted-foreground/70">
           {value}
         </span>
       </div>

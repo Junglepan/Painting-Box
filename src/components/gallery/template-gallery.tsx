@@ -12,7 +12,7 @@ export function TemplateGallery() {
       <div className="flex h-8 shrink-0 items-center gap-1.5 px-4 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
         <Layers className="h-3.5 w-3.5" />
         <span>模板库</span>
-        <span className="ml-1 text-[10px] normal-case tracking-normal text-muted-foreground/70">
+        <span className="ml-0.5 text-[10px] font-medium tabular-nums normal-case tracking-normal text-muted-foreground/70">
           {TEMPLATE_LIBRARY.length}
         </span>
       </div>

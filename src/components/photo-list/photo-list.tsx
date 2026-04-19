@@ -8,9 +8,11 @@ export function PhotoList() {
   return (
     <div className="flex h-full w-full flex-col">
       <div className="flex h-10 shrink-0 items-center justify-between px-3">
-        <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          <Images className="h-3.5 w-3.5" />
-          <span>{photos.length}</span>
+        <div className="flex items-center gap-1.5">
+          <Images className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-[10px] font-medium tabular-nums text-muted-foreground/70">
+            {photos.length}
+          </span>
         </div>
         <button
           type="button"
