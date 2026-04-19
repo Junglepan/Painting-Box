@@ -263,14 +263,60 @@
     @apply flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground;
   }
 
+  /* 下凹 pill：分组标题 / 小标签 */
+  .label-inset {
+    @apply inline-flex items-center gap-1.5 rounded-md px-2 py-0.5
+      text-[11px] font-medium tracking-[0.04em] text-muted-foreground;
+    background: rgba(230, 234, 242, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    box-shadow:
+      inset 0 1px 2px rgba(17, 24, 39, 0.08),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.7);
+  }
+  .label-inset-sm {
+    @apply rounded px-1.5 py-0 text-[10px];
+  }
+  .label-inset-active {
+    @apply text-primary;
+    background: rgba(221, 231, 255, 0.7);
+    box-shadow:
+      inset 0 1px 2px rgba(47, 111, 237, 0.12),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  /* 浮块标签：凸起 + Apple 字体 + 居中，用于滑条左侧参数名称 */
+  .label-raised {
+    @apply inline-flex items-center justify-center rounded-md
+      text-[11px] font-medium tracking-[0.02em] text-foreground;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded",
+      "SF Pro Display", "SF Pro Text", "PingFang SC", sans-serif;
+    font-feature-settings: "ss01", "cv11";
+    background: linear-gradient(180deg, #ffffff 0%, #f3f5fa 100%);
+    box-shadow:
+      0 0 0 0.5px rgba(17, 24, 39, 0.05),
+      0 1px 1px rgba(17, 24, 39, 0.04),
+      0 2px 4px rgba(17, 24, 39, 0.06),
+      inset 0 1px 0 rgba(255, 255, 255, 1);
+  }
+
   /* 数字微调输入 */
   .num-input {
-    @apply h-7 w-14 rounded-md bg-background px-2 text-center text-[12px] tabular-nums text-foreground;
+    @apply h-7 w-14 rounded-md px-2 text-center text-[12px] tabular-nums text-foreground;
+    background: rgba(230, 234, 242, 0.55);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     box-shadow: var(--shadow-neu-inset);
-    transition: box-shadow 180ms var(--ease-apple);
+    transition: box-shadow 180ms var(--ease-apple),
+      background-color 180ms var(--ease-apple);
+    font-feature-settings: "tnum", "ss01", "cv11";
+  }
+  .num-input:hover {
+    background: rgba(230, 234, 242, 0.75);
   }
   .num-input:focus {
     @apply outline-none ring-2 ring-ring/50;
+    background: rgba(255, 255, 255, 0.7);
   }
   .num-input::-webkit-inner-spin-button,
   .num-input::-webkit-outer-spin-button {

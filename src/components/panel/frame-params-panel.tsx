@@ -580,9 +580,7 @@ function SliderRow({
 
   return (
     <div className="flex items-center gap-2 py-1">
-      <span className="label-inset label-inset-sm w-10 shrink-0 justify-center">
-        {hint}
-      </span>
+      <span className="label-raised h-6 w-10 shrink-0">{hint}</span>
       <input
         type="range"
         min={min}
