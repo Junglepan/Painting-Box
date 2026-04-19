@@ -1,6 +1,7 @@
 import { normalizeModel } from "@/lib/exif/brand";
 import { resolveLogoSelection } from "@/lib/exif/logo";
 import type { ExifData, FrameParams, TemplateConfig } from "@/stores/types";
+import { getWatermarkPlacement } from "./template-layout";
 
 type PreviewData = {
   width: number;
@@ -10,6 +11,9 @@ type PreviewData = {
 };
 
 const LOGO_VISUAL_SCALE = 1.18;
+const LOGO_FONT_SCALE_BASE = 20;
+const BASELINE_ASCENT_RATIO = 0.8;
+const LOGO_BASELINE_OFFSET_RATIO = 0;
 
 export function drawClassicBottomPreview(
   canvas: HTMLCanvasElement,
@@ -27,23 +31,22 @@ export function drawClassicBottomPreview(
   const scale = baseWidth / photo.width;
   const topBottomMargin = baseWidth * (frameParams.minTopBottomMargin / 100);
   const textLines = buildPreviewLines(photo.exif, config);
-  const textGap = Math.max(2, baseWidth * (frameParams.textMargin / 100));
   const primaryFontSize = Math.max(16, frameParams.fontSize * 1.18);
   const secondaryFontSize = Math.max(13, frameParams.fontSize * 0.96);
-  const extraLineGap = Math.max(8, textGap * 1.8);
+  const extraLineGap = 8;
   const textBlockHeight = textLines.reduce((acc, _line, index) => {
     const size = index === 0 ? primaryFontSize : secondaryFontSize;
     return acc + size + (index === 0 ? 0 : extraLineGap);
   }, 0);
+  const minInfoBarHeight = textBlockHeight + 12;
   const infoBarHeight = Math.max(
     frameParams.infoBarHeight * scale,
-    textBlockHeight + topBottomMargin * 1.2,
+    minInfoBarHeight,
   );
-  const barHeight = infoBarHeight + topBottomMargin;
   const canvasRatio = getCanvasRatio(frameParams.canvasRatio, photo.width, photo.height);
   const canvasHeight = baseWidth / canvasRatio;
-  const barTop = canvasHeight - barHeight;
-  const availableHeight = Math.max(1, barTop - topBottomMargin);
+  const barTop = canvasHeight - infoBarHeight;
+  const availableHeight = Math.max(1, barTop - topBottomMargin * 2);
   const naturalWidth = baseWidth * (frameParams.mainImageWidthRatio / 100);
   const naturalHeight = (photo.height * naturalWidth) / photo.width;
   const fitScale = Math.min(1, availableHeight / naturalHeight);
@@ -63,8 +66,7 @@ export function drawClassicBottomPreview(
   ctx.clearRect(0, 0, contentWidth, contentHeight);
 
   ctx.fillStyle = backgroundFill(frameParams);
-  roundRect(ctx, 0, 0, contentWidth, contentHeight, frameParams.outerRadius * scale);
-  ctx.fill();
+  ctx.fillRect(0, 0, contentWidth, contentHeight);
 
   // Shadow is cast by a filled shape drawn BEFORE the clipped image so it's
   // visible outside the photo bounds. The fill is then covered by the image.
@@ -72,7 +74,7 @@ export function drawClassicBottomPreview(
     ctx.save();
     ctx.shadowColor = `rgba(17,24,39,${frameParams.shadowOpacity / 100})`;
     ctx.shadowBlur = frameParams.shadowBlur;
-    ctx.shadowOffsetY = frameParams.shadowOffsetY;
+    ctx.shadowOffsetY = imageDrawHeight * (frameParams.shadowOffsetY / 100);
     ctx.fillStyle = "#000000";
     roundRect(ctx, imageX, imageY, imageDrawWidth, imageDrawHeight, frameParams.innerRadius * scale);
     ctx.fill();
@@ -117,15 +119,27 @@ export function drawClassicBottomPreview(
 
   const left = 24 * scale;
   const right = contentWidth - 24 * scale;
-  const centerY = barTop + infoBarHeight / 2;
   const totalTextHeight = textLines.reduce((acc, _line, index) => {
     const size = index === 0 ? primaryFontSize : secondaryFontSize;
     return acc + size + (index === 0 ? 0 : extraLineGap);
   }, 0);
-  const blockTop = centerY - totalTextHeight / 2;
+  const watermarkTopPadding = Number.isFinite(frameParams.watermarkTopPadding)
+    ? frameParams.watermarkTopPadding
+    : 8;
+  const watermarkBottomPadding = Number.isFinite(frameParams.watermarkBottomPadding)
+    ? frameParams.watermarkBottomPadding
+    : 8;
+  const watermarkTopPaddingPx = (infoBarHeight * watermarkTopPadding) / 100;
+  const watermarkBottomPaddingPx = (infoBarHeight * watermarkBottomPadding) / 100;
+  const preferredTop = barTop + watermarkTopPaddingPx;
+  const maxTop = Math.max(
+    barTop,
+    barTop + infoBarHeight - totalTextHeight - watermarkBottomPaddingPx,
+  );
+  const blockTop = Math.min(Math.max(barTop, preferredTop), maxTop);
 
   ctx.fillStyle = frameParams.textColor;
-  ctx.textBaseline = "middle";
+  ctx.textBaseline = "alphabetic";
 
   const textStart = left;
   let cursorY = blockTop;
@@ -134,54 +148,44 @@ export function drawClassicBottomPreview(
     const fontSize = firstLine ? primaryFontSize : secondaryFontSize;
     const weight = 700;
     if (index > 0) cursorY += extraLineGap;
-    const y = cursorY + fontSize / 2;
+    const y = cursorY + fontSize * BASELINE_ASCENT_RATIO;
     ctx.font = `${weight} ${fontSize}px ${getPreviewFontFamily(frameParams.fontFamily)}`;
     const metrics = ctx.measureText(line);
+    const logoFontScale = Math.max(0.5, fontSize / LOGO_FONT_SCALE_BASE);
     const logoInline =
       firstLine && logoImage
-        ? calcLogoInline(logoImage, frameParams.logoSize * LOGO_VISUAL_SCALE)
+        ? calcLogoInline(
+            logoImage,
+            frameParams.logoSize * LOGO_VISUAL_SCALE * logoFontScale,
+          )
         : null;
     const inlineWidth = metrics.width + (logoInline ? logoInline.width + frameParams.logoGap * scale : 0);
-    // textBaseline="middle" aligns to em-square center; actual glyph visual center differs.
-    // Offset logo to match where glyphs are actually rendered.
-    const logoY = logoInline
-      ? y + (metrics.actualBoundingBoxDescent - metrics.actualBoundingBoxAscent) / 2
+    // Strict baseline alignment: icon bottom follows text baseline exactly.
+    const logoTop = logoInline
+      ? y + fontSize * LOGO_BASELINE_OFFSET_RATIO - logoInline.height
       : y;
 
-    if (frameParams.textAlign === "right") {
-      ctx.textAlign = "right";
-      const textX = right;
-      if (logoInline && logoImage) {
-        const logoX = textX - inlineWidth;
-        drawLogoInline(ctx, logoImage, logoInline, logoX, logoY);
-      }
-      ctx.fillText(line, textX, y);
-      cursorY += fontSize;
-      return;
-    }
-    if (frameParams.textAlign === "center") {
+    const placement = getWatermarkPlacement("classic-bottom");
+    const centerX = (textStart + right) / 2;
+    if (placement !== "center") {
+      // Placeholder branch for future template placement strategies.
       ctx.textAlign = "center";
-      const centerX = (textStart + right) / 2;
-      if (logoInline && logoImage) {
-        const inlineStart = centerX - inlineWidth / 2;
-        drawLogoInline(ctx, logoImage, logoInline, inlineStart, logoY);
-        ctx.textAlign = "left";
-        ctx.fillText(line, inlineStart + logoInline.width + frameParams.logoGap * scale, y);
-        cursorY += fontSize;
-        return;
-      }
       ctx.fillText(line, centerX, y);
       cursorY += fontSize;
       return;
     }
-    ctx.textAlign = "left";
+
+    // Classic bottom template currently uses centered watermark layout.
+    ctx.textAlign = "center";
     if (logoInline && logoImage) {
-      drawLogoInline(ctx, logoImage, logoInline, textStart, logoY);
-      ctx.fillText(line, textStart + logoInline.width + frameParams.logoGap * scale, y);
+      const inlineStart = centerX - inlineWidth / 2;
+      drawLogoInline(ctx, logoImage, logoInline, inlineStart, logoTop);
+      ctx.textAlign = "left";
+      ctx.fillText(line, inlineStart + logoInline.width + frameParams.logoGap * scale, y);
       cursorY += fontSize;
       return;
     }
-    ctx.fillText(line, textStart, y);
+    ctx.fillText(line, centerX, y);
     cursorY += fontSize;
   });
 }
@@ -294,7 +298,7 @@ function drawLogoInline(
   image: HTMLImageElement,
   size: { width: number; height: number },
   x: number,
-  centerY: number,
+  topY: number,
 ) {
-  ctx.drawImage(image, x, centerY - size.height / 2, size.width, size.height);
+  ctx.drawImage(image, x, topY, size.width, size.height);
 }

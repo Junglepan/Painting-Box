@@ -24,7 +24,7 @@ describe("classic bottom preview lines", () => {
         showLens: true,
         showParams: true,
       }),
-    ).toEqual(["ℤ 7 II", "NIKKOR Z 70-200mm f/2.8 VR S", "200mm f/2.8 1/1250 s ISO100"]);
+    ).toEqual(["Z 7II", "NIKKOR Z 70-200mm f/2.8 VR S", "200mm f/2.8 1/1250 s ISO100"]);
   });
 
   test("uses PingFang SC as the default preview font family", () => {

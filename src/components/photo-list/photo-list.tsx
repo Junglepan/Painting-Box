@@ -5,11 +5,12 @@ import { exportSinglePhoto } from "@/lib/tauri/photos";
 import { IMPORT_EXTENSIONS } from "@/lib/import/accept";
 import { createImportedPhotos } from "@/lib/import/records";
 import { useExportStore } from "@/stores/export-store";
-import type { ExportJob, Photo } from "@/stores/types";
+import type { ExifData, ExportJob, Photo } from "@/stores/types";
 import {
   AlertCircle,
   CheckCircle2,
   CircleSlash,
+  Copy,
   Download,
   Eye,
   EyeOff,
@@ -41,6 +42,8 @@ export function PhotoList() {
   const [format, setFormat] = useState<ExportFormat>("jpg");
   const [quality, setQuality] = useState(92);
   const [exporting, setExporting] = useState(false);
+  const [copyingId, setCopyingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -137,6 +140,22 @@ export function PhotoList() {
     }
   };
 
+  const copyExif = async (photo: Photo) => {
+    if (copyingId === photo.id || photo.exifStatus !== "ready" || !photo.exif) return;
+    try {
+      setCopyingId(photo.id);
+      await navigator.clipboard.writeText(formatExifForCopy(photo.path, photo.exif));
+      setCopiedId(photo.id);
+      window.setTimeout(() => {
+        setCopiedId((current) => (current === photo.id ? null : current));
+      }, 1400);
+    } catch {
+      // Clipboard errors should not override EXIF parsing status.
+    } finally {
+      setCopyingId((current) => (current === photo.id ? null : current));
+    }
+  };
+
   return (
     <div className="flex h-full w-full flex-col">
       <div className="flex h-10 shrink-0 items-center justify-between px-3">
@@ -226,6 +245,9 @@ export function PhotoList() {
                 const exportState = getExportState(
                   jobs.filter((job) => job.photoId === p.id),
                 );
+                const hasExifInfo = hasExifContent(p.exif);
+                const exifUnavailable = p.exifStatus === "error" || (p.exifStatus === "ready" && !hasExifInfo);
+                const copyDisabled = copyingId === p.id || p.exifStatus !== "ready" || !hasExifInfo;
                 return (
                   <li key={p.id}>
                     <div
@@ -260,7 +282,33 @@ export function PhotoList() {
                             tone={exportState.tone}
                             kind="export"
                           />
+                          {exifUnavailable ? (
+                            <span className="inline-flex rounded-full border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">
+                              无信息
+                            </span>
+                          ) : null}
                         </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void copyExif(p)}
+                        aria-label={`复制 ${name} 的 EXIF`}
+                        title={copiedId === p.id ? "已复制 EXIF" : "复制 EXIF"}
+                        className={cn(
+                          "btn-neu h-6 w-6 shrink-0 px-0",
+                          copyDisabled && "opacity-45",
+                          copiedId === p.id &&
+                            "border-emerald-500/40 text-emerald-700 shadow-[var(--ring-selected)]",
+                        )}
+                        disabled={copyDisabled}
+                      >
+                        {copyingId === p.id ? (
+                          <LoaderCircle className="h-3 w-3 animate-spin text-muted-foreground" />
+                        ) : copiedId === p.id ? (
+                          <CheckCircle2 className="h-3 w-3 text-emerald-700" />
+                        ) : (
+                          <Copy className="h-3 w-3 text-muted-foreground" />
+                        )}
                       </button>
                       <button
                         type="button"
@@ -280,6 +328,42 @@ export function PhotoList() {
         </div>
       </div>
     </div>
+  );
+}
+
+function formatExifForCopy(path: string, exif: ExifData) {
+  const params = [
+    exif.focalLength ? `${exif.focalLength}mm` : "",
+    exif.aperture ? `f/${exif.aperture}` : "",
+    exif.shutterSpeed,
+    exif.iso ? `ISO${exif.iso}` : "",
+  ]
+    .filter(Boolean)
+    .join("  ");
+  const gps = exif.gps ? `${exif.gps.lat}, ${exif.gps.lng}` : "";
+  return [
+    `文件: ${path}`,
+    `机身: ${[exif.camera.make, exif.camera.model].filter(Boolean).join(" ").trim()}`,
+    `镜头: ${exif.lens || "-"}`,
+    `参数: ${params || "-"}`,
+    `时间: ${exif.takenAt || "-"}`,
+    `GPS: ${gps || "-"}`,
+  ].join("\n");
+}
+
+function hasExifContent(exif?: ExifData) {
+  if (!exif) return false;
+  const camera = [exif.camera.make, exif.camera.model].filter(Boolean).join(" ").trim();
+  const hasGps = !!exif.gps;
+  return Boolean(
+    camera ||
+      exif.lens ||
+      exif.focalLength ||
+      exif.aperture ||
+      exif.shutterSpeed ||
+      exif.iso ||
+      exif.takenAt ||
+      hasGps,
   );
 }
 

@@ -15,7 +15,7 @@ type TemplateState = {
 };
 
 const defaultConfig: TemplateConfig = {
-  showLogo: false,
+  showLogo: true,
   showCamera: true,
   showLens: false,
   showParams: true,
@@ -27,12 +27,14 @@ const defaultFrameParams: FrameParams = {
   paddingBottom: 3,
   paddingLeft: 7,
   paddingLocked: false,
-  outerRadius: 12,
+  outerRadius: 0,
   innerRadius: 16,
-  infoBarHeight: 86,
-  mainImageWidthRatio: 90,
-  minTopBottomMargin: 3.2,
-  textMargin: 0.4,
+  infoBarHeight: 72,
+  mainImageWidthRatio: 85,
+  minTopBottomMargin: 2.4,
+  textMargin: 0,
+  watermarkTopPadding: 2,
+  watermarkBottomPadding: 8,
 
   background: "white",
   bgColor: "#ffffff",
@@ -40,8 +42,8 @@ const defaultFrameParams: FrameParams = {
 
   shadow: true,
   shadowBlur: 20,
-  shadowOffsetY: 8,
-  shadowOpacity: 15,
+  shadowOffsetY: 0.06,
+  shadowOpacity: 100,
 
   photoScale: 100,
   photoBorder: 0,
@@ -49,7 +51,6 @@ const defaultFrameParams: FrameParams = {
   fontFamily: "pingfang-sc",
   fontSize: 20,
   textColor: "#1f2937",
-  textAlign: "center",
 
   logoSize: 20,
   logoKey: "",
@@ -65,14 +66,59 @@ const defaultFrameParams: FrameParams = {
   infoPosition: "bottom",
 };
 
+type TemplateBaseState = {
+  config: TemplateConfig;
+  frameParams: FrameParams;
+};
+
+function createTemplateBase(
+  frameOverrides: Partial<FrameParams> = {},
+  configOverrides: Partial<TemplateConfig> = {},
+): TemplateBaseState {
+  return {
+    config: { ...defaultConfig, ...configOverrides },
+    frameParams: { ...defaultFrameParams, ...frameOverrides },
+  };
+}
+
+const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
+  "classic-bottom": createTemplateBase(),
+  polaroid: createTemplateBase(),
+  "minimal-corner": createTemplateBase(),
+  magazine: createTemplateBase(),
+  "film-strip": createTemplateBase(),
+  "full-frame": createTemplateBase(),
+  leica: createTemplateBase(),
+  poster: createTemplateBase(),
+  "square-social": createTemplateBase(),
+  xpan: createTemplateBase(),
+  "minimal-blank": createTemplateBase(),
+  custom: createTemplateBase(),
+};
+
+function getTemplateBase(kind: TemplateKind): TemplateBaseState {
+  const base = TEMPLATE_BASES[kind];
+  return {
+    config: { ...base.config },
+    frameParams: { ...base.frameParams },
+  };
+}
+
 export const useTemplateStore = create<TemplateState>()(
   persist(
     (set) => ({
       currentKind: "classic-bottom",
-      config: defaultConfig,
-      frameParams: defaultFrameParams,
+      config: getTemplateBase("classic-bottom").config,
+      frameParams: getTemplateBase("classic-bottom").frameParams,
       fieldOverrides: {},
-      setKind: (kind) => set({ currentKind: kind }),
+      setKind: (kind) => {
+        const base = getTemplateBase(kind);
+        set({
+          currentKind: kind,
+          config: base.config,
+          frameParams: base.frameParams,
+        });
+      },
       setConfig: (partial) =>
         set((s) => ({ config: { ...s.config, ...partial } })),
       setFrameParams: (partial) =>
@@ -103,12 +149,25 @@ export const useTemplateStore = create<TemplateState>()(
           }
           return { frameParams: { ...s.frameParams, ...partial } };
         }),
-      resetFrameParams: () => set({ frameParams: defaultFrameParams }),
+      resetFrameParams: () =>
+        set((s) => ({ frameParams: getTemplateBase(s.currentKind).frameParams })),
       setFieldOverride: (field, value) =>
         set((s) => ({ fieldOverrides: { ...s.fieldOverrides, [field]: value } })),
     }),
     {
       name: "painting-box-template-config",
+      version: 2,
+      merge: (persisted, current) => {
+        const next = persisted as Partial<TemplateState> | undefined;
+        const base = current as TemplateState;
+        return {
+          ...base,
+          ...next,
+          config: { ...base.config, ...(next?.config ?? {}) },
+          frameParams: { ...base.frameParams, ...(next?.frameParams ?? {}) },
+          fieldOverrides: { ...base.fieldOverrides, ...(next?.fieldOverrides ?? {}) },
+        };
+      },
       partialize: (state) => ({
         currentKind: state.currentKind,
         config: state.config,

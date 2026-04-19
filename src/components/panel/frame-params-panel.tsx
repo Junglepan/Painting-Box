@@ -6,10 +6,8 @@ import type {
   ExifData,
   FrameBackground,
   FrameParams,
-  InfoPosition,
   LogoVariant,
   TemplateConfig,
-  TextAlign,
   WatermarkFontFamily,
 } from "@/stores/types";
 import { cn } from "@/lib/utils";
@@ -20,9 +18,6 @@ import {
   resolveLogoSelection,
 } from "@/lib/exif/logo";
 import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
   Aperture,
   Bold,
   Camera,
@@ -52,22 +47,9 @@ const BG_OPTIONS: { value: FrameBackground; label: string; swatch: string }[] =
     { value: "custom", label: "自定", swatch: "repeating-conic-gradient(#d7dce6 0 25%,#fff 0 50%) 0 0/8px 8px" },
   ];
 
-const ALIGNS: { value: TextAlign; icon: LucideIcon }[] = [
-  { value: "left", icon: AlignLeft },
-  { value: "center", icon: AlignCenter },
-  { value: "right", icon: AlignRight },
-];
-
 const FONT_FAMILIES: { value: WatermarkFontFamily; label: string }[] = [
   { value: "pingfang-sc", label: "PingFang SC" },
   { value: "arial", label: "Arial" },
-];
-
-const INFO_POS: { value: InfoPosition; label: string }[] = [
-  { value: "bottom", label: "底" },
-  { value: "top", label: "顶" },
-  { value: "bottom-left", label: "左下" },
-  { value: "bottom-right", label: "右下" },
 ];
 
 const CANVAS_RATIOS: { value: CanvasRatio; label: string }[] = [
@@ -204,72 +186,41 @@ export function FrameParamsPanel() {
               ))}
             </div>
           </div>
-          <SliderRow
-            hint="主图占比"
-            min={70}
-            max={100}
-            step={1}
-            value={frameParams.mainImageWidthRatio}
-            unit="%"
-            onChange={(v) => set({ mainImageWidthRatio: v })}
-          />
-          <SliderRow
-            hint="上下边距"
-            min={0}
-            max={12}
-            step={0.2}
-            value={frameParams.minTopBottomMargin}
-            unit="%"
-            onChange={(v) => set({ minTopBottomMargin: v })}
-          />
-          <SliderRow
-            hint="文本间距"
-            min={0}
-            max={3}
-            step={0.1}
-            value={frameParams.textMargin}
-            onChange={(v) => set({ textMargin: v })}
-          />
-          <div className="mt-3 space-y-1.5">
+          <div className="space-y-1.5">
             <SliderRow
-              hint="外圆角"
+              hint="主图占比"
+              min={70}
+              max={85}
+              step={1}
+              value={frameParams.mainImageWidthRatio}
+              unit="%"
+              onChange={(v) => set({ mainImageWidthRatio: v })}
+            />
+            <SliderRow
+              hint="水印顶距"
               min={0}
-              max={48}
-              value={frameParams.outerRadius}
-              onChange={(v) => set({ outerRadius: v })}
+              max={5}
+              step={0.5}
+              value={frameParams.watermarkTopPadding}
+              unit="%"
+              onChange={(v) => set({ watermarkTopPadding: v })}
+            />
+            <SliderRow
+              hint="水印底距"
+              min={5}
+              max={15}
+              step={0.5}
+              value={frameParams.watermarkBottomPadding}
+              unit="%"
+              onChange={(v) => set({ watermarkBottomPadding: v })}
             />
             <SliderRow
               hint="内圆角"
               min={0}
-              max={32}
+              max={200}
               value={frameParams.innerRadius}
               onChange={(v) => set({ innerRadius: v })}
             />
-            <SliderRow
-              hint="底栏"
-              min={0}
-              max={240}
-              value={frameParams.infoBarHeight}
-              onChange={(v) => set({ infoBarHeight: v })}
-            />
-          </div>
-          <div className="mt-4">
-            <span className="label-plain mb-2 block">信息位置</span>
-            <div className="grid grid-cols-4 gap-1.5">
-              {INFO_POS.map((p) => (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => set({ infoPosition: p.value })}
-                  className={cn(
-                    "chip text-[10px]",
-                    frameParams.infoPosition === p.value && "chip-active",
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
           </div>
         </Section>
 
@@ -342,14 +293,16 @@ export function FrameParamsPanel() {
               <SliderRow
                 hint="偏移"
                 min={0}
-                max={30}
+                max={2}
+                step={0.01}
                 value={frameParams.shadowOffsetY}
+                unit="%"
                 onChange={(v) => set({ shadowOffsetY: v })}
               />
               <SliderRow
                 hint="浓度"
                 min={0}
-                max={80}
+                max={100}
                 value={frameParams.shadowOpacity}
                 unit="%"
                 onChange={(v) => set({ shadowOpacity: v })}
@@ -399,28 +352,6 @@ export function FrameParamsPanel() {
             value={frameParams.textColor}
             onChange={(v) => set({ textColor: v })}
           />
-          <div className="mt-3">
-            <span className="label-plain mb-2 block">对齐</span>
-            <div className="grid grid-cols-3 gap-1.5">
-              {ALIGNS.map((a) => {
-                const Icon = a.icon;
-                return (
-                  <button
-                    key={a.value}
-                    type="button"
-                    onClick={() => set({ textAlign: a.value })}
-                    aria-label={a.value}
-                    className={cn(
-                      "chip",
-                      frameParams.textAlign === a.value && "chip-active",
-                    )}
-                  >
-                    <Icon className="h-3 w-3" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
         </Section>
 
         <Section
@@ -617,15 +548,16 @@ function SliderRow({
   unit?: string;
   onChange: (v: number) => void;
 }) {
+  const safeValue = Number.isFinite(value) ? value : min;
   const clamp = (v: number) => Math.min(max, Math.max(min, v));
   const isInt = Number.isInteger(step);
-  const display = isInt ? String(value) : value.toFixed(1);
+  const display = isInt ? String(safeValue) : safeValue.toFixed(1);
 
-  const pct = ((value - min) / (max - min)) * 100;
+  const pct = ((safeValue - min) / (max - min)) * 100;
 
   return (
     <div className="flex items-center gap-2 py-1">
-      <span className="w-10 shrink-0 text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/75">
+      <span className="w-12 shrink-0 whitespace-nowrap text-center text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/75">
         {hint}
       </span>
       <input
@@ -633,7 +565,7 @@ function SliderRow({
         min={min}
         max={max}
         step={step}
-        value={value}
+        value={safeValue}
         onChange={(e) => onChange(Number(e.target.value))}
         className="range-neu flex-1"
         style={{ ["--range-fill" as string]: `${pct}%` }}
@@ -655,11 +587,9 @@ function SliderRow({
           }}
           className="num-input"
         />
-        {unit ? (
-          <span className="w-3 text-[10px] text-muted-foreground/70">
-            {unit}
-          </span>
-        ) : null}
+        <span className="w-3 text-[10px] text-muted-foreground/70">
+          {unit ?? ""}
+        </span>
       </div>
     </div>
   );

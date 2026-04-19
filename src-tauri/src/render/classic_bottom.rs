@@ -12,6 +12,9 @@ use crate::images::decode_image;
 use crate::render::text::TextRenderer;
 
 const LOGO_VISUAL_SCALE: f32 = 1.18;
+const LOGO_FONT_SCALE_BASE: f32 = 20.0;
+const BASELINE_ASCENT_RATIO: f32 = 0.8;
+const LOGO_BASELINE_OFFSET_RATIO: f32 = 0.0;
 
 // ── EXIF types (deserialized from frontend) ─────────────────────────────────
 
@@ -85,11 +88,13 @@ pub struct ExportFrameParams {
     pub main_image_width_ratio: f32,
     pub min_top_bottom_margin: f32,
     pub text_margin: f32,
+    pub watermark_top_padding: f32,
+    pub watermark_bottom_padding: f32,
     pub inner_radius: u32,
     pub outer_radius: u32,
     pub shadow: bool,
     pub shadow_blur: u32,
-    pub shadow_offset_y: u32,
+    pub shadow_offset_y: f32,
     pub shadow_opacity: u32,
     pub photo_border: u32,
     pub background: String,
@@ -130,12 +135,11 @@ pub fn compose(
     text: Option<&TextRenderer>,
 ) -> RgbaImage {
     let src_w = source.width();
+    let resolution_scale = src_w as f32 / 900.0;
     let top_margin = ((src_w as f32) * (frame.min_top_bottom_margin.max(0.0) / 100.0)).round() as u32;
-    let text_gap = ((src_w as f32) * (frame.text_margin.max(0.0) / 100.0)).round().max(2.0) as u32;
-    let extra_line_gap = ((text_gap as f32) * 1.8).round().max(8.0) as u32;
+    let extra_line_gap = (8.0 * resolution_scale).round().max(8.0) as u32;
 
     let lines = build_lines(exif, config);
-    let resolution_scale = src_w as f32 / 900.0;
     let primary_pt = frame.font_size as f32 * 1.18 * resolution_scale;
     let secondary_pt = frame.font_size as f32 * 0.96 * resolution_scale;
 
@@ -143,18 +147,17 @@ pub fn compose(
         let size = if index == 0 { primary_pt as u32 } else { secondary_pt as u32 };
         acc + size + if index == 0 { 0 } else { extra_line_gap }
     });
-
+    let min_info_bar_h = text_block_h + 12;
     let info_bar_h = frame.info_bar_height
-        .max(text_block_h + ((top_margin as f32 * 1.2) as u32));
-    let bar_h = info_bar_h + top_margin;
+        .max(min_info_bar_h);
 
     // ── Canvas dimensions ─────────────────────────────────────────────────
     let img_ratio = frame.main_image_width_ratio.clamp(1.0, 100.0);
     let canvas_w = src_w;
     let canvas_ratio = parse_canvas_ratio(&frame.canvas_ratio, source.width(), source.height());
     let canvas_h = ((src_w as f32) / canvas_ratio).round().max(1.0) as u32;
-    let bar_top = canvas_h.saturating_sub(bar_h);
-    let avail_h = bar_top.saturating_sub(top_margin).max(1);
+    let bar_top = canvas_h.saturating_sub(info_bar_h);
+    let avail_h = bar_top.saturating_sub(top_margin.saturating_mul(2)).max(1);
     let natural_w = ((src_w as f32) * (img_ratio / 100.0)).round().max(1.0);
     let natural_h = source.height() as f32 * natural_w / source.width() as f32;
     let fit = if natural_h > avail_h as f32 {
@@ -181,6 +184,7 @@ pub fn compose(
     apply_rounded_corners(&mut photo, r);
 
     if frame.shadow {
+        let shadow_offset_y = ((photo_h as f32) * (frame.shadow_offset_y.max(0.0) / 100.0)).round() as u32;
         draw_soft_shadow(
             &mut canvas,
             image_left,
@@ -189,7 +193,7 @@ pub fn compose(
             photo_h,
             r,
             (frame.shadow_blur as f32 * resolution_scale).round() as u32,
-            (frame.shadow_offset_y as f32 * resolution_scale).round() as u32,
+            shadow_offset_y,
             frame.shadow_opacity.min(100),
         );
     }
@@ -221,12 +225,18 @@ pub fn compose(
         return canvas;
     }
 
-    let bar_center_y = bar_top as f32 + info_bar_h as f32 / 2.0;
     let total_text_h = lines.iter().enumerate().fold(0f32, |acc, (index, _)| {
         let size = if index == 0 { primary_pt } else { secondary_pt };
         acc + size + if index == 0 { 0.0 } else { extra_line_gap as f32 }
     });
-    let block_top = bar_center_y - total_text_h / 2.0;
+    let watermark_top_padding_px =
+        info_bar_h as f32 * (frame.watermark_top_padding.max(0.0) / 100.0);
+    let watermark_bottom_padding_px =
+        info_bar_h as f32 * (frame.watermark_bottom_padding.max(0.0) / 100.0);
+    let preferred_top = bar_top as f32 + watermark_top_padding_px;
+    let max_top = (bar_top as f32 + info_bar_h as f32 - total_text_h - watermark_bottom_padding_px)
+        .max(bar_top as f32);
+    let block_top = preferred_top.clamp(bar_top as f32, max_top);
     let mut cursor_y = block_top;
 
     for (i, line) in lines.iter().enumerate() {
@@ -237,6 +247,7 @@ pub fn compose(
             cursor_y += extra_line_gap as f32;
         }
         let y = cursor_y;
+        let text_baseline = y + pt * BASELINE_ASCENT_RATIO;
 
         let text_w = if let Some(r) = text {
             r.measure(line, pt, bold)
@@ -247,7 +258,12 @@ pub fn compose(
         let logo_inline = if is_first {
             logo.as_ref().map(|image| {
                 let ratio = image.width() as f32 / image.height().max(1) as f32;
-                let h = (frame.logo_size as f32 * resolution_scale * LOGO_VISUAL_SCALE).max(12.0);
+                let logo_font_scale = (pt / LOGO_FONT_SCALE_BASE).max(0.5);
+                let h = (frame.logo_size as f32
+                    * resolution_scale
+                    * LOGO_VISUAL_SCALE
+                    * logo_font_scale)
+                    .max(12.0);
                 let w = h * ratio;
                 (w, h)
             })
@@ -263,7 +279,7 @@ pub fn compose(
 
         if let (Some(logo_image), Some((_logo_w, logo_h))) = (logo.as_ref(), logo_inline) {
             let logo_x = x.round() as i64;
-            let logo_y = (y + (pt - logo_h) / 2.0).round() as i64;
+            let logo_y = (text_baseline + pt * LOGO_BASELINE_OFFSET_RATIO - logo_h).round() as i64;
             overlay(&mut canvas, logo_image, logo_x, logo_y);
         }
 
@@ -342,7 +358,15 @@ fn load_logo_rgba(
     } else {
         frame.logo_key.trim().to_ascii_lowercase()
     };
-    let path = resolve_logo_asset_path(&key, &frame.logo_variant)?;
+    let variant = if frame.logo_key.trim().is_empty()
+        && key == "nikon"
+        && frame.logo_variant.trim().eq_ignore_ascii_case("original")
+    {
+        "black".to_string()
+    } else {
+        frame.logo_variant.trim().to_ascii_lowercase()
+    };
+    let path = resolve_logo_asset_path(&key, &variant)?;
     render_svg_logo(&path).ok()
 }
 
@@ -560,3 +584,4 @@ fn parse_color(hex: &str, _background: &str) -> Rgba<u8> {
     }
     fallback
 }
+

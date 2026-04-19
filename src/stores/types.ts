@@ -93,7 +93,6 @@ export type CanvasRatio =
 export type FrameBackground = "white" | "black" | "blur" | "custom";
 export type LogoColor = "original" | "black" | "white";
 export type LogoVariant = string;
-export type TextAlign = "left" | "center" | "right";
 export type WatermarkFontFamily = "pingfang-sc" | "arial";
 export type InfoPosition =
   | "bottom"
@@ -114,6 +113,8 @@ export type FrameParams = {
   mainImageWidthRatio: number;
   minTopBottomMargin: number;
   textMargin: number;
+  watermarkTopPadding: number;
+  watermarkBottomPadding: number;
 
   // Background
   background: FrameBackground;
@@ -134,7 +135,6 @@ export type FrameParams = {
   fontFamily: WatermarkFontFamily;
   fontSize: number;
   textColor: string;
-  textAlign: TextAlign;
 
   // Logo
   logoKey: string;

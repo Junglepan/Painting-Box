@@ -102,7 +102,7 @@ export function PreviewPane() {
       <PreviewStage>
         <canvas
           ref={canvasRef}
-          className="h-auto w-auto max-h-full max-w-full rounded-[18px] shadow-[0_10px_24px_rgba(148,163,184,0.14)]"
+          className="h-auto w-auto max-h-full max-w-full shadow-[0_10px_24px_rgba(148,163,184,0.14)]"
         />
       </PreviewStage>
     </div>

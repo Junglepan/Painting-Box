@@ -74,9 +74,16 @@ export function resolveLogoSelection(
   }
 
   const variants = getLogoVariants(key);
-  const preferredVariant = variants.includes(explicitVariant)
-    ? explicitVariant
-    : getAutoLogoVariant(key, explicitVariant);
+  const isAutoDefaultNikon =
+    !explicitKey &&
+    key === "nikon" &&
+    explicitVariant === "original" &&
+    variants.includes("black");
+  const preferredVariant = isAutoDefaultNikon
+    ? "black"
+    : variants.includes(explicitVariant)
+      ? explicitVariant
+      : getAutoLogoVariant(key, explicitVariant);
   const asset = getCameraLogoAssetByKey(key, preferredVariant);
   if (!asset) {
     return { key, variant: preferredVariant, asset: null };

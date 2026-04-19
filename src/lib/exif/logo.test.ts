@@ -63,6 +63,14 @@ describe("camera logo mapping", () => {
     });
   });
 
+  test("auto mode defaults nikon to black when variant is untouched", () => {
+    expect(resolveLogoSelection("", "original", "NIKON CORPORATION")).toEqual({
+      key: "nikon",
+      variant: "black",
+      asset: "/brand-logos/nikon-black.svg",
+    });
+  });
+
   test("returns null for unmapped brands", () => {
     expect(getCameraLogoAsset("Olympus", "white")).toBeNull();
     expect(getCameraLogoAssetByKey("not-exists", "white")).toBeNull();
