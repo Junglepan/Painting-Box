@@ -349,9 +349,9 @@
     margin: 0;
   }
 
-  /* 小 chip（toggle / 单选图标按钮） */
+  /* 小 chip（toggle / 单选图标按钮）— 统一长款扁身 */
   .chip {
-    @apply inline-flex h-6 items-center justify-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-muted-foreground;
+    @apply inline-flex h-[22px] min-w-[36px] items-center justify-center gap-1 rounded-full px-2.5 text-[10px] font-medium text-muted-foreground;
     box-shadow: var(--shadow-neu-raised);
     transition: box-shadow 180ms var(--ease-apple),
       transform 180ms var(--ease-apple),
@@ -365,9 +365,6 @@
     @apply text-primary-foreground;
     background: var(--primary);
     box-shadow: var(--shadow-primary-raised);
-  }
-  .chip-icon {
-    @apply h-6 w-6 p-0;
   }
 
   /* 拟态风滑条：下凹轨道 + 凸起拇指 */

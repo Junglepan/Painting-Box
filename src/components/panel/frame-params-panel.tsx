@@ -149,7 +149,7 @@ export function FrameParamsPanel() {
               aria-label={frameParams.paddingLocked ? "取消联动" : "联动四边"}
               title={frameParams.paddingLocked ? "取消联动" : "联动四边"}
               className={cn(
-                "chip chip-icon",
+                "chip",
                 frameParams.paddingLocked && "chip-active",
               )}
             >
@@ -593,7 +593,7 @@ function SliderRow({
         className="range-neu flex-1"
         style={{ ["--range-fill" as string]: `${pct}%` }}
       />
-      <div className="relative flex shrink-0 items-center">
+      <div className="flex shrink-0 items-center gap-1">
         <input
           type="number"
           min={min}
@@ -611,7 +611,7 @@ function SliderRow({
           className="num-input"
         />
         {unit ? (
-          <span className="pointer-events-none absolute right-1 text-[9px] text-muted-foreground">
+          <span className="w-3 text-[10px] text-muted-foreground/70">
             {unit}
           </span>
         ) : null}

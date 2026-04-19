@@ -284,8 +284,7 @@ function RenameCard({
 
 function EmptyState({ onSave }: { onSave: () => void }) {
   return (
-    <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
-      <Bookmark className="h-5 w-5" />
+    <div className="flex h-full w-full items-center justify-center text-muted-foreground">
       <button
         type="button"
         onClick={onSave}
