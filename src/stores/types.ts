@@ -7,16 +7,53 @@ export type ExifData = {
   focalLength: number;
   takenAt: string;
   gps?: { lat: number; lng: number };
-  raw: Record<string, unknown>;
 };
+
+export const EMPTY_EXIF: ExifData = {
+  camera: { make: "", model: "" },
+  lens: "",
+  iso: 0,
+  aperture: 0,
+  shutterSpeed: "",
+  focalLength: 0,
+  takenAt: "",
+};
+
+export type PhotoExifStatus = "idle" | "loading" | "ready" | "error";
+export type PhotoPreviewStatus = "idle" | "loading" | "ready" | "error";
 
 export type Photo = {
   id: string;
   path: string;
+  thumbnailDataUrl?: string;
+  width?: number;
+  height?: number;
+  previewStatus: PhotoPreviewStatus;
+  previewError?: string;
+  exif?: ExifData;
+  exifStatus: PhotoExifStatus;
+  exifError?: string;
+};
+
+export type ImportedPhoto = {
+  id: string;
+  path: string;
+};
+
+export type PhotoPreviewData = {
   thumbnailDataUrl: string;
   width: number;
   height: number;
-  exif: ExifData;
+};
+
+export type PhotoImportError = {
+  path: string;
+  message: string;
+};
+
+export type LoadPhotosResponse = {
+  photos: ImportedPhoto[];
+  errors: PhotoImportError[];
 };
 
 export type TemplateKind =
@@ -42,6 +79,19 @@ export type TemplateConfig = {
   showGps: boolean;
 };
 
+export type CanvasRatio =
+  | "auto"
+  | "1:1"
+  | "4:5"
+  | "3:2"
+  | "4:3"
+  | "5:4"
+  | "16:10"
+  | "16:9"
+  | "20:9"
+  | "2.35:1"
+  | "2.39:1"
+  | "21:9";
 export type FrameBackground = "white" | "black" | "blur" | "custom";
 export type LogoColor = "original" | "black" | "white";
 export type TextAlign = "left" | "center" | "right";
@@ -61,6 +111,9 @@ export type FrameParams = {
   outerRadius: number;
   innerRadius: number;
   infoBarHeight: number;
+  mainImageWidthRatio: number;
+  minTopBottomMargin: number;
+  textMargin: number;
 
   // Background
   background: FrameBackground;
@@ -94,6 +147,9 @@ export type FrameParams = {
   dividerShow: boolean;
   dividerColor: string;
 
+  // Canvas ratio
+  canvasRatio: CanvasRatio;
+
   // Info position
   infoPosition: InfoPosition;
 };
@@ -122,4 +178,17 @@ export type ExportJob = {
   status: "queued" | "running" | "done" | "error";
   progress: number;
   error?: string;
+};
+
+export type ExportSinglePhotoRequest = {
+  photoPath: string;
+  outputPath: string;
+  frameParams: FrameParams;
+  exif?: ExifData;
+  config: TemplateConfig;
+  exportQuality: number;
+};
+
+export type ExportSinglePhotoResult = {
+  outputPath: string;
 };

@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { FrameParams, TemplateConfig, TemplateKind } from "./types";
+import type { CanvasRatio, FrameParams, TemplateConfig, TemplateKind } from "./types";
 
 type TemplateState = {
   currentKind: TemplateKind;
@@ -14,49 +14,54 @@ type TemplateState = {
 };
 
 const defaultConfig: TemplateConfig = {
-  showLogo: true,
+  showLogo: false,
   showCamera: true,
-  showLens: true,
+  showLens: false,
   showParams: true,
-  showDateTime: true,
+  showDateTime: false,
   showGps: false,
 };
 
 const defaultFrameParams: FrameParams = {
-  paddingTop: 40,
-  paddingRight: 40,
-  paddingBottom: 120,
-  paddingLeft: 40,
+  paddingTop: 4,
+  paddingRight: 7,
+  paddingBottom: 3,
+  paddingLeft: 7,
   paddingLocked: false,
   outerRadius: 12,
-  innerRadius: 6,
-  infoBarHeight: 120,
+  innerRadius: 16,
+  infoBarHeight: 86,
+  mainImageWidthRatio: 90,
+  minTopBottomMargin: 2,
+  textMargin: 0.4,
 
   background: "white",
   bgColor: "#ffffff",
   blurRadius: 40,
 
   shadow: true,
-  shadowBlur: 28,
-  shadowOffsetY: 12,
-  shadowOpacity: 18,
+  shadowBlur: 24,
+  shadowOffsetY: 10,
+  shadowOpacity: 20,
 
   photoScale: 100,
   photoBorder: 0,
 
-  fontSize: 14,
-  fontWeight: 500,
+  fontSize: 22,
+  fontWeight: 600,
   letterSpacing: 0,
   lineHeight: 1.3,
   textColor: "#1f2937",
   textAlign: "center",
 
-  logoSize: 32,
+  logoSize: 28,
   logoColor: "original",
   logoGap: 12,
 
   dividerShow: false,
   dividerColor: "#d7dce6",
+
+  canvasRatio: "auto" as CanvasRatio,
 
   infoPosition: "bottom",
 };

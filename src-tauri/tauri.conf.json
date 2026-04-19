@@ -13,8 +13,9 @@
     "windows": [
       {
         "title": "painting-box",
-        "width": 800,
-        "height": 600
+        "center": true,
+        "width": 1440,
+        "height": 900
       }
     ],
     "security": {

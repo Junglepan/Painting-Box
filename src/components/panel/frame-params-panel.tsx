@@ -1,6 +1,10 @@
 import { useState } from "react";
+import { formatCamera } from "@/lib/exif/brand";
 import { useTemplateStore } from "@/stores/template-store";
+import { usePhotoStore } from "@/stores/photo-store";
 import type {
+  CanvasRatio,
+  ExifData,
   FrameBackground,
   FrameParams,
   InfoPosition,
@@ -21,8 +25,6 @@ import {
   Eye,
   Image as ImageIcon,
   Layout,
-  Link2,
-  Link2Off,
   MapPin,
   Minus,
   Palette,
@@ -65,6 +67,21 @@ const INFO_POS: { value: InfoPosition; label: string }[] = [
   { value: "bottom-right", label: "右下" },
 ];
 
+const CANVAS_RATIOS: { value: CanvasRatio; label: string }[] = [
+  { value: "auto", label: "原图" },
+  { value: "1:1", label: "1:1" },
+  { value: "4:5", label: "4:5" },
+  { value: "3:2", label: "3:2" },
+  { value: "4:3", label: "4:3" },
+  { value: "5:4", label: "5:4" },
+  { value: "16:10", label: "16:10" },
+  { value: "16:9", label: "16:9" },
+  { value: "20:9", label: "20:9" },
+  { value: "21:9", label: "21:9" },
+  { value: "2.35:1", label: "2.35:1" },
+  { value: "2.39:1", label: "2.39:1" },
+];
+
 const FIELDS: {
   key: keyof TemplateConfig;
   icon: LucideIcon;
@@ -96,6 +113,13 @@ export function FrameParamsPanel() {
     config,
     setConfig,
   } = useTemplateStore();
+  const selectedPhoto = usePhotoStore((s) =>
+    s.photos.find((p) => p.id === s.selectedId),
+  );
+  const panelLocked =
+    !!selectedPhoto &&
+    (selectedPhoto.previewStatus !== "ready" ||
+      selectedPhoto.exifStatus !== "ready");
 
   const [open, setOpen] = useState<Record<SectionId, boolean>>({
     layout: true,
@@ -126,12 +150,21 @@ export function FrameParamsPanel() {
           aria-label="重置参数"
           title="重置参数"
           className="btn-neu h-7 w-7 px-0"
+          disabled={panelLocked}
         >
           <RotateCcw className="h-3 w-3 text-muted-foreground" />
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 pb-5">
+      <fieldset
+        disabled={panelLocked}
+        className="flex-1 overflow-y-auto px-4 pb-5 disabled:pointer-events-none disabled:opacity-45"
+      >
+        {panelLocked ? (
+          <div className="mb-3 rounded-md border border-border/50 bg-card/55 px-2.5 py-2 text-[11px] text-muted-foreground/75">
+            当前照片预览生成中，参数将在整体预览完成后解锁。
+          </div>
+        ) : null}
         <Section
           id="layout"
           icon={Layout}
@@ -139,54 +172,49 @@ export function FrameParamsPanel() {
           open={open.layout}
           onToggle={toggle}
         >
-          <div className="mb-2.5 flex items-center justify-between">
-            <span className="label-plain">边距</span>
-            <button
-              type="button"
-              onClick={() =>
-                set({ paddingLocked: !frameParams.paddingLocked })
-              }
-              aria-label={frameParams.paddingLocked ? "取消联动" : "联动四边"}
-              title={frameParams.paddingLocked ? "取消联动" : "联动四边"}
-              className={cn(
-                "chip",
-                frameParams.paddingLocked && "chip-active",
-              )}
-            >
-              {frameParams.paddingLocked ? (
-                <Link2 className="h-3 w-3" />
-              ) : (
-                <Link2Off className="h-3 w-3" />
-              )}
-            </button>
+          <div className="mb-3">
+            <span className="label-plain mb-2 block">画布比例</span>
+            <div className="grid grid-cols-4 gap-1.5">
+              {CANVAS_RATIOS.map((ratio) => (
+                <button
+                  key={ratio.value}
+                  type="button"
+                  onClick={() => set({ canvasRatio: ratio.value })}
+                  className={cn(
+                    "chip text-[10px]",
+                    frameParams.canvasRatio === ratio.value && "chip-active",
+                  )}
+                >
+                  {ratio.label}
+                </button>
+              ))}
+            </div>
           </div>
           <SliderRow
-            hint="上"
-            min={0}
-            max={300}
-            value={frameParams.paddingTop}
-            onChange={(v) => set({ paddingTop: v })}
+            hint="主图占比"
+            min={70}
+            max={100}
+            step={1}
+            value={frameParams.mainImageWidthRatio}
+            unit="%"
+            onChange={(v) => set({ mainImageWidthRatio: v })}
           />
           <SliderRow
-            hint="右"
+            hint="上下边距"
             min={0}
-            max={300}
-            value={frameParams.paddingRight}
-            onChange={(v) => set({ paddingRight: v })}
+            max={12}
+            step={0.2}
+            value={frameParams.minTopBottomMargin}
+            unit="%"
+            onChange={(v) => set({ minTopBottomMargin: v })}
           />
           <SliderRow
-            hint="下"
+            hint="文本间距"
             min={0}
-            max={300}
-            value={frameParams.paddingBottom}
-            onChange={(v) => set({ paddingBottom: v })}
-          />
-          <SliderRow
-            hint="左"
-            min={0}
-            max={300}
-            value={frameParams.paddingLeft}
-            onChange={(v) => set({ paddingLeft: v })}
+            max={3}
+            step={0.1}
+            value={frameParams.textMargin}
+            onChange={(v) => set({ textMargin: v })}
           />
           <div className="mt-3 space-y-1.5">
             <SliderRow
@@ -324,14 +352,6 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <SliderRow
-            hint="缩放"
-            min={50}
-            max={100}
-            value={frameParams.photoScale}
-            unit="%"
-            onChange={(v) => set({ photoScale: v })}
-          />
-          <SliderRow
             hint="白边"
             min={0}
             max={16}
@@ -368,8 +388,8 @@ export function FrameParamsPanel() {
           </div>
           <SliderRow
             hint="字号"
-            min={8}
-            max={48}
+            min={12}
+            max={60}
             value={frameParams.fontSize}
             onChange={(v) => set({ fontSize: v })}
           />
@@ -507,7 +527,29 @@ export function FrameParamsPanel() {
             })}
           </div>
         </Section>
-      </div>
+
+        {selectedPhoto ? (
+          <div className="border-t border-border/40 pt-4">
+            <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
+              <Camera className="h-3 w-3" />
+              <span>EXIF</span>
+            </div>
+            {selectedPhoto.exifStatus === "loading" ? (
+              <p className="text-[11px] text-muted-foreground/70">soon...</p>
+            ) : selectedPhoto.exifStatus === "error" ? (
+              <p className="text-[11px] text-destructive/80">
+                {selectedPhoto.exifError ?? "EXIF 读取失败"}
+              </p>
+            ) : panelLocked ? (
+              <p className="text-[11px] text-muted-foreground/70">
+                soon...
+              </p>
+            ) : (
+              <ExifRows exif={selectedPhoto.exif} />
+            )}
+          </div>
+        ) : null}
+      </fieldset>
     </div>
   );
 }
@@ -674,5 +716,50 @@ function Toggle({
         )}
       />
     </button>
+  );
+}
+
+function ReadOnlyRow({ label, value }: { label: string; value: string }) {
+  if (!value) return null;
+
+  return (
+    <div className="flex items-start justify-between gap-3 py-1">
+      <span className="label-plain shrink-0">{label}</span>
+      <span className="text-right text-[11px] text-foreground/85">{value}</span>
+    </div>
+  );
+}
+
+function ExifRows({ exif }: { exif?: ExifData }) {
+  if (!exif) {
+    return <p className="text-[11px] text-muted-foreground/70">暂无 EXIF 信息</p>;
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <ReadOnlyRow
+        label="机身"
+        value={formatCamera(exif.camera.make, exif.camera.model)}
+      />
+      <ReadOnlyRow label="镜头" value={exif.lens} />
+      <ReadOnlyRow
+        label="参数"
+        value={[
+          exif.focalLength ? `${Math.round(exif.focalLength)}mm` : "",
+          exif.aperture ? `f/${exif.aperture}` : "",
+          exif.shutterSpeed,
+          exif.iso ? `ISO ${exif.iso}` : "",
+        ]
+          .filter(Boolean)
+          .join("  ")}
+      />
+      <ReadOnlyRow label="时间" value={exif.takenAt} />
+      {exif.gps ? (
+        <ReadOnlyRow
+          label="GPS"
+          value={`${exif.gps.lat.toFixed(4)}, ${exif.gps.lng.toFixed(4)}`}
+        />
+      ) : null}
+    </div>
   );
 }
