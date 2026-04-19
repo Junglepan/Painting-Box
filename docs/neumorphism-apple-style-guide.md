@@ -1,10 +1,11 @@
-# 拟态 x Apple 融合风格文档（v1.2 · Painting-Box 实践版）
+# 拟态 x Apple 融合风格文档（v1.3 · Painting-Box 实践版）
 
-> v1.0 为通用理论（Apple 70% + 拟态 30%）。
-> v1.1 基于 Painting-Box 落地后的经验修订，提出"唯一下凹"等四条核心原则。
-> v1.2 依据实践结果**修订"唯一下凹"** → **"下凹承载内容/数据区"**：
-> 画布、照片列表、模板库等**可滚动的内容/数据展示区**均使用 `.surface-inset`，
-> 参数面板、工具栏等**工具/控制区**保持扁平。
+> v1.0 通用理论（Apple 70% + 拟态 30%）。
+> v1.1 引入"唯一下凹"等四条核心原则。
+> v1.2 修订为**"下凹承载内容/数据区、工具区扁平"**。
+> v1.3 面板内密度调优：**去除 `.label-raised`**（浮块标签），分类标签统一为 `.label-plain`；
+> chip 统一"长款药丸"形（`h-[22px]` `rounded-full` `min-w-[36px]`，去除 `.chip-icon` 方形变体）；
+> 单位符号（%）外置，数值样式全部 `tabular-nums` 对齐；预设/照片列表空态极简化。
 
 ## 1. 风格定位
 以 **Apple 的清晰层级与克制秩序** 为骨架，叠加 **Soft UI（拟态）的轻触感**，
@@ -93,21 +94,23 @@ Apple 质感的关键是**多层叠加**，而不是单一模糊阴影：
 小面积例外：`.label-inset`（下凹 pill）用 8px 轻 blur 让文字底色也有玻璃感，
 作为参数名称的信息突出。
 
-### 3.8 双向标签（inset / raised）
-参数面板中的标签分两种形态，按语义区分：
+### 3.8 三层标签（section / plain / hint）（v1.3 修订）
+参数面板内按层级拉开对比，避免所有标签"同样抢眼"：
 
-- **`.label-inset`（下凹 pill）**：分组标题、分类标签（如「边距」「背景」「字重」「显示」等）。
-  半透明下凹底 + 8px blur + 次文字色；活跃时 `.label-inset-active` 切主色底。
-  语义："这是一个信息分类"。
-- **`.label-raised`（浮块 pill）**：滑条左侧参数名称（如「上」「右」「字号」「模糊」）。
-  线性渐变白底 + Apple SF Pro Rounded 字体 + 多层轻浮阴影 + 居中对齐。
-  语义："这是当前正在调整的变量名，凸起突出"。
+- **`.label-inset`（下凹 pill）**：仅用于**可折叠分组标题**（如「布局」「背景」「文字」「显示项」）。
+  半透明下凹底 + 8px blur；活跃时 `.label-inset-active` 切主色底 + 主色描边。
+  语义："这是一个可折叠的大分类"。
+- **`.label-plain`（朴素标签）**：分组内部的子类标题（如「边距」「字重」「颜色」「对齐」）。
+  `text-[11px] font-medium text-muted-foreground`，不加背景不加描边。
+  语义："这是分组下的一个子类"。
+- **Slider hint**：滑条左侧单字 / 双字变量名（如「上」「右」「字号」「模糊」「浓度」）。
+  `text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/75`，居中、无背景。
+  语义："这是最细粒度的参数名，贴近滑条"。
 
-搭配规则：**外层信息分类用下凹，内层可操作变量名用浮块**，
-同一区域内下凹/浮块交错使用会产生触觉层次（凹进 → 凸起 → 内容）。
+原则：**分组标题 > 子类标题 > 滑条参数名** 形成视觉递减，避免 chip / pill / 标签互相打架。
+数值输入 `.num-input` + 单位 span（外置）保持下凹 + 8px blur，和 slider hint 一前一后对齐。
 
-数值输入 `.num-input` 保持下凹 + 8px blur，与 `.label-inset` 同层级；
-`.label-raised` 与 `.num-input` 一前一后，形成"凸起名 → 凹槽值"的对比。
+> v1.2 的 `.label-raised`（凸起浮块）经实践后在小空间内过于抢戏，v1.3 已废弃。
 
 ### 3.9 单层 focus 环
 放弃 `ring-offset` 双重描边（会产生"双线包围"的视觉噪音），改为：
@@ -150,6 +153,7 @@ Apple 质感的关键是**多层叠加**，而不是单一模糊阴影：
 ### 5.1 面板容器
 - 主框架 3 栏布局：**参数区（左）· 画布（中）· 辅助列表（右）**。
 - 侧栏不加背景 / 阴影，直接用页面背景；栏间用 `.divider-v`（1px 渐隐线）分隔。
+- **可变宽侧栏使用 `<ResizeHandle>` 替代 `.divider-v`**：4px 命中区 + hover 主色高亮 + 拖拽中切全局 `cursor: col-resize`；宽度 clamp 在组件层（如 200-400px）+ `localStorage` 持久化。
 - 画布区统一使用 `.surface-inset`（下凹），内部内容可再叠 `--shadow-apple-elevated` 悬浮卡片。
 
 ### 5.2 按钮
@@ -159,11 +163,13 @@ Apple 质感的关键是**多层叠加**，而不是单一模糊阴影：
 
 ### 5.3 输入 / 数值微调
 - `.input-neu`：常态内凹，focus 用主色半透明环。
-- `.num-input`：紧凑数字（`h-7 w-14`）搭 `tabular-nums`，边距 / 坐标类参数首选。
+- `.num-input`：紧凑数字（`h-6 w-11 text-[11px] tabular-nums`）+ 半透明底 + `backdrop-blur(6px)` + 轻内凹阴影。
+- **单位符号外置**：`%` `px` 等单位不再 overlay 在输入框内，作为独立 `<span>` 与 num-input 以 `gap-1` 并排，字号 `text-[10px] text-muted-foreground/70`。
 
-### 5.4 选择控件（chip）
-`.chip` / `.chip-active`：灰底轻凸 → 选中染主色（用 `--shadow-primary-raised`）。
-组合图标可全屏网格呈现（`chip-icon` 变体为 `h-7 w-7 px-0`）。
+### 5.4 选择控件（chip · v1.3 统一）
+`.chip`：`h-[22px] min-w-[36px] rounded-full px-2.5 text-[10px]` 药丸形，轻凸 → hover 抬升 → `.chip-active` 染主色。
+**不再保留 `.chip-icon` 方形变体**，所有 chip（含单图标开关，如联动锁）统一长款药丸形，保持视觉一致。
+活跃时用 `--shadow-primary-raised` 主色染色阴影。
 
 ### 5.5 列表项
 - 次要列表（如照片缩略图）：`inset` 阴影 + 1px 边框，选中态 `border-primary/60` + 卡片阴影。
@@ -184,10 +190,14 @@ Apple 质感的关键是**多层叠加**，而不是单一模糊阴影：
 - 入场：`animate-in fade-in duration-500`；大跨度位移再叠 `slide-in-from-bottom-2`。
 
 ## 7. 排版 / 密度
-- Header 高度：`h-11` ~ `h-12`。
-- 面板内边距：`px-4`；区域之间 `space-y-5`；控件间 `gap-1.5` ~ `gap-2`。
-- 标签字号：`text-[11px]` uppercase + tracking-wider（区域标题）；`text-[13px]`（主要标签）；
-  `tabular-nums` 处理所有数值显示。
+- Header 高度：`h-10` ~ `h-11`。
+- 面板内边距：`px-4`；折叠分组之间 `border-b border-border/40 py-2.5`；控件间 `gap-1.5` ~ `gap-2`。
+- 三层字号分档：
+  - 分组标题（`.label-inset`）：`text-[11px]` uppercase + tracking-wider + icon。
+  - 子类标签（`.label-plain`）：`text-[11px] font-medium` 次文字色，不带背景。
+  - Slider hint：`text-[10px] font-semibold uppercase tracking-[0.1em]` 居中，`muted-foreground/75`。
+  - 数值（num-input / 单位 / 计数）：全部 `tabular-nums`，单位符号 `text-[10px] muted/70`。
+- 空状态极简化：只保留必要操作按钮（如"保存当前参数"），删除装饰性图标与引导文案。
 
 ## 8. 禁止项
 - ❌ 在**工具/控制区**使用下凹阴影（`.surface-inset` 只用于内容/数据区）。

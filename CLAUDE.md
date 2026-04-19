@@ -39,9 +39,10 @@ Painting-Box 是一款为摄影爱好者设计的照片水印/画框生成桌面
 ## 工作流
 
 1. 非平凡任务：Explore → Plan → Implement → Verify
-2. 前端改动完成后运行：`bun run typecheck && bun run lint`
+2. 前端改动完成后运行：`bun run build`（tsc + vite build）
 3. 后端改动完成后运行：`cargo check && cargo clippy -- -D warnings`
-4. 提交前检查 `docs/PLAN.md` 与 `CLAUDE.md` 是否需要同步更新
+4. 提交前检查 `docs/PLAN.md` / `docs/neumorphism-apple-style-guide.md` / `CLAUDE.md` 是否需要同步更新
+5. **用户可感知的变更必须同步追加到 `CHANGELOG.md` 的 `[Unreleased]` 段**
 
 ## 禁止事项
 
