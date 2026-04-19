@@ -140,7 +140,7 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="mb-2.5 flex items-center justify-between">
-            <span className="label-raised h-6 px-2.5">边距</span>
+            <span className="label-inset">边距</span>
             <button
               type="button"
               onClick={() =>
@@ -212,7 +212,7 @@ export function FrameParamsPanel() {
             />
           </div>
           <div className="mt-3">
-            <span className="label-raised mb-1.5 h-6 px-2.5">信息位置</span>
+            <span className="label-inset mb-1.5">信息位置</span>
             <div className="grid grid-cols-4 gap-1.5">
               {INFO_POS.map((p) => (
                 <button
@@ -282,7 +282,7 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="param-row">
-            <span className="label-raised h-6 px-2.5">启用</span>
+            <span className="label-inset">启用</span>
             <Toggle
               active={frameParams.shadow}
               onClick={() => set({ shadow: !frameParams.shadow })}
@@ -355,7 +355,7 @@ export function FrameParamsPanel() {
             onChange={(v) => set({ fontSize: v })}
           />
           <div className="mb-2 mt-2">
-            <span className="label-raised mb-1.5 h-6 px-2.5">字重</span>
+            <span className="label-inset mb-1.5">字重</span>
             <div className="grid grid-cols-4 gap-1.5">
               {([400, 500, 600, 700] as const).map((w) => (
                 <button
@@ -395,7 +395,7 @@ export function FrameParamsPanel() {
             onChange={(v) => set({ textColor: v })}
           />
           <div className="mt-2">
-            <span className="label-raised mb-1.5 h-6 px-2.5">对齐</span>
+            <span className="label-inset mb-1.5">对齐</span>
             <div className="grid grid-cols-3 gap-1.5">
               {ALIGNS.map((a) => {
                 const Icon = a.icon;
@@ -440,7 +440,7 @@ export function FrameParamsPanel() {
             onChange={(v) => set({ logoGap: v })}
           />
           <div className="mt-2">
-            <span className="label-raised mb-1.5 h-6 px-2.5">颜色</span>
+            <span className="label-inset mb-1.5">颜色</span>
             <div className="grid grid-cols-3 gap-1.5">
               {LOGO_COLORS.map((l) => (
                 <button
@@ -467,7 +467,7 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="param-row">
-            <span className="label-raised h-6 px-2.5">显示</span>
+            <span className="label-inset">显示</span>
             <Toggle
               active={frameParams.dividerShow}
               onClick={() => set({ dividerShow: !frameParams.dividerShow })}
@@ -631,7 +631,7 @@ function ColorRow({
 }) {
   return (
     <label className="flex items-center justify-between gap-2 py-1">
-      <span className="label-raised h-6 px-2.5">{label}</span>
+      <span className="label-inset">{label}</span>
       <div className="flex items-center gap-1.5">
         <input
           type="color"

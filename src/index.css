@@ -344,7 +344,7 @@
 
   /* 小 chip（toggle / 单选图标按钮） */
   .chip {
-    @apply inline-flex h-7 items-center justify-center gap-1 rounded-md px-2 text-[11px] font-medium text-muted-foreground;
+    @apply inline-flex h-6 items-center justify-center gap-1 rounded-md px-1.5 text-[10px] font-medium text-muted-foreground;
     box-shadow: var(--shadow-neu-raised);
     transition: box-shadow 180ms var(--ease-apple),
       transform 180ms var(--ease-apple),
@@ -360,7 +360,7 @@
     box-shadow: var(--shadow-primary-raised);
   }
   .chip-icon {
-    @apply h-7 w-7 p-0;
+    @apply h-6 w-6 p-0;
   }
 
   /* 拟态风滑条：下凹轨道 + 凸起拇指 */
