@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePresetStore } from "@/stores/preset-store";
 import { useTemplateStore } from "@/stores/template-store";
+import { usePhotoStore } from "@/stores/photo-store";
 import { PRESET_NAME_MAX, type Preset } from "@/stores/types";
 import { cn } from "@/lib/utils";
 import { Bookmark, BookmarkPlus, Trash2, Check, X } from "lucide-react";
@@ -10,6 +11,13 @@ export function PresetGallery() {
     usePresetStore();
   const { currentKind, frameParams, config, setKind, setFrameParams, setConfig } =
     useTemplateStore();
+  const selectedPhoto = usePhotoStore((s) =>
+    s.photos.find((p) => p.id === s.selectedId),
+  );
+  const locked =
+    !!selectedPhoto &&
+    (selectedPhoto.previewStatus !== "ready" ||
+      selectedPhoto.exifStatus !== "ready");
 
   const [draftName, setDraftName] = useState<string | null>(null);
   const [renamingId, setRenamingId] = useState<string | null>(null);
@@ -24,6 +32,7 @@ export function PresetGallery() {
   }, [draftName, renamingId]);
 
   const startSave = () => {
+    if (locked) return;
     const suggested = `预设 ${presets.length + 1}`;
     setDraftName(suggested.slice(0, PRESET_NAME_MAX));
     setRenamingId(null);
@@ -45,6 +54,7 @@ export function PresetGallery() {
   const cancelSave = () => setDraftName(null);
 
   const apply = (p: Preset) => {
+    if (locked) return;
     if (renamingId === p.id) return;
     select(p.id);
     setKind(p.kind);
@@ -59,7 +69,10 @@ export function PresetGallery() {
   };
 
   return (
-    <div className="flex h-full w-full flex-col">
+    <fieldset
+      disabled={locked}
+      className="flex h-full w-full flex-col disabled:pointer-events-none"
+    >
       <div className="flex h-8 shrink-0 items-center justify-between px-3">
         <div className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
           <Bookmark className="h-3.5 w-3.5" />
@@ -72,7 +85,7 @@ export function PresetGallery() {
           <button
             type="button"
             onClick={startSave}
-            disabled={draftName !== null}
+            disabled={draftName !== null || locked}
             aria-label="保存当前参数为预设"
             title="保存当前参数"
             className="btn-neu h-6 w-6 px-0"
@@ -82,7 +95,7 @@ export function PresetGallery() {
           <button
             type="button"
             onClick={() => selectedId && remove(selectedId)}
-            disabled={!selectedId}
+            disabled={!selectedId || locked}
             aria-label="删除选中预设"
             title="删除选中预设"
             className="btn-neu h-6 w-6 px-0"
@@ -122,8 +135,10 @@ export function PresetGallery() {
                   key={p.id}
                   preset={p}
                   active={selectedId === p.id}
+                  disabled={locked}
                   onClick={() => apply(p)}
                   onDoubleClick={() => {
+                    if (locked) return;
                     setRenamingId(p.id);
                     setDraftName(null);
                   }}
@@ -133,18 +148,20 @@ export function PresetGallery() {
           )}
         </div>
       </div>
-    </div>
+    </fieldset>
   );
 }
 
 function PresetCard({
   preset,
   active,
+  disabled,
   onClick,
   onDoubleClick,
 }: {
   preset: Preset;
   active: boolean;
+  disabled: boolean;
   onClick: () => void;
   onDoubleClick: () => void;
 }) {
@@ -160,11 +177,13 @@ function PresetCard({
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       title={`${preset.name}（双击重命名）`}
       className={cn(
         "group flex h-full shrink-0 flex-col gap-1 rounded-md border bg-card p-1.5 transition-all duration-200 ease-out",
+        disabled && "cursor-not-allowed opacity-45 hover:translate-y-0 hover:border-border/40 hover:shadow-none",
         active
           ? "border-primary/60 shadow-[var(--shadow-apple-card),var(--ring-selected)]"
           : "border-border/40 hover:-translate-y-px hover:border-border hover:shadow-[var(--shadow-apple-card)]",

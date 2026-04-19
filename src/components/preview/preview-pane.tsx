@@ -56,26 +56,26 @@ export function PreviewPane() {
   if (!selected) {
     return (
       <div className="surface-inset flex h-full w-full items-center justify-center">
-        <div className="flex flex-col items-center gap-3 text-muted-foreground animate-in fade-in duration-500">
-          <ImageOff className="h-7 w-7" />
-          <p className="text-[11px]">选一张照片开始</p>
-        </div>
+        <PreviewStage>
+          <div className="flex flex-col items-center gap-3 text-muted-foreground animate-in fade-in duration-500">
+            <ImageOff className="h-7 w-7" />
+            <p className="text-[11px]">选一张照片开始</p>
+          </div>
+        </PreviewStage>
       </div>
     );
   }
 
   if (!previewReady) {
     return (
-      <div className="surface-inset flex h-full w-full items-center justify-center overflow-hidden p-6">
-        <div className="flex h-full w-full max-h-full max-w-[760px] items-center justify-center">
-          <div className="relative flex aspect-[3/2] w-full max-h-full max-w-full flex-col items-center justify-center overflow-hidden rounded-[18px] border border-border/50 bg-gradient-to-br from-white/85 via-slate-100/70 to-slate-200/75 shadow-[var(--shadow-apple-elevated)]">
-            <div className="h-full w-full animate-pulse bg-[radial-gradient(circle_at_50%_38%,rgba(255,255,255,0.92),rgba(255,255,255,0.18)_28%,rgba(148,163,184,0.18)_56%,rgba(100,116,139,0.24)_100%)]" />
-            <div className="absolute flex flex-col items-center gap-2">
-              <div className="h-2.5 w-20 rounded-full bg-foreground/8" />
-              <p className="text-[11px] text-muted-foreground/70">soon...</p>
-            </div>
+      <div className="surface-inset flex h-full w-full items-center justify-center overflow-hidden p-4">
+        <PreviewStage>
+          <div className="absolute inset-0 animate-pulse rounded-[18px] bg-[radial-gradient(circle_at_50%_38%,rgba(255,255,255,0.92),rgba(255,255,255,0.18)_28%,rgba(148,163,184,0.12)_56%,rgba(100,116,139,0.16)_100%)]" />
+          <div className="absolute flex flex-col items-center gap-2">
+            <div className="h-2.5 w-20 rounded-full bg-foreground/8" />
+            <p className="text-[11px] text-muted-foreground/70">soon...</p>
           </div>
-        </div>
+        </PreviewStage>
       </div>
     );
   }
@@ -83,21 +83,31 @@ export function PreviewPane() {
   if (selected.previewStatus === "error") {
     return (
       <div className="surface-inset flex h-full w-full items-center justify-center">
-        <p className="text-[11px] text-destructive/80">
-          {selected.previewError ?? "预览生成失败"}
-        </p>
+        <PreviewStage>
+          <p className="text-[11px] text-destructive/80">
+            {selected.previewError ?? "预览生成失败"}
+          </p>
+        </PreviewStage>
       </div>
     );
   }
 
   return (
-    <div className="surface-inset flex h-full w-full items-center justify-center overflow-hidden p-6">
-      <div className="flex h-full w-full max-h-full max-w-[760px] items-center justify-center">
+    <div className="surface-inset flex h-full w-full items-center justify-center overflow-hidden p-4">
+      <PreviewStage>
         <canvas
           ref={canvasRef}
           className="h-auto w-auto max-h-full max-w-full rounded-[18px] shadow-[var(--shadow-apple-elevated)]"
         />
-      </div>
+      </PreviewStage>
+    </div>
+  );
+}
+
+function PreviewStage({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="relative flex h-full w-auto max-w-full aspect-[3/2] items-center justify-center overflow-hidden">
+      {children}
     </div>
   );
 }

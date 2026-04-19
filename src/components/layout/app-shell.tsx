@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PhotoList } from "@/components/photo-list/photo-list";
 import { PreviewPane } from "@/components/preview/preview-pane";
@@ -16,6 +16,7 @@ const STORAGE_KEY = "painting-box-layout";
 const DEFAULT_LIST_WIDTH = 240;
 const MIN_LIST_WIDTH = 200;
 const MAX_LIST_WIDTH = 400;
+const PARSE_CONCURRENCY = 1;
 
 function loadListWidth(): number {
   if (typeof window === "undefined") return DEFAULT_LIST_WIDTH;
@@ -35,7 +36,11 @@ export function AppShell() {
   const [listWidth, setListWidth] = useState<number>(() => loadListWidth());
   const photos = usePhotoStore((s) => s.photos);
   const selectedId = usePhotoStore((s) => s.selectedId);
+  const autoPreviewEnabled = usePhotoStore((s) => s.autoPreviewEnabled);
+  const parseQueue = usePhotoStore((s) => s.parseQueue);
   const addPhotos = usePhotoStore((s) => s.addPhotos);
+  const enqueueParse = usePhotoStore((s) => s.enqueueParse);
+  const dequeueParse = usePhotoStore((s) => s.dequeueParse);
   const setImportErrors = usePhotoStore((s) => s.setImportErrors);
   const setExifLoading = usePhotoStore((s) => s.setExifLoading);
   const setExifData = usePhotoStore((s) => s.setExifData);
@@ -47,6 +52,7 @@ export function AppShell() {
     () => photos.find((p) => p.id === selectedId) ?? null,
     [photos, selectedId],
   );
+  const activeParseRef = useRef(new Set<string>());
 
   useEffect(() => {
     try {
@@ -66,7 +72,11 @@ export function AppShell() {
         const paths = event.payload.paths.filter(isImportablePath);
         if (paths.length === 0) return;
         if (cancelled) return;
-        addPhotos(createImportedPhotos(paths));
+        const imported = createImportedPhotos(paths);
+        addPhotos(imported);
+        if (autoPreviewEnabled) {
+          enqueueParse(imported.map((photo) => photo.id));
+        }
         setImportErrors([]);
       })
       .then((cleanup) => {
@@ -77,44 +87,84 @@ export function AppShell() {
       cancelled = true;
       unlisten?.();
     };
-  }, [addPhotos, setImportErrors]);
+  }, [addPhotos, autoPreviewEnabled, enqueueParse, setImportErrors]);
 
   useEffect(() => {
-    if (!selectedPhoto || selectedPhoto.previewStatus !== "idle") return;
+    if (
+      selectedPhoto &&
+      (selectedPhoto.previewStatus === "idle" || selectedPhoto.exifStatus === "idle")
+    ) {
+      enqueueParse([selectedPhoto.id], true);
+    }
+  }, [enqueueParse, selectedPhoto]);
 
-    const id = selectedPhoto.id;
-    setPreviewLoading(id);
-    void loadPhotoPreview(selectedPhoto.path)
-      .then((preview) => {
-        setPreviewData(id, preview);
-      })
-      .catch((error) => {
-        const message =
-          error instanceof Error ? error.message : "预览生成失败";
-        setPreviewError(id, message);
-      });
+  useEffect(() => {
+    if (activeParseRef.current.size >= PARSE_CONCURRENCY) return;
+
+    const nextId = parseQueue.find((id) => {
+      const photo = photos.find((item) => item.id === id);
+      if (!photo || activeParseRef.current.has(id)) return false;
+      return photo.previewStatus === "idle" || photo.exifStatus === "idle";
+    });
+
+    if (!nextId) return;
+
+    const photo = photos.find((item) => item.id === nextId);
+    if (!photo) {
+      dequeueParse(nextId);
+      return;
+    }
+
+    activeParseRef.current.add(nextId);
+
+    if (photo.previewStatus === "idle") {
+      setPreviewLoading(nextId);
+    }
+    if (photo.exifStatus === "idle") {
+      setExifLoading(nextId);
+    }
+
+    const previewTask =
+      photo.previewStatus === "idle"
+        ? loadPhotoPreview(photo.path)
+            .then((preview) => {
+              setPreviewData(nextId, preview);
+            })
+            .catch((error) => {
+              const message =
+                error instanceof Error ? error.message : "预览生成失败";
+              setPreviewError(nextId, message);
+            })
+        : Promise.resolve();
+
+    const exifTask =
+      photo.exifStatus === "idle"
+        ? loadPhotoExif(photo.path)
+            .then((exif) => {
+              setExifData(nextId, exif);
+            })
+            .catch((error) => {
+              const message =
+                error instanceof Error ? error.message : "EXIF 解析失败";
+              setExifError(nextId, message);
+            })
+        : Promise.resolve();
+
+    void Promise.allSettled([previewTask, exifTask]).finally(() => {
+      activeParseRef.current.delete(nextId);
+      dequeueParse(nextId);
+    });
   }, [
-    selectedPhoto,
+    dequeueParse,
+    parseQueue,
+    photos,
+    setExifData,
+    setExifError,
+    setExifLoading,
     setPreviewData,
     setPreviewError,
     setPreviewLoading,
   ]);
-
-  useEffect(() => {
-    if (!selectedPhoto || selectedPhoto.exifStatus !== "idle") return;
-
-    const id = selectedPhoto.id;
-    setExifLoading(id);
-    void loadPhotoExif(selectedPhoto.path)
-      .then((exif) => {
-        setExifData(id, exif);
-      })
-      .catch((error) => {
-        const message =
-          error instanceof Error ? error.message : "EXIF 解析失败";
-        setExifError(id, message);
-      });
-  }, [selectedPhoto, setExifData, setExifError, setExifLoading]);
 
   return (
     <div className="flex h-full flex-col text-foreground">

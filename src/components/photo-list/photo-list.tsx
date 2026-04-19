@@ -12,10 +12,12 @@ import {
   CircleSlash,
   Download,
   Eye,
+  EyeOff,
   FolderOpen,
   Images,
   LoaderCircle,
   Plus,
+  ScanSearch,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -26,6 +28,9 @@ type ExportFormat = "jpg" | "png" | "webp";
 export function PhotoList() {
   const { photos, selectedId, select, removePhoto, addPhotos, importErrors, setImportErrors } =
     usePhotoStore();
+  const autoPreviewEnabled = usePhotoStore((s) => s.autoPreviewEnabled);
+  const setAutoPreviewEnabled = usePhotoStore((s) => s.setAutoPreviewEnabled);
+  const enqueueParse = usePhotoStore((s) => s.enqueueParse);
   const selected = photos.find((p) => p.id === selectedId) ?? null;
   const jobs = useExportStore((s) => s.jobs);
   const enqueue = useExportStore((s) => s.enqueue);
@@ -50,10 +55,22 @@ export function PhotoList() {
   }, [exportOpen]);
 
   const canExport = photos.length > 0;
+  const queuedIds = usePhotoStore((s) => s.parseQueue);
+  const parseableIds = photos
+    .filter(
+      (photo) =>
+        (photo.previewStatus === "idle" || photo.exifStatus === "idle") &&
+        !queuedIds.includes(photo.id),
+    )
+    .map((photo) => photo.id);
 
   const importFromPaths = async (paths: string[]) => {
     if (paths.length === 0) return;
-    addPhotos(createImportedPhotos(paths));
+    const imported = createImportedPhotos(paths);
+    addPhotos(imported);
+    if (autoPreviewEnabled) {
+      enqueueParse(imported.map((photo) => photo.id));
+    }
     setImportErrors([]);
   };
 
@@ -132,6 +149,32 @@ export function PhotoList() {
         <div className="relative flex items-center gap-1" ref={popRef}>
           <button
             type="button"
+            aria-label="自动预览"
+            title={autoPreviewEnabled ? "关闭自动预览" : "开启自动预览"}
+            onClick={() => setAutoPreviewEnabled(!autoPreviewEnabled)}
+            className={cn(
+              "btn-neu h-7 w-7 px-0",
+              autoPreviewEnabled && "shadow-[var(--shadow-apple-card),var(--ring-selected)]",
+            )}
+          >
+            {autoPreviewEnabled ? (
+              <Eye className="h-3.5 w-3.5 text-primary" />
+            ) : (
+              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+            )}
+          </button>
+          <button
+            type="button"
+            aria-label="解析所有照片"
+            title={parseableIds.length > 0 ? "解析所有照片" : "没有待解析照片"}
+            disabled={parseableIds.length === 0}
+            onClick={() => enqueueParse(parseableIds)}
+            className="btn-neu h-7 w-7 px-0"
+          >
+            <ScanSearch className="h-3.5 w-3.5 text-muted-foreground" />
+          </button>
+          <button
+            type="button"
             aria-label="导入照片"
             title="导入照片"
             onClick={() => void onPick()}
@@ -179,7 +222,7 @@ export function PhotoList() {
             <ul className="space-y-1.5">
               {photos.map((p) => {
                 const name = p.path.split("/").pop() ?? p.path;
-                const previewState = getPreviewState(p);
+                const previewState = getPreviewState(p, queuedIds.includes(p.id));
                 const exportState = getExportState(
                   jobs.filter((job) => job.photoId === p.id),
                 );
@@ -277,9 +320,12 @@ function getStatusIcon(kind: StatusKind, tone: StatusTone) {
   return kind === "preview" ? Eye : CircleSlash;
 }
 
-function getPreviewState(photo: Photo) {
+function getPreviewState(photo: Photo, queued: boolean) {
   if (photo.previewStatus === "error" || photo.exifStatus === "error") {
     return { label: "失败", tone: "error" as const };
+  }
+  if (queued) {
+    return { label: "排队中", tone: "info" as const };
   }
   if (photo.previewStatus === "ready" && photo.exifStatus === "ready") {
     return { label: "可用", tone: "success" as const };

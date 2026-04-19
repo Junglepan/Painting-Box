@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { CanvasRatio, FrameParams, TemplateConfig, TemplateKind } from "./types";
 
 type TemplateState = {
@@ -66,43 +67,56 @@ const defaultFrameParams: FrameParams = {
   infoPosition: "bottom",
 };
 
-export const useTemplateStore = create<TemplateState>((set) => ({
-  currentKind: "classic-bottom",
-  config: defaultConfig,
-  frameParams: defaultFrameParams,
-  fieldOverrides: {},
-  setKind: (kind) => set({ currentKind: kind }),
-  setConfig: (partial) =>
-    set((s) => ({ config: { ...s.config, ...partial } })),
-  setFrameParams: (partial) =>
-    set((s) => {
-      if (
-        s.frameParams.paddingLocked &&
-        (partial.paddingTop !== undefined ||
-          partial.paddingRight !== undefined ||
-          partial.paddingBottom !== undefined ||
-          partial.paddingLeft !== undefined)
-      ) {
-        const v =
-          partial.paddingTop ??
-          partial.paddingRight ??
-          partial.paddingBottom ??
-          partial.paddingLeft ??
-          0;
-        return {
-          frameParams: {
-            ...s.frameParams,
-            paddingTop: v,
-            paddingRight: v,
-            paddingBottom: v,
-            paddingLeft: v,
-            ...partial,
-          },
-        };
-      }
-      return { frameParams: { ...s.frameParams, ...partial } };
+export const useTemplateStore = create<TemplateState>()(
+  persist(
+    (set) => ({
+      currentKind: "classic-bottom",
+      config: defaultConfig,
+      frameParams: defaultFrameParams,
+      fieldOverrides: {},
+      setKind: (kind) => set({ currentKind: kind }),
+      setConfig: (partial) =>
+        set((s) => ({ config: { ...s.config, ...partial } })),
+      setFrameParams: (partial) =>
+        set((s) => {
+          if (
+            s.frameParams.paddingLocked &&
+            (partial.paddingTop !== undefined ||
+              partial.paddingRight !== undefined ||
+              partial.paddingBottom !== undefined ||
+              partial.paddingLeft !== undefined)
+          ) {
+            const v =
+              partial.paddingTop ??
+              partial.paddingRight ??
+              partial.paddingBottom ??
+              partial.paddingLeft ??
+              0;
+            return {
+              frameParams: {
+                ...s.frameParams,
+                paddingTop: v,
+                paddingRight: v,
+                paddingBottom: v,
+                paddingLeft: v,
+                ...partial,
+              },
+            };
+          }
+          return { frameParams: { ...s.frameParams, ...partial } };
+        }),
+      resetFrameParams: () => set({ frameParams: defaultFrameParams }),
+      setFieldOverride: (field, value) =>
+        set((s) => ({ fieldOverrides: { ...s.fieldOverrides, [field]: value } })),
     }),
-  resetFrameParams: () => set({ frameParams: defaultFrameParams }),
-  setFieldOverride: (field, value) =>
-    set((s) => ({ fieldOverrides: { ...s.fieldOverrides, [field]: value } })),
-}));
+    {
+      name: "painting-box-template-config",
+      partialize: (state) => ({
+        currentKind: state.currentKind,
+        config: state.config,
+        frameParams: state.frameParams,
+        fieldOverrides: state.fieldOverrides,
+      }),
+    },
+  ),
+);

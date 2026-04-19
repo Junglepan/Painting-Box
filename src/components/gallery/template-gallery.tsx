@@ -1,4 +1,5 @@
 import { useTemplateStore } from "@/stores/template-store";
+import { usePhotoStore } from "@/stores/photo-store";
 import type { TemplateKind } from "@/stores/types";
 import { TEMPLATE_LIBRARY } from "@/lib/templates";
 import { cn } from "@/lib/utils";
@@ -6,6 +7,13 @@ import { Layers } from "lucide-react";
 
 export function TemplateGallery() {
   const { currentKind, setKind } = useTemplateStore();
+  const selectedPhoto = usePhotoStore((s) =>
+    s.photos.find((p) => p.id === s.selectedId),
+  );
+  const locked =
+    !!selectedPhoto &&
+    (selectedPhoto.previewStatus !== "ready" ||
+      selectedPhoto.exifStatus !== "ready");
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -24,6 +32,7 @@ export function TemplateGallery() {
               kind={t.kind}
               name={t.name}
               active={currentKind === t.kind}
+              disabled={locked}
               onClick={() => setKind(t.kind)}
             />
           ))}
@@ -37,19 +46,23 @@ function TemplateCard({
   kind,
   name,
   active,
+  disabled,
   onClick,
 }: {
   kind: TemplateKind;
   name: string;
   active: boolean;
+  disabled: boolean;
   onClick: () => void;
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
       className={cn(
         "group flex h-full shrink-0 flex-col gap-1 rounded-md border bg-card p-1.5 transition-all duration-200 ease-out",
+        disabled && "cursor-not-allowed opacity-45 hover:translate-y-0 hover:border-border/40 hover:shadow-none",
         active
           ? "border-primary/60 shadow-[var(--shadow-apple-card),var(--ring-selected)]"
           : "border-border/40 hover:-translate-y-px hover:border-border hover:shadow-[var(--shadow-apple-card)]",
