@@ -80,8 +80,12 @@ pub fn read_exif(path: &Path) -> ExifData {
 
 fn text_field(exif: &exif::Exif, tag: Tag) -> String {
     exif.get_field(tag, In::PRIMARY)
-        .map(|field| field.display_value().with_unit(exif).to_string())
+        .map(|field| sanitize_text(field.display_value().with_unit(exif).to_string()))
         .unwrap_or_default()
+}
+
+fn sanitize_text(value: String) -> String {
+    value.trim().trim_matches('"').to_string()
 }
 
 fn rational_f64(exif: &exif::Exif, tag: Tag) -> Option<f64> {
@@ -133,4 +137,15 @@ fn gps_coord(exif: &exif::Exif, tag: Tag, ref_tag: Tag) -> Option<f64> {
         result *= -1.0;
     }
     Some(result)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sanitize_text;
+
+    #[test]
+    fn strips_wrapping_quotes_from_exif_text() {
+        assert_eq!(sanitize_text("\"NIKON CORPORATION\"".to_string()), "NIKON CORPORATION");
+        assert_eq!(sanitize_text("\"NIKKOR Z 70-200mm f/2.8 VR S\"".to_string()), "NIKKOR Z 70-200mm f/2.8 VR S");
+    }
 }

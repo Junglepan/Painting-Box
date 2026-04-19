@@ -19,8 +19,6 @@ const defaultConfig: TemplateConfig = {
   showCamera: true,
   showLens: false,
   showParams: true,
-  showDateTime: false,
-  showGps: false,
 };
 
 const defaultFrameParams: FrameParams = {
@@ -33,7 +31,7 @@ const defaultFrameParams: FrameParams = {
   innerRadius: 16,
   infoBarHeight: 86,
   mainImageWidthRatio: 90,
-  minTopBottomMargin: 2,
+  minTopBottomMargin: 3.2,
   textMargin: 0.4,
 
   background: "white",
@@ -41,23 +39,23 @@ const defaultFrameParams: FrameParams = {
   blurRadius: 40,
 
   shadow: true,
-  shadowBlur: 24,
-  shadowOffsetY: 10,
-  shadowOpacity: 20,
+  shadowBlur: 20,
+  shadowOffsetY: 8,
+  shadowOpacity: 15,
 
   photoScale: 100,
   photoBorder: 0,
 
-  fontSize: 22,
-  fontWeight: 600,
-  letterSpacing: 0,
-  lineHeight: 1.3,
+  fontFamily: "pingfang-sc",
+  fontSize: 20,
   textColor: "#1f2937",
   textAlign: "center",
 
-  logoSize: 28,
+  logoSize: 20,
+  logoKey: "",
+  logoVariant: "original",
   logoColor: "original",
-  logoGap: 12,
+  logoGap: 40,
 
   dividerShow: false,
   dividerColor: "#d7dce6",

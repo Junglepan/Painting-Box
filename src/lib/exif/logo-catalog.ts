@@ -1,0 +1,182 @@
+export const LOGO_CATALOG = {
+  "老蛙": {
+    "black": "/brand-logos/老蛙-black.svg",
+    "original": "/brand-logos/老蛙-original.svg",
+    "white": "/brand-logos/老蛙-white.svg",
+  },
+  "七工匠": {
+    "black": "/brand-logos/七工匠-black.svg",
+    "original": "/brand-logos/七工匠-original.svg",
+    "white": "/brand-logos/七工匠-white.svg",
+  },
+  "思锐": {
+    "black": "/brand-logos/思锐-black.svg",
+    "original": "/brand-logos/思锐-original.svg",
+    "white": "/brand-logos/思锐-white.svg",
+  },
+  "唯卓仕": {
+    "black": "/brand-logos/唯卓仕-black.svg",
+    "white": "/brand-logos/唯卓仕-white.svg",
+  },
+  "星曜": {
+    "black": "/brand-logos/星曜-black.svg",
+    "white": "/brand-logos/星曜-white.svg",
+  },
+  "永诺": {
+    "black": "/brand-logos/永诺-black.svg",
+    "original": "/brand-logos/永诺-original.svg",
+    "white": "/brand-logos/永诺-white.svg",
+  },
+  "apple": {
+    "black": "/brand-logos/apple-black.svg",
+    "white": "/brand-logos/apple-white.svg",
+  },
+  "canon": {
+    "black": "/brand-logos/canon-black.svg",
+    "original": "/brand-logos/canon-original.svg",
+    "white": "/brand-logos/canon-white.svg",
+  },
+  "dji": {
+    "black": "/brand-logos/dji-black.svg",
+    "white": "/brand-logos/dji-white.svg",
+  },
+  "fujifilm": {
+    "black": "/brand-logos/fujifilm-black.svg",
+    "original": "/brand-logos/fujifilm-original.svg",
+    "white": "/brand-logos/fujifilm-white.svg",
+  },
+  "gopro": {
+    "black": "/brand-logos/gopro-black.svg",
+    "original": "/brand-logos/gopro-original.svg",
+    "white": "/brand-logos/gopro-white.svg",
+  },
+  "hasselblad": {
+    "black": "/brand-logos/hasselblad-black.svg",
+    "white": "/brand-logos/hasselblad-white.svg",
+  },
+  "honor": {
+    "original": "/brand-logos/honor-original.svg",
+    "white": "/brand-logos/honor-white.svg",
+  },
+  "huawei": {
+    "black": "/brand-logos/huawei-black.svg",
+    "original": "/brand-logos/huawei-original.svg",
+    "white": "/brand-logos/huawei-white.svg",
+  },
+  "insta360": {
+    "black": "/brand-logos/insta360-black.svg",
+    "white": "/brand-logos/insta360-white.svg",
+  },
+  "iqoo": {
+    "original": "/brand-logos/iqoo-original.svg",
+    "original-2": "/brand-logos/iqoo-original-2.svg",
+    "white": "/brand-logos/iqoo-white.svg",
+  },
+  "leica": {
+    "black": "/brand-logos/leica-black.svg",
+    "original": "/brand-logos/leica-original.svg",
+    "white": "/brand-logos/leica-white.svg",
+  },
+  "lumix": {
+    "black": "/brand-logos/lumix-black.svg",
+    "white": "/brand-logos/lumix-white.svg",
+  },
+  "meizu": {
+    "black": "/brand-logos/meizu-black.svg",
+    "original": "/brand-logos/meizu-original.svg",
+    "white": "/brand-logos/meizu-white.svg",
+  },
+  "minolta": {
+    "original": "/brand-logos/minolta-original.svg",
+  },
+  "nikon": {
+    "black": "/brand-logos/nikon-black.svg",
+    "icon-original": "/brand-logos/nikon-icon-original.svg",
+    "original": "/brand-logos/nikon-original.svg",
+    "white": "/brand-logos/nikon-white.svg",
+  },
+  "oneplus": {
+    "black": "/brand-logos/oneplus-black.svg",
+    "original": "/brand-logos/oneplus-original.svg",
+    "white": "/brand-logos/oneplus-white.svg",
+  },
+  "oppo": {
+    "black": "/brand-logos/oppo-black.svg",
+    "original": "/brand-logos/oppo-original.svg",
+    "white": "/brand-logos/oppo-white.svg",
+  },
+  "osmo-action": {
+    "black": "/brand-logos/osmo-action-black.svg",
+    "white": "/brand-logos/osmo-action-white.svg",
+  },
+  "panasonic": {
+    "original": "/brand-logos/panasonic-original.svg",
+  },
+  "phaseone": {
+    "original": "/brand-logos/phaseone-original.svg",
+    "original-2": "/brand-logos/phaseone-original-2.svg",
+    "white": "/brand-logos/phaseone-white.svg",
+  },
+  "realme": {
+    "black": "/brand-logos/realme-black.svg",
+    "white": "/brand-logos/realme-white.svg",
+  },
+  "redmi": {
+    "black": "/brand-logos/redmi-black.svg",
+    "original": "/brand-logos/redmi-original.svg",
+    "white": "/brand-logos/redmi-white.svg",
+  },
+  "ricoh": {
+    "original": "/brand-logos/ricoh-original.svg",
+  },
+  "samsung": {
+    "black-1": "/brand-logos/samsung-black-1.svg",
+    "black-2": "/brand-logos/samsung-black-2.svg",
+    "white": "/brand-logos/samsung-white.svg",
+  },
+  "sigma": {
+    "black": "/brand-logos/sigma-black.svg",
+    "icon-black": "/brand-logos/sigma-icon-black.svg",
+    "icon-white": "/brand-logos/sigma-icon-white.svg",
+    "white": "/brand-logos/sigma-white.svg",
+  },
+  "sony": {
+    "black": "/brand-logos/sony-black.svg",
+    "white": "/brand-logos/sony-white.svg",
+  },
+  "sonyalpha": {
+    "black": "/brand-logos/sonyalpha-black.svg",
+    "white": "/brand-logos/sonyalpha-white.svg",
+  },
+  "tamron": {
+    "black": "/brand-logos/tamron-black.svg",
+    "original": "/brand-logos/tamron-original.svg",
+    "white": "/brand-logos/tamron-white.svg",
+  },
+  "tokina": {
+    "black": "/brand-logos/tokina-black.svg",
+    "original": "/brand-logos/tokina-original.svg",
+    "white": "/brand-logos/tokina-white.svg",
+  },
+  "vivo": {
+    "black": "/brand-logos/vivo-black.svg",
+    "original": "/brand-logos/vivo-original.svg",
+    "white": "/brand-logos/vivo-white.svg",
+  },
+  "xiaomi": {
+    "black": "/brand-logos/xiaomi-black.svg",
+    "original": "/brand-logos/xiaomi-original.svg",
+    "white": "/brand-logos/xiaomi-white.svg",
+  },
+  "zeiss": {
+    "black": "/brand-logos/zeiss-black.svg",
+    "original": "/brand-logos/zeiss-original.svg",
+    "white": "/brand-logos/zeiss-white.svg",
+  },
+} as const;
+
+export const LOGO_KEYS = Object.keys(LOGO_CATALOG).sort((a, b) =>
+  a.localeCompare(b, 'zh-Hans-CN'),
+);
+
+export type LogoCatalogKey = keyof typeof LOGO_CATALOG;

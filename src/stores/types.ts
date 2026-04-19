@@ -75,8 +75,6 @@ export type TemplateConfig = {
   showCamera: boolean;
   showLens: boolean;
   showParams: boolean;
-  showDateTime: boolean;
-  showGps: boolean;
 };
 
 export type CanvasRatio =
@@ -94,7 +92,9 @@ export type CanvasRatio =
   | "21:9";
 export type FrameBackground = "white" | "black" | "blur" | "custom";
 export type LogoColor = "original" | "black" | "white";
+export type LogoVariant = string;
 export type TextAlign = "left" | "center" | "right";
+export type WatermarkFontFamily = "pingfang-sc" | "arial";
 export type InfoPosition =
   | "bottom"
   | "top"
@@ -131,14 +131,14 @@ export type FrameParams = {
   photoBorder: number;
 
   // Typography
+  fontFamily: WatermarkFontFamily;
   fontSize: number;
-  fontWeight: 400 | 500 | 600 | 700;
-  letterSpacing: number;
-  lineHeight: number;
   textColor: string;
   textAlign: TextAlign;
 
   // Logo
+  logoKey: string;
+  logoVariant: LogoVariant;
   logoSize: number;
   logoColor: LogoColor;
   logoGap: number;

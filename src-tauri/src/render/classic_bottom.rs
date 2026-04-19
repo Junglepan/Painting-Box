@@ -1,14 +1,17 @@
-use std::{fs::File, io::BufWriter, path::Path};
+use std::{fs::File, io::BufWriter, path::{Path, PathBuf}};
 
 use image::{
     codecs::jpeg::JpegEncoder, imageops::overlay, DynamicImage, ImageFormat, Rgba, RgbaImage,
 };
+use resvg::{tiny_skia, usvg};
 use serde::Deserialize;
 
 use crate::commands::photos::ExportSinglePhotoRequest;
 use crate::exif::{brand, read_exif, CameraInfo, ExifData, GpsInfo};
 use crate::images::decode_image;
 use crate::render::text::TextRenderer;
+
+const LOGO_VISUAL_SCALE: f32 = 1.18;
 
 // ── EXIF types (deserialized from frontend) ─────────────────────────────────
 
@@ -73,8 +76,6 @@ pub struct ExportTemplateConfig {
     pub show_camera: bool,
     pub show_lens: bool,
     pub show_params: bool,
-    pub show_date_time: bool,
-    pub show_gps: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -94,8 +95,12 @@ pub struct ExportFrameParams {
     pub background: String,
     pub bg_color: String,
     pub text_color: String,
+    pub logo_key: String,
+    pub logo_variant: String,
+    pub logo_size: u32,
+    pub logo_gap: u32,
+    pub font_family: String,
     pub font_size: u32,
-    pub font_weight: u32,
     pub divider_show: bool,
     pub divider_color: String,
     pub canvas_ratio: String,
@@ -110,7 +115,7 @@ pub fn render_to_path(request: &ExportSinglePhotoRequest) -> Result<(), String> 
         .exif
         .clone()
         .unwrap_or_else(|| read_exif(Path::new(&request.photo_path)).into());
-    let renderer = TextRenderer::load();
+    let renderer = TextRenderer::load(&request.frame_params.font_family);
     let rendered = compose(source, &request.frame_params, &exif, &request.config, renderer.as_ref());
     save_image(&rendered, Path::new(&request.output_path), request.frame_params.export_quality)
 }
@@ -127,19 +132,17 @@ pub fn compose(
     let src_w = source.width();
     let top_margin = ((src_w as f32) * (frame.min_top_bottom_margin.max(0.0) / 100.0)).round() as u32;
     let text_gap = ((src_w as f32) * (frame.text_margin.max(0.0) / 100.0)).round().max(2.0) as u32;
+    let extra_line_gap = ((text_gap as f32) * 1.8).round().max(8.0) as u32;
 
     let lines = build_lines(exif, config);
     let resolution_scale = src_w as f32 / 900.0;
     let primary_pt = frame.font_size as f32 * 1.18 * resolution_scale;
     let secondary_pt = frame.font_size as f32 * 0.96 * resolution_scale;
 
-    let text_block_h = if lines.len() > 1 {
-        (primary_pt + secondary_pt) as u32 + text_gap
-    } else if lines.len() == 1 {
-        primary_pt as u32
-    } else {
-        0
-    };
+    let text_block_h = lines.iter().enumerate().fold(0u32, |acc, (index, _)| {
+        let size = if index == 0 { primary_pt as u32 } else { secondary_pt as u32 };
+        acc + size + if index == 0 { 0 } else { extra_line_gap }
+    });
 
     let info_bar_h = frame.info_bar_height
         .max(text_block_h + ((top_margin as f32 * 1.2) as u32));
@@ -167,6 +170,7 @@ pub fn compose(
     let bg = parse_color(&frame.bg_color, &frame.background);
     let text_color = parse_color(&frame.text_color, "white");
     let divider_color = parse_color(&frame.divider_color, "white");
+    let logo = load_logo_rgba(frame, exif, config);
 
     let mut canvas = RgbaImage::from_pixel(canvas_w, canvas_h, bg);
 
@@ -184,8 +188,8 @@ pub fn compose(
             photo_w,
             photo_h,
             r,
-            frame.shadow_blur,
-            frame.shadow_offset_y,
+            (frame.shadow_blur as f32 * resolution_scale).round() as u32,
+            (frame.shadow_offset_y as f32 * resolution_scale).round() as u32,
             frame.shadow_opacity.min(100),
         );
     }
@@ -218,22 +222,21 @@ pub fn compose(
     }
 
     let bar_center_y = bar_top as f32 + info_bar_h as f32 / 2.0;
-    let total_text_h = if lines.len() > 1 {
-        primary_pt + secondary_pt + text_gap as f32
-    } else {
-        primary_pt
-    };
+    let total_text_h = lines.iter().enumerate().fold(0f32, |acc, (index, _)| {
+        let size = if index == 0 { primary_pt } else { secondary_pt };
+        acc + size + if index == 0 { 0.0 } else { extra_line_gap as f32 }
+    });
     let block_top = bar_center_y - total_text_h / 2.0;
+    let mut cursor_y = block_top;
 
     for (i, line) in lines.iter().enumerate() {
         let is_first = i == 0;
         let pt = if is_first { primary_pt } else { secondary_pt };
-        let bold = is_first;
-        let y = if is_first {
-            block_top
-        } else {
-            block_top + primary_pt + text_gap as f32
-        };
+        let bold = true;
+        if i > 0 {
+            cursor_y += extra_line_gap as f32;
+        }
+        let y = cursor_y;
 
         let text_w = if let Some(r) = text {
             r.measure(line, pt, bold)
@@ -241,11 +244,38 @@ pub fn compose(
             (line.len() as f32) * pt * 0.6
         };
 
-        let x = ((canvas_w as f32) - text_w) / 2.0;
+        let logo_inline = if is_first {
+            logo.as_ref().map(|image| {
+                let ratio = image.width() as f32 / image.height().max(1) as f32;
+                let h = (frame.logo_size as f32 * resolution_scale * LOGO_VISUAL_SCALE).max(12.0);
+                let w = h * ratio;
+                (w, h)
+            })
+        } else {
+            None
+        };
+        let inline_w = text_w
+            + logo_inline
+                .map(|(w, _)| w + frame.logo_gap as f32 * resolution_scale)
+                .unwrap_or(0.0);
+
+        let x = ((canvas_w as f32) - inline_w) / 2.0;
+
+        if let (Some(logo_image), Some((_logo_w, logo_h))) = (logo.as_ref(), logo_inline) {
+            let logo_x = x.round() as i64;
+            let logo_y = (y + (pt - logo_h) / 2.0).round() as i64;
+            overlay(&mut canvas, logo_image, logo_x, logo_y);
+        }
+
+        let text_x = x
+            + logo_inline
+                .map(|(w, _)| w + frame.logo_gap as f32 * resolution_scale)
+                .unwrap_or(0.0);
 
         if let Some(r) = text {
-            r.draw(&mut canvas, line, x, y, pt, bold, text_color);
+            r.draw(&mut canvas, line, text_x, y, pt, bold, text_color);
         }
+        cursor_y += pt;
     }
 
     canvas
@@ -268,17 +298,16 @@ fn parse_canvas_ratio(ratio: &str, source_w: u32, source_h: u32) -> f32 {
 // ── Text content ─────────────────────────────────────────────────────────────
 
 fn build_lines(exif: &ExportExif, config: &ExportTemplateConfig) -> Vec<String> {
-    let mut first: Vec<String> = Vec::new();
-    let mut second: Vec<String> = Vec::new();
+    let mut lines: Vec<String> = Vec::new();
 
     if config.show_camera {
         let cam = format_camera(exif);
         if !cam.is_empty() {
-            first.push(cam);
+            lines.push(cam);
         }
     }
     if config.show_lens && !exif.lens.is_empty() {
-        first.push(exif.lens.clone());
+        lines.push(clean_display_text(&exif.lens));
     }
 
     if config.show_params {
@@ -289,31 +318,92 @@ fn build_lines(exif: &ExportExif, config: &ExportTemplateConfig) -> Vec<String> 
             if exif.iso > 0 { format!("ISO{}", exif.iso) } else { String::new() },
         ].into_iter().filter(|s| !s.is_empty()).collect();
         if !params.is_empty() {
-            second.push(params.join("  "));
+            lines.push(params.join(" "));
         }
     }
-    if config.show_date_time && !exif.taken_at.is_empty() {
-        second.push(exif.taken_at.clone());
-    }
-    if config.show_gps {
-        if let Some(gps) = &exif.gps {
-            second.push(format!("{:.4}, {:.4}", gps.lat, gps.lng));
-        }
-    }
-
-    let mut first_line = first.join("  ·  ");
-    if config.show_logo {
-        first_line = if first_line.is_empty() { "PB".into() } else { format!("PB  ·  {first_line}") };
-    }
-
-    [first_line, second.join("  ·  ")]
-        .into_iter()
-        .filter(|s| !s.is_empty())
-        .collect()
+    lines.into_iter().filter(|s| !s.is_empty()).collect()
 }
 
 fn format_camera(exif: &ExportExif) -> String {
-    brand::format_camera(&exif.camera.make, &exif.camera.model)
+    brand::normalize_model(&exif.camera.make, &exif.camera.model)
+}
+
+fn load_logo_rgba(
+    frame: &ExportFrameParams,
+    exif: &ExportExif,
+    config: &ExportTemplateConfig,
+) -> Option<RgbaImage> {
+    if !config.show_logo {
+        return None;
+    }
+
+    let key = if frame.logo_key.trim().is_empty() {
+        infer_logo_key(&exif.camera.make)?
+    } else {
+        frame.logo_key.trim().to_ascii_lowercase()
+    };
+    let path = resolve_logo_asset_path(&key, &frame.logo_variant)?;
+    render_svg_logo(&path).ok()
+}
+
+fn infer_logo_key(make: &str) -> Option<String> {
+    let normalized = brand::normalize_make(make).to_ascii_lowercase();
+    match normalized.as_str() {
+        "" => None,
+        "lumix" => Some("panasonic".into()),
+        "phase one" => Some("phaseone".into()),
+        "osmo action" => Some("osmo-action".into()),
+        other => Some(other.into()),
+    }
+}
+
+fn resolve_logo_asset_path(key: &str, variant: &str) -> Option<PathBuf> {
+    let base = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()?
+        .join("public")
+        .join("brand-logos");
+
+    let candidates = [
+        format!("{key}-{variant}.svg"),
+        format!("{key}-original.svg"),
+        format!("{key}-black.svg"),
+        format!("{key}-white.svg"),
+        format!("{key}-icon-original.svg"),
+        format!("{key}-icon-black.svg"),
+        format!("{key}-icon-white.svg"),
+    ];
+
+    for candidate in candidates {
+        let path = base.join(candidate);
+        if path.exists() {
+            return Some(path);
+        }
+    }
+
+    if key == "panasonic" {
+        return resolve_logo_asset_path("lumix", variant);
+    }
+    if key == "sony" {
+        return resolve_logo_asset_path("sonyalpha", variant);
+    }
+
+    None
+}
+
+fn render_svg_logo(path: &Path) -> Result<RgbaImage, String> {
+    let svg = std::fs::read(path).map_err(|e| format!("读取 Logo 失败：{e}"))?;
+    let options = usvg::Options::default();
+    let tree = usvg::Tree::from_data(&svg, &options).map_err(|e| format!("解析 SVG 失败：{e}"))?;
+    let size = tree.size().to_int_size();
+    let mut pixmap = tiny_skia::Pixmap::new(size.width(), size.height())
+        .ok_or_else(|| "创建 Logo 画布失败".to_string())?;
+    resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
+    RgbaImage::from_raw(size.width(), size.height(), pixmap.data().to_vec())
+        .ok_or_else(|| "创建 Logo 位图失败".to_string())
+}
+
+fn clean_display_text(value: &str) -> String {
+    value.trim().trim_matches('"').trim().to_string()
 }
 
 // ── Save ─────────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@ import { usePhotoStore } from "@/stores/photo-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { EMPTY_EXIF } from "@/stores/types";
 import { ImageOff } from "lucide-react";
-import { drawClassicBottomPreview } from "@/lib/watermark/classic-bottom";
+import { drawClassicBottomPreview, resolvePreviewLogo } from "@/lib/watermark/classic-bottom";
 import { loadImage } from "@/lib/watermark/load-image";
 
 export function PreviewPane() {
@@ -30,13 +30,18 @@ export function PreviewPane() {
     const thumbnailDataUrl = selected.thumbnailDataUrl;
     const width = selected.width;
     const height = selected.height;
+    const logoSrc = resolvePreviewLogo(selected.exif ?? EMPTY_EXIF, frameParams, config);
 
     let cancelled = false;
-    void loadImage(thumbnailDataUrl).then((image) => {
+    void Promise.all([
+      loadImage(thumbnailDataUrl),
+      logoSrc ? loadImage(logoSrc).catch(() => null) : Promise.resolve(null),
+    ]).then(([image, logoImage]) => {
       if (cancelled) return;
       drawClassicBottomPreview(
         canvas,
         image,
+        logoImage,
         {
           width,
           height,
@@ -97,7 +102,7 @@ export function PreviewPane() {
       <PreviewStage>
         <canvas
           ref={canvasRef}
-          className="h-auto w-auto max-h-full max-w-full rounded-[18px] shadow-[var(--shadow-apple-elevated)]"
+          className="h-auto w-auto max-h-full max-w-full rounded-[18px] shadow-[0_10px_24px_rgba(148,163,184,0.14)]"
         />
       </PreviewStage>
     </div>

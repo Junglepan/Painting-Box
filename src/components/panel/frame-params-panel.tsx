@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { formatCamera } from "@/lib/exif/brand";
 import { useTemplateStore } from "@/stores/template-store";
 import { usePhotoStore } from "@/stores/photo-store";
 import type {
@@ -8,24 +7,29 @@ import type {
   FrameBackground,
   FrameParams,
   InfoPosition,
-  LogoColor,
+  LogoVariant,
   TemplateConfig,
   TextAlign,
+  WatermarkFontFamily,
 } from "@/stores/types";
 import { cn } from "@/lib/utils";
+import {
+  LOGO_KEYS,
+  getLogoVariants,
+  getResolvedLogoKey,
+  resolveLogoSelection,
+} from "@/lib/exif/logo";
 import {
   AlignCenter,
   AlignLeft,
   AlignRight,
   Aperture,
   Bold,
-  Calendar,
   Camera,
   ChevronDown,
   Eye,
   Image as ImageIcon,
   Layout,
-  MapPin,
   Minus,
   Palette,
   RotateCcw,
@@ -48,16 +52,15 @@ const BG_OPTIONS: { value: FrameBackground; label: string; swatch: string }[] =
     { value: "custom", label: "自定", swatch: "repeating-conic-gradient(#d7dce6 0 25%,#fff 0 50%) 0 0/8px 8px" },
   ];
 
-const LOGO_COLORS: { value: LogoColor; label: string }[] = [
-  { value: "original", label: "原色" },
-  { value: "black", label: "黑" },
-  { value: "white", label: "白" },
-];
-
 const ALIGNS: { value: TextAlign; icon: LucideIcon }[] = [
   { value: "left", icon: AlignLeft },
   { value: "center", icon: AlignCenter },
   { value: "right", icon: AlignRight },
+];
+
+const FONT_FAMILIES: { value: WatermarkFontFamily; label: string }[] = [
+  { value: "pingfang-sc", label: "PingFang SC" },
+  { value: "arial", label: "Arial" },
 ];
 
 const INFO_POS: { value: InfoPosition; label: string }[] = [
@@ -91,8 +94,6 @@ const FIELDS: {
   { key: "showCamera", icon: Camera, label: "机身" },
   { key: "showLens", icon: Aperture, label: "镜头" },
   { key: "showParams", icon: SquareDashed, label: "参数" },
-  { key: "showDateTime", icon: Calendar, label: "时间" },
-  { key: "showGps", icon: MapPin, label: "GPS" },
 ];
 
 type SectionId =
@@ -136,6 +137,19 @@ export function FrameParamsPanel() {
     setOpen((o) => ({ ...o, [id]: !o[id] }));
 
   const set = (partial: Partial<FrameParams>) => setFrameParams(partial);
+  const resolvedLogo = resolveLogoSelection(
+    frameParams.logoKey,
+    frameParams.logoVariant,
+    selectedPhoto?.exif?.camera.make,
+  );
+  const effectiveLogoKey = getResolvedLogoKey(
+    frameParams.logoKey,
+    selectedPhoto?.exif?.camera.make,
+  );
+  const logoVariants = effectiveLogoKey ? getLogoVariants(effectiveLogoKey) : [];
+  const logoVariantValue = logoVariants.includes(frameParams.logoVariant)
+    ? frameParams.logoVariant
+    : resolvedLogo.variant;
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -321,21 +335,21 @@ export function FrameParamsPanel() {
               <SliderRow
                 hint="模糊"
                 min={0}
-                max={80}
+                max={60}
                 value={frameParams.shadowBlur}
                 onChange={(v) => set({ shadowBlur: v })}
               />
               <SliderRow
                 hint="偏移"
                 min={0}
-                max={40}
+                max={30}
                 value={frameParams.shadowOffsetY}
                 onChange={(v) => set({ shadowOffsetY: v })}
               />
               <SliderRow
                 hint="浓度"
                 min={0}
-                max={100}
+                max={80}
                 value={frameParams.shadowOpacity}
                 unit="%"
                 onChange={(v) => set({ shadowOpacity: v })}
@@ -367,47 +381,18 @@ export function FrameParamsPanel() {
           open={open.type}
           onToggle={toggle}
         >
-          <div className="mb-3">
-            <span className="label-plain mb-2 block">字重</span>
-            <div className="grid grid-cols-4 gap-1.5">
-              {([400, 500, 600, 700] as const).map((w) => (
-                <button
-                  key={w}
-                  type="button"
-                  onClick={() => set({ fontWeight: w })}
-                  className={cn(
-                    "chip text-[10px]",
-                    frameParams.fontWeight === w && "chip-active",
-                  )}
-                  style={{ fontWeight: w }}
-                >
-                  {w === 400 ? "常规" : w === 500 ? "中等" : w === 600 ? "半粗" : "粗体"}
-                </button>
-              ))}
-            </div>
-          </div>
+          <SelectRow
+            label="字体"
+            value={frameParams.fontFamily}
+            options={FONT_FAMILIES}
+            onChange={(value) => set({ fontFamily: value as WatermarkFontFamily })}
+          />
           <SliderRow
             hint="字号"
-            min={12}
-            max={60}
+            min={16}
+            max={34}
             value={frameParams.fontSize}
             onChange={(v) => set({ fontSize: v })}
-          />
-          <SliderRow
-            hint="字距"
-            min={0}
-            max={8}
-            step={0.5}
-            value={frameParams.letterSpacing}
-            onChange={(v) => set({ letterSpacing: v })}
-          />
-          <SliderRow
-            hint="行高"
-            min={0.8}
-            max={2}
-            step={0.1}
-            value={frameParams.lineHeight}
-            onChange={(v) => set({ lineHeight: v })}
           />
           <ColorRow
             label="颜色"
@@ -445,38 +430,56 @@ export function FrameParamsPanel() {
           open={open.logo}
           onToggle={toggle}
         >
+          <SelectRow
+            label="品牌"
+            value={frameParams.logoKey}
+            options={[
+              { value: "", label: "auto" },
+              ...LOGO_KEYS.map((key) => ({ value: key, label: key })),
+            ]}
+            onChange={(value) => {
+              const nextKey = getResolvedLogoKey(
+                value,
+                selectedPhoto?.exif?.camera.make,
+              );
+              const nextVariants = nextKey ? getLogoVariants(nextKey) : [];
+              set({
+                logoKey: value,
+                logoVariant: nextVariants.includes(frameParams.logoVariant)
+                  ? frameParams.logoVariant
+                  : nextVariants[0] ?? "original",
+              });
+            }}
+          />
+          <SelectRow
+            label="版本"
+            value={logoVariantValue}
+            disabled={!effectiveLogoKey || logoVariants.length === 0}
+            options={logoVariants.map((variant) => ({
+              value: variant,
+              label: variant,
+            }))}
+            onChange={(value) => set({ logoVariant: value as LogoVariant })}
+          />
           <SliderRow
             hint="尺寸"
-            min={16}
-            max={80}
+            min={10}
+            max={30}
             value={frameParams.logoSize}
             onChange={(v) => set({ logoSize: v })}
           />
           <SliderRow
             hint="间距"
-            min={0}
-            max={40}
+            min={40}
+            max={80}
             value={frameParams.logoGap}
             onChange={(v) => set({ logoGap: v })}
           />
-          <div className="mt-3">
-            <span className="label-plain mb-2 block">颜色</span>
-            <div className="grid grid-cols-3 gap-1.5">
-              {LOGO_COLORS.map((l) => (
-                <button
-                  key={l.value}
-                  type="button"
-                  onClick={() => set({ logoColor: l.value })}
-                  className={cn(
-                    "chip text-[10px]",
-                    frameParams.logoColor === l.value && "chip-active",
-                  )}
-                >
-                  {l.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          <p className="mt-2 text-[10px] text-muted-foreground/70">
+            {effectiveLogoKey
+              ? `当前 Logo: ${effectiveLogoKey}`
+              : "当前 Logo: 跟随照片"}
+          </p>
         </Section>
 
         <Section
@@ -689,6 +692,38 @@ function ColorRow({
   );
 }
 
+function SelectRow({
+  label,
+  value,
+  options,
+  onChange,
+  disabled,
+}: {
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="param-row">
+      <span className="label-plain">{label}</span>
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className="param-select"
+      >
+        {options.map((option) => (
+          <option key={option.value || "auto"} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function Toggle({
   active,
   onClick,
@@ -735,24 +770,23 @@ function ExifRows({ exif }: { exif?: ExifData }) {
     return <p className="text-[11px] text-muted-foreground/70">暂无 EXIF 信息</p>;
   }
 
+  const rawCamera = [exif.camera.make, exif.camera.model]
+    .filter(Boolean)
+    .join(" ");
+  const rawParams = [
+    exif.focalLength ? `${exif.focalLength}mm` : "",
+    exif.aperture ? `f/${exif.aperture}` : "",
+    exif.shutterSpeed,
+    exif.iso ? `ISO${exif.iso}` : "",
+  ]
+    .filter(Boolean)
+    .join("  ");
+
   return (
     <div className="space-y-1.5">
-      <ReadOnlyRow
-        label="机身"
-        value={formatCamera(exif.camera.make, exif.camera.model)}
-      />
+      <ReadOnlyRow label="机身" value={rawCamera} />
       <ReadOnlyRow label="镜头" value={exif.lens} />
-      <ReadOnlyRow
-        label="参数"
-        value={[
-          exif.focalLength ? `${Math.round(exif.focalLength)}mm` : "",
-          exif.aperture ? `f/${exif.aperture}` : "",
-          exif.shutterSpeed,
-          exif.iso ? `ISO ${exif.iso}` : "",
-        ]
-          .filter(Boolean)
-          .join("  ")}
-      />
+      <ReadOnlyRow label="参数" value={rawParams} />
       <ReadOnlyRow label="时间" value={exif.takenAt} />
       {exif.gps ? (
         <ReadOnlyRow

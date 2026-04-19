@@ -28,3 +28,4 @@ image = "0.25"
 kamadak-exif = "0.6"
 uuid = { version = "1", features = ["v4", "serde"] }
 ab_glyph = "0.2"
+resvg = "0.45"

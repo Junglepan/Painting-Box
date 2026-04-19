@@ -7,9 +7,10 @@ pub struct TextRenderer {
 }
 
 impl TextRenderer {
-    pub fn load() -> Option<Self> {
-        let regular = load_font(font_paths(false))?;
-        let bold = load_font(font_paths(true)).unwrap_or_else(|| load_font(font_paths(false)).unwrap());
+    pub fn load(family: &str) -> Option<Self> {
+        let regular = load_font(font_paths(family, false))?;
+        let bold = load_font(font_paths(family, true))
+            .unwrap_or_else(|| load_font(font_paths(family, false)).unwrap());
         Some(Self { regular, bold })
     }
 
@@ -106,8 +107,17 @@ fn load_font(paths: Vec<&'static str>) -> Option<FontVec> {
     None
 }
 
-fn font_paths(bold: bool) -> Vec<&'static str> {
+fn font_paths(family: &str, bold: bool) -> Vec<&'static str> {
     if cfg!(target_os = "macos") {
+        if family == "pingfang-sc" {
+            return vec![
+                "/System/Library/AssetsV2/com_apple_MobileAsset_Font8/86ba2c91f017a3749571a82f2c6d890ac7ffb2fb.asset/AssetData/PingFang.ttc",
+                "/System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Reserved/PingFangUI.ttc",
+                "/System/Library/Fonts/ArialHB.ttc",
+                "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+                "/System/Library/Fonts/Supplemental/Arial.ttf",
+            ];
+        }
         if bold {
             vec![
                 "/System/Library/Fonts/Supplemental/Arial Bold.ttf",

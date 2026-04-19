@@ -1,4 +1,5 @@
-import { formatCamera } from "@/lib/exif/brand";
+import { normalizeModel } from "@/lib/exif/brand";
+import { resolveLogoSelection } from "@/lib/exif/logo";
 import type { ExifData, FrameParams, TemplateConfig } from "@/stores/types";
 
 type PreviewData = {
@@ -8,9 +9,12 @@ type PreviewData = {
   exif: ExifData;
 };
 
+const LOGO_VISUAL_SCALE = 1.18;
+
 export function drawClassicBottomPreview(
   canvas: HTMLCanvasElement,
   image: HTMLImageElement,
+  logoImage: HTMLImageElement | null,
   photo: PreviewData,
   frameParams: FrameParams,
   config: TemplateConfig,
@@ -22,12 +26,15 @@ export function drawClassicBottomPreview(
   const baseWidth = 900;
   const scale = baseWidth / photo.width;
   const topBottomMargin = baseWidth * (frameParams.minTopBottomMargin / 100);
-  const textLines = previewLines(photo.exif, config);
+  const textLines = buildPreviewLines(photo.exif, config);
   const textGap = Math.max(2, baseWidth * (frameParams.textMargin / 100));
   const primaryFontSize = Math.max(16, frameParams.fontSize * 1.18);
   const secondaryFontSize = Math.max(13, frameParams.fontSize * 0.96);
-  const textBlockHeight =
-    textLines.length > 1 ? primaryFontSize + secondaryFontSize + textGap : primaryFontSize;
+  const extraLineGap = Math.max(8, textGap * 1.8);
+  const textBlockHeight = textLines.reduce((acc, _line, index) => {
+    const size = index === 0 ? primaryFontSize : secondaryFontSize;
+    return acc + size + (index === 0 ? 0 : extraLineGap);
+  }, 0);
   const infoBarHeight = Math.max(
     frameParams.infoBarHeight * scale,
     textBlockHeight + topBottomMargin * 1.2,
@@ -59,11 +66,17 @@ export function drawClassicBottomPreview(
   roundRect(ctx, 0, 0, contentWidth, contentHeight, frameParams.outerRadius * scale);
   ctx.fill();
 
+  // Shadow is cast by a filled shape drawn BEFORE the clipped image so it's
+  // visible outside the photo bounds. The fill is then covered by the image.
   if (frameParams.shadow) {
     ctx.save();
     ctx.shadowColor = `rgba(17,24,39,${frameParams.shadowOpacity / 100})`;
-    ctx.shadowBlur = frameParams.shadowBlur * scale * 0.6;
-    ctx.shadowOffsetY = frameParams.shadowOffsetY * scale * 0.5;
+    ctx.shadowBlur = frameParams.shadowBlur;
+    ctx.shadowOffsetY = frameParams.shadowOffsetY;
+    ctx.fillStyle = "#000000";
+    roundRect(ctx, imageX, imageY, imageDrawWidth, imageDrawHeight, frameParams.innerRadius * scale);
+    ctx.fill();
+    ctx.restore();
   }
 
   ctx.save();
@@ -93,10 +106,6 @@ export function drawClassicBottomPreview(
     ctx.stroke();
   }
 
-  if (frameParams.shadow) {
-    ctx.restore();
-  }
-
   if (frameParams.dividerShow) {
     ctx.strokeStyle = frameParams.dividerColor;
     ctx.lineWidth = 1;
@@ -109,36 +118,71 @@ export function drawClassicBottomPreview(
   const left = 24 * scale;
   const right = contentWidth - 24 * scale;
   const centerY = barTop + infoBarHeight / 2;
+  const totalTextHeight = textLines.reduce((acc, _line, index) => {
+    const size = index === 0 ? primaryFontSize : secondaryFontSize;
+    return acc + size + (index === 0 ? 0 : extraLineGap);
+  }, 0);
+  const blockTop = centerY - totalTextHeight / 2;
 
   ctx.fillStyle = frameParams.textColor;
   ctx.textBaseline = "middle";
 
   const textStart = left;
-  const lineGap = textGap;
-
+  let cursorY = blockTop;
   textLines.forEach((line, index) => {
-    const y =
-      centerY -
-      ((textLines.length - 1) * lineGap) / 2 +
-      index * lineGap;
-
     const firstLine = index === 0;
     const fontSize = firstLine ? primaryFontSize : secondaryFontSize;
-    const weight = firstLine ? 700 : frameParams.fontWeight;
-    ctx.font = `${weight} ${fontSize}px Arial, sans-serif`;
+    const weight = 700;
+    if (index > 0) cursorY += extraLineGap;
+    const y = cursorY + fontSize / 2;
+    ctx.font = `${weight} ${fontSize}px ${getPreviewFontFamily(frameParams.fontFamily)}`;
+    const metrics = ctx.measureText(line);
+    const logoInline =
+      firstLine && logoImage
+        ? calcLogoInline(logoImage, frameParams.logoSize * LOGO_VISUAL_SCALE)
+        : null;
+    const inlineWidth = metrics.width + (logoInline ? logoInline.width + frameParams.logoGap * scale : 0);
+    // textBaseline="middle" aligns to em-square center; actual glyph visual center differs.
+    // Offset logo to match where glyphs are actually rendered.
+    const logoY = logoInline
+      ? y + (metrics.actualBoundingBoxDescent - metrics.actualBoundingBoxAscent) / 2
+      : y;
 
     if (frameParams.textAlign === "right") {
       ctx.textAlign = "right";
-      ctx.fillText(line, right, y);
+      const textX = right;
+      if (logoInline && logoImage) {
+        const logoX = textX - inlineWidth;
+        drawLogoInline(ctx, logoImage, logoInline, logoX, logoY);
+      }
+      ctx.fillText(line, textX, y);
+      cursorY += fontSize;
       return;
     }
     if (frameParams.textAlign === "center") {
       ctx.textAlign = "center";
-      ctx.fillText(line, (textStart + right) / 2, y);
+      const centerX = (textStart + right) / 2;
+      if (logoInline && logoImage) {
+        const inlineStart = centerX - inlineWidth / 2;
+        drawLogoInline(ctx, logoImage, logoInline, inlineStart, logoY);
+        ctx.textAlign = "left";
+        ctx.fillText(line, inlineStart + logoInline.width + frameParams.logoGap * scale, y);
+        cursorY += fontSize;
+        return;
+      }
+      ctx.fillText(line, centerX, y);
+      cursorY += fontSize;
       return;
     }
     ctx.textAlign = "left";
+    if (logoInline && logoImage) {
+      drawLogoInline(ctx, logoImage, logoInline, textStart, logoY);
+      ctx.fillText(line, textStart + logoInline.width + frameParams.logoGap * scale, y);
+      cursorY += fontSize;
+      return;
+    }
     ctx.fillText(line, textStart, y);
+    cursorY += fontSize;
   });
 }
 
@@ -158,15 +202,17 @@ function getCanvasRatio(
   return rw / rh;
 }
 
-function previewLines(exif: ExifData, config: TemplateConfig) {
-  const first: string[] = [];
-  const second: string[] = [];
+export function buildPreviewLines(exif: ExifData, config: TemplateConfig) {
+  const lines: string[] = [];
 
   if (config.showCamera) {
-    const camera = formatCamera(exif.camera.make, exif.camera.model);
-    if (camera) first.push(camera);
+    const camera = normalizeModel(exif.camera.make, exif.camera.model);
+    if (camera) lines.push(camera);
   }
-  if (config.showLens && exif.lens) first.push(exif.lens);
+  if (config.showLens) {
+    const lens = cleanDisplayText(exif.lens);
+    if (lens) lines.push(lens);
+  }
 
   if (config.showParams) {
     const params = [
@@ -175,19 +221,10 @@ function previewLines(exif: ExifData, config: TemplateConfig) {
       exif.shutterSpeed,
       exif.iso ? `ISO${exif.iso}` : "",
     ].filter(Boolean);
-    if (params.length) second.push(params.join(" "));
+    if (params.length) lines.push(params.join(" "));
   }
 
-  if (config.showDateTime && exif.takenAt) second.push(exif.takenAt);
-  if (config.showGps && exif.gps) {
-    second.push(`${exif.gps.lat.toFixed(4)}, ${exif.gps.lng.toFixed(4)}`);
-  }
-
-  let firstLine = first.join("  ·  ");
-  if (config.showLogo) {
-    firstLine = firstLine ? `PB  ·  ${firstLine}` : "PB";
-  }
-  return [firstLine, second.join("  ·  ")].filter(Boolean);
+  return lines.filter(Boolean);
 }
 
 function trim(value: number) {
@@ -217,4 +254,47 @@ function backgroundFill(frameParams: FrameParams) {
   if (frameParams.background === "custom") return frameParams.bgColor;
   if (frameParams.background === "blur") return "#eef1f6";
   return "#ffffff";
+}
+
+function cleanDisplayText(value: string) {
+  return value.trim().replace(/^"+|"+$/g, "").trim();
+}
+
+export function getPreviewFontFamily(fontFamily: FrameParams["fontFamily"]) {
+  if (fontFamily === "arial") {
+    return 'Arial, "Helvetica Neue", sans-serif';
+  }
+  return '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
+}
+
+export function resolvePreviewLogo(
+  exif: ExifData,
+  frameParams: FrameParams,
+  config: TemplateConfig,
+) {
+  if (!config.showLogo) return null;
+  return resolveLogoSelection(
+    frameParams.logoKey,
+    frameParams.logoVariant,
+    exif.camera.make,
+  ).asset;
+}
+
+function calcLogoInline(image: HTMLImageElement, targetHeight: number) {
+  const ratio = image.naturalWidth / Math.max(1, image.naturalHeight);
+  const height = Math.max(12, targetHeight);
+  return {
+    width: height * ratio,
+    height,
+  };
+}
+
+function drawLogoInline(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  size: { width: number; height: number },
+  x: number,
+  centerY: number,
+) {
+  ctx.drawImage(image, x, centerY - size.height / 2, size.width, size.height);
 }
