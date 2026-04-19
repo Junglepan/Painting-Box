@@ -286,11 +286,10 @@ function EmptyState({ onSave }: { onSave: () => void }) {
   return (
     <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
       <Bookmark className="h-5 w-5" />
-      <p className="text-[11px]">还没有预设</p>
       <button
         type="button"
         onClick={onSave}
-        className="btn-neu mt-0.5 h-7 gap-1.5 px-2.5 text-[11px]"
+        className="btn-neu h-7 gap-1.5 px-2.5 text-[11px]"
       >
         <BookmarkPlus className="h-3 w-3" />
         保存当前参数
