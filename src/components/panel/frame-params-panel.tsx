@@ -140,7 +140,7 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="mb-2.5 flex items-center justify-between">
-            <span className="label-inset">边距</span>
+            <span className="label-plain">边距</span>
             <button
               type="button"
               onClick={() =>
@@ -282,7 +282,7 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="param-row">
-            <span className="label-inset">启用</span>
+            <span className="label-plain">启用</span>
             <Toggle
               active={frameParams.shadow}
               onClick={() => set({ shadow: !frameParams.shadow })}
@@ -347,14 +347,7 @@ export function FrameParamsPanel() {
           open={open.type}
           onToggle={toggle}
         >
-          <SliderRow
-            hint="字号"
-            min={8}
-            max={48}
-            value={frameParams.fontSize}
-            onChange={(v) => set({ fontSize: v })}
-          />
-          <div className="mb-3 mt-3">
+          <div className="mb-3">
             <span className="label-plain mb-2 block">字重</span>
             <div className="grid grid-cols-4 gap-1.5">
               {([400, 500, 600, 700] as const).map((w) => (
@@ -373,6 +366,13 @@ export function FrameParamsPanel() {
               ))}
             </div>
           </div>
+          <SliderRow
+            hint="字号"
+            min={8}
+            max={48}
+            value={frameParams.fontSize}
+            onChange={(v) => set({ fontSize: v })}
+          />
           <SliderRow
             hint="字距"
             min={0}
@@ -467,7 +467,7 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="param-row">
-            <span className="label-inset">显示</span>
+            <span className="label-plain">显示</span>
             <Toggle
               active={frameParams.dividerShow}
               onClick={() => set({ dividerShow: !frameParams.dividerShow })}
