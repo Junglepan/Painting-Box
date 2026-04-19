@@ -85,7 +85,21 @@ Apple 质感的关键是**多层叠加**，而不是单一模糊阴影：
 时长分档：**80ms**（pressed 反馈）· **180ms**（hover/color）· **220ms**（阴影/transform）·
 **280ms**（卡片/面板）· **500ms**（入场动画）。
 
-### 3.7 单层 focus 环
+### 3.7 毛玻璃只用于下凹内容区
+下凹区（`.surface-inset`）叠一层 `backdrop-filter: blur(24px) saturate(1.4)` + 半透明底色，
+透出页面背景渐变，让画布 / 列表 / 模板库产生"嵌入玻璃槽"的层级感。
+
+**工具 / 按钮 / 卡片禁止使用毛玻璃**：会与拟态质感冲突，且移动不透明背景的毛玻璃性能成本高。
+小面积例外：`.label-inset`（下凹 pill）用 8px 轻 blur 让文字底色也有玻璃感，
+作为参数名称的信息突出。
+
+### 3.8 下凹标签（label-inset）
+参数面板中所有"参数名称 / 分组标题"使用 `.label-inset` pill：
+- 常态：半透明下凹底 + 次文字色 + 轻 blur
+- 活跃（分组展开时）：`.label-inset-active` 切主色底 + 主色文字
+比传统纯 `muted-foreground` 文字更能标识"这是一个信息标签而非内容"。
+
+### 3.9 单层 focus 环
 放弃 `ring-offset` 双重描边（会产生"双线包围"的视觉噪音），改为：
 ```css
 @apply outline-none ring-2 ring-ring/50;

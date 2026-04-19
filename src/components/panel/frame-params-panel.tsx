@@ -140,7 +140,7 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="mb-2.5 flex items-center justify-between">
-            <span className="param-label">边距</span>
+            <span className="label-inset">边距</span>
             <button
               type="button"
               onClick={() =>
@@ -212,7 +212,7 @@ export function FrameParamsPanel() {
             />
           </div>
           <div className="mt-3">
-            <span className="param-label mb-1.5 block">信息位置</span>
+            <span className="label-inset mb-1.5">信息位置</span>
             <div className="grid grid-cols-4 gap-1.5">
               {INFO_POS.map((p) => (
                 <button
@@ -282,7 +282,7 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="param-row">
-            <span className="param-label">启用</span>
+            <span className="label-inset">启用</span>
             <Toggle
               active={frameParams.shadow}
               onClick={() => set({ shadow: !frameParams.shadow })}
@@ -355,7 +355,7 @@ export function FrameParamsPanel() {
             onChange={(v) => set({ fontSize: v })}
           />
           <div className="mb-2 mt-2">
-            <span className="param-label mb-1.5 block">字重</span>
+            <span className="label-inset mb-1.5">字重</span>
             <div className="grid grid-cols-4 gap-1.5">
               {([400, 500, 600, 700] as const).map((w) => (
                 <button
@@ -395,7 +395,7 @@ export function FrameParamsPanel() {
             onChange={(v) => set({ textColor: v })}
           />
           <div className="mt-2">
-            <span className="param-label mb-1.5 block">对齐</span>
+            <span className="label-inset mb-1.5">对齐</span>
             <div className="grid grid-cols-3 gap-1.5">
               {ALIGNS.map((a) => {
                 const Icon = a.icon;
@@ -440,7 +440,7 @@ export function FrameParamsPanel() {
             onChange={(v) => set({ logoGap: v })}
           />
           <div className="mt-2">
-            <span className="param-label mb-1.5 block">颜色</span>
+            <span className="label-inset mb-1.5">颜色</span>
             <div className="grid grid-cols-3 gap-1.5">
               {LOGO_COLORS.map((l) => (
                 <button
@@ -467,7 +467,7 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="param-row">
-            <span className="param-label">显示</span>
+            <span className="label-inset">显示</span>
             <Toggle
               active={frameParams.dividerShow}
               onClick={() => set({ dividerShow: !frameParams.dividerShow })}
@@ -532,16 +532,21 @@ function Section({
       <button
         type="button"
         onClick={() => onToggle(id)}
-        className="flex w-full items-center justify-between py-1.5 text-left"
+        className="group flex w-full items-center justify-between py-1.5 text-left"
       >
-        <span className="flex items-center gap-1.5 text-[12px] font-medium text-foreground">
-          <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+        <span
+          className={cn(
+            "label-inset text-[11px] uppercase",
+            open && "label-inset-active",
+          )}
+        >
+          <Icon className="h-3 w-3" />
           {label}
         </span>
         <ChevronDown
           className={cn(
             "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
-            open && "rotate-180",
+            open && "rotate-180 text-primary",
           )}
         />
       </button>
@@ -571,9 +576,11 @@ function SliderRow({
   const isInt = Number.isInteger(step);
   const display = isInt ? String(value) : value.toFixed(1);
 
+  const pct = ((value - min) / (max - min)) * 100;
+
   return (
     <div className="flex items-center gap-2 py-1">
-      <span className="w-8 shrink-0 text-[10px] text-muted-foreground">
+      <span className="label-inset label-inset-sm w-10 shrink-0 justify-center">
         {hint}
       </span>
       <input
@@ -583,7 +590,8 @@ function SliderRow({
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-muted accent-primary"
+        className="range-neu flex-1"
+        style={{ ["--range-fill" as string]: `${pct}%` }}
       />
       <div className="relative flex shrink-0 items-center">
         <input
@@ -623,7 +631,7 @@ function ColorRow({
 }) {
   return (
     <label className="flex items-center justify-between gap-2 py-1">
-      <span className="param-label">{label}</span>
+      <span className="label-inset">{label}</span>
       <div className="flex items-center gap-1.5">
         <input
           type="color"
