@@ -49,14 +49,14 @@ const defaultFrameParams: FrameParams = {
   photoBorder: 0,
 
   fontFamily: "pingfang-sc",
-  fontSize: 20,
+  fontSize: 10,
   textColor: "#1f2937",
 
-  logoSize: 20,
+  logoSize: 15,
   logoKey: "",
   logoVariant: "original",
   logoColor: "original",
-  logoGap: 40,
+  logoGap: 60,
 
   dividerShow: false,
   dividerColor: "#d7dce6",

@@ -342,8 +342,8 @@ export function FrameParamsPanel() {
           />
           <SliderRow
             hint="字号"
-            min={16}
-            max={34}
+            min={10}
+            max={25}
             value={frameParams.fontSize}
             onChange={(v) => set({ fontSize: v })}
           />

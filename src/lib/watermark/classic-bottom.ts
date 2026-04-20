@@ -14,6 +14,7 @@ const LOGO_VISUAL_SCALE = 1.18;
 const LOGO_FONT_SCALE_BASE = 20;
 const BASELINE_ASCENT_RATIO = 0.8;
 const LOGO_BASELINE_OFFSET_RATIO = 0;
+const logoBoundsCache = new WeakMap<HTMLImageElement, LogoContentBounds>();
 
 export function drawClassicBottomPreview(
   canvas: HTMLCanvasElement,
@@ -285,12 +286,68 @@ export function resolvePreviewLogo(
 }
 
 function calcLogoInline(image: HTMLImageElement, targetHeight: number) {
-  const ratio = image.naturalWidth / Math.max(1, image.naturalHeight);
+  const bounds = getLogoContentBounds(image);
+  const ratio = bounds.sw / Math.max(1, bounds.sh);
   const height = Math.max(12, targetHeight);
   return {
     width: height * ratio,
     height,
   };
+}
+
+type LogoContentBounds = {
+  sx: number;
+  sy: number;
+  sw: number;
+  sh: number;
+};
+
+function getLogoContentBounds(image: HTMLImageElement): LogoContentBounds {
+  const cached = logoBoundsCache.get(image);
+  if (cached) return cached;
+
+  const width = Math.max(1, image.naturalWidth);
+  const height = Math.max(1, image.naturalHeight);
+  const fallback = { sx: 0, sy: 0, sw: width, sh: height };
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return fallback;
+    ctx.clearRect(0, 0, width, height);
+    ctx.drawImage(image, 0, 0, width, height);
+    const { data } = ctx.getImageData(0, 0, width, height);
+
+    let minX = width;
+    let minY = height;
+    let maxX = -1;
+    let maxY = -1;
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const alpha = data[(y * width + x) * 4 + 3];
+        if (alpha <= 0) continue;
+        if (x < minX) minX = x;
+        if (y < minY) minY = y;
+        if (x > maxX) maxX = x;
+        if (y > maxY) maxY = y;
+      }
+    }
+    if (maxX < minX || maxY < minY) {
+      logoBoundsCache.set(image, fallback);
+      return fallback;
+    }
+    const bounds = {
+      sx: minX,
+      sy: minY,
+      sw: maxX - minX + 1,
+      sh: maxY - minY + 1,
+    };
+    logoBoundsCache.set(image, bounds);
+    return bounds;
+  } catch {
+    return fallback;
+  }
 }
 
 function drawLogoInline(
@@ -300,5 +357,16 @@ function drawLogoInline(
   x: number,
   topY: number,
 ) {
-  ctx.drawImage(image, x, topY, size.width, size.height);
+  const bounds = getLogoContentBounds(image);
+  ctx.drawImage(
+    image,
+    bounds.sx,
+    bounds.sy,
+    bounds.sw,
+    bounds.sh,
+    x,
+    topY,
+    size.width,
+    size.height,
+  );
 }

@@ -422,8 +422,36 @@ fn render_svg_logo(path: &Path) -> Result<RgbaImage, String> {
     let mut pixmap = tiny_skia::Pixmap::new(size.width(), size.height())
         .ok_or_else(|| "创建 Logo 画布失败".to_string())?;
     resvg::render(&tree, tiny_skia::Transform::default(), &mut pixmap.as_mut());
-    RgbaImage::from_raw(size.width(), size.height(), pixmap.data().to_vec())
-        .ok_or_else(|| "创建 Logo 位图失败".to_string())
+    let image = RgbaImage::from_raw(size.width(), size.height(), pixmap.data().to_vec())
+        .ok_or_else(|| "创建 Logo 位图失败".to_string())?;
+    Ok(trim_transparent_bounds(&image))
+}
+
+fn trim_transparent_bounds(image: &RgbaImage) -> RgbaImage {
+    let mut min_x = image.width();
+    let mut min_y = image.height();
+    let mut max_x = 0u32;
+    let mut max_y = 0u32;
+    let mut found = false;
+
+    for (x, y, pixel) in image.enumerate_pixels() {
+        if pixel.0[3] == 0 {
+            continue;
+        }
+        found = true;
+        min_x = min_x.min(x);
+        min_y = min_y.min(y);
+        max_x = max_x.max(x);
+        max_y = max_y.max(y);
+    }
+
+    if !found {
+        return image.clone();
+    }
+
+    let width = max_x.saturating_sub(min_x) + 1;
+    let height = max_y.saturating_sub(min_y) + 1;
+    image::imageops::crop_imm(image, min_x, min_y, width, height).to_image()
 }
 
 fn clean_display_text(value: &str) -> String {
