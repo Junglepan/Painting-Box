@@ -17,18 +17,18 @@
 - Create: `src/lib/exif/logo.test.ts`
 - Modify: `package.json`
 
-- [ ] **Step 1: Write failing tests for `yiyin`-style brand formatting**
+- [x] **Step 1: Write failing tests for `yiyin`-style brand formatting**
 
-- [ ] **Step 2: Run the targeted test command and confirm failures**
+- [x] **Step 2: Run the targeted test command and confirm failures**
 
 Run: `npx vitest run src/lib/exif/brand.test.ts src/lib/exif/logo.test.ts`
 Expected: FAIL because the test files or logo helpers do not exist yet.
 
-- [ ] **Step 3: Add minimal test runner support**
+- [x] **Step 3: Add minimal test runner support**
 
 Install and wire `vitest` as a dev dependency with a simple `test` script in `package.json`.
 
-- [ ] **Step 4: Re-run the targeted tests to keep them red for the right reason**
+- [x] **Step 4: Re-run the targeted tests to keep them red for the right reason**
 
 Run: `npx vitest run src/lib/exif/brand.test.ts src/lib/exif/logo.test.ts`
 Expected: FAIL on missing exports or wrong behavior, not on runner setup.
@@ -40,7 +40,7 @@ Expected: FAIL on missing exports or wrong behavior, not on runner setup.
 - Create: `src/lib/exif/logo.ts`
 - Modify: `src/lib/watermark/classic-bottom.ts`
 
-- [ ] **Step 1: Implement `yiyin`-style camera formatting**
+- [x] **Step 1: Implement `yiyin`-style camera formatting**
 
 Cover:
 - strip `CORPORATION`
@@ -48,18 +48,18 @@ Cover:
 - Sony `ILCE- -> α`
 - default lowercase-model formatting with deduped make
 
-- [ ] **Step 2: Implement logo key and asset lookup helpers**
+- [x] **Step 2: Implement logo key and asset lookup helpers**
 
 Cover:
 - normalized brand aliases
 - primary mapping to `Camera-Logos-SVG`
 - return no-logo for unmapped brands
 
-- [ ] **Step 3: Switch preview text rendering to the shared formatting helper**
+- [x] **Step 3: Switch preview text rendering to the shared formatting helper**
 
 Use the new formatted camera function and logo lookup without changing raw EXIF display.
 
-- [ ] **Step 4: Re-run the TypeScript tests**
+- [x] **Step 4: Re-run the TypeScript tests**
 
 Run: `npx vitest run src/lib/exif/brand.test.ts src/lib/exif/logo.test.ts`
 Expected: PASS
@@ -70,25 +70,25 @@ Expected: PASS
 - Modify: `src-tauri/src/exif/brand.rs`
 - Modify: `CHANGELOG.md`
 
-- [ ] **Step 1: Add Rust unit tests for formatted brand output**
+- [x] **Step 1: Add Rust unit tests for formatted brand output**
 
 Cover Nikon, Sony, default, and make normalization cases.
 
-- [ ] **Step 2: Run the Rust brand tests and confirm they fail first**
+- [x] **Step 2: Run the Rust brand tests and confirm they fail first**
 
 Run: `cargo test exif::brand --lib`
 Expected: FAIL until Rust logic matches the new expectations.
 
-- [ ] **Step 3: Implement the minimal Rust changes**
+- [x] **Step 3: Implement the minimal Rust changes**
 
 Mirror the TypeScript formatting behavior so export text matches preview.
 
-- [ ] **Step 4: Re-run the Rust brand tests**
+- [x] **Step 4: Re-run the Rust brand tests**
 
 Run: `cargo test exif::brand --lib`
 Expected: PASS
 
-- [ ] **Step 5: Record the user-visible behavior in `CHANGELOG.md`**
+- [x] **Step 5: Record the user-visible behavior in `CHANGELOG.md`**
 
 Note the `yiyin`-style brand formatting and new logo-source strategy.
 
@@ -97,12 +97,26 @@ Note the `yiyin`-style brand formatting and new logo-source strategy.
 **Files:**
 - Modify: none
 
-- [ ] **Step 1: Run TypeScript build verification**
+- [x] **Step 1: Run TypeScript build verification**
 
 Run: `npm run build`
 Expected: PASS
 
-- [ ] **Step 2: Run Rust type-check verification**
+- [x] **Step 2: Run Rust type-check verification**
+
+### Execution Note (Retrospective Closure on 2026-04-21)
+
+Checklist closed against implemented code in:
+- `src/lib/exif/brand.ts`, `src/lib/exif/logo.ts`
+- `src/lib/exif/brand.test.ts`, `src/lib/exif/logo.test.ts`
+- `src-tauri/src/exif/brand.rs`
+- `src/lib/watermark/classic-bottom.ts`
+
+Fresh verification on 2026-04-21:
+- `bun test src/lib/exif/brand.test.ts src/lib/exif/logo.test.ts`
+- `cargo test exif::brand --lib`
+- `npm run build`
+- `cargo check`
 
 Run: `cargo check`
 Expected: PASS
