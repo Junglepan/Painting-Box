@@ -12,7 +12,8 @@ pub fn run() {
             commands::photos::load_photos,
             commands::photos::load_photo_exif,
             commands::photos::load_photo_preview,
-            commands::photos::export_single_photo
+            commands::photos::export_single_photo,
+            commands::photos::export_batch_photos,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

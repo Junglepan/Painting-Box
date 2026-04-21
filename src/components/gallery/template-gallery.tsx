@@ -94,6 +94,13 @@ function TemplateThumbnail({ kind }: { kind: TemplateKind }) {
           <div className="h-3 bg-card" />
         </div>
       );
+    case "classic-white":
+      return (
+        <div className="flex h-full w-full flex-col bg-card">
+          <div className="flex-1 bg-muted-foreground/15" />
+          <div className="h-3 border-t border-muted-foreground/25 bg-white" />
+        </div>
+      );
     case "polaroid":
       return (
         <div className="h-full w-full bg-card p-1 pb-2.5">

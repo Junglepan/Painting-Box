@@ -10,7 +10,7 @@ export function PreviewPane() {
   const selected = usePhotoStore((s) =>
     s.photos.find((p) => p.id === s.selectedId),
   );
-  const { frameParams, config } = useTemplateStore();
+  const { currentKind, frameParams, config } = useTemplateStore();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewReady =
     selected?.previewStatus === "ready" && selected.exifStatus === "ready";
@@ -50,13 +50,14 @@ export function PreviewPane() {
         },
         frameParams,
         config,
+        currentKind,
       );
     });
 
     return () => {
       cancelled = true;
     };
-  }, [config, frameParams, previewReady, selected]);
+  }, [config, currentKind, frameParams, previewReady, selected]);
 
   if (!selected) {
     return (

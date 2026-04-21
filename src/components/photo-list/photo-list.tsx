@@ -2,6 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { usePhotoStore } from "@/stores/photo-store";
 import { exportSinglePhoto } from "@/lib/tauri/photos";
+import {
+  buildBatchExportPlan,
+  defaultSingleExportPath,
+  type ExportConflictStrategy,
+  type ExportFormat,
+} from "@/lib/export/paths";
 import { IMPORT_EXTENSIONS } from "@/lib/import/accept";
 import { createImportedPhotos } from "@/lib/import/records";
 import { useExportStore } from "@/stores/export-store";
@@ -14,7 +20,6 @@ import {
   Download,
   Eye,
   EyeOff,
-  FolderOpen,
   Images,
   LoaderCircle,
   Plus,
@@ -24,22 +29,21 @@ import {
 import { cn } from "@/lib/utils";
 import { useTemplateStore } from "@/stores/template-store";
 
-type ExportFormat = "jpg" | "png" | "webp";
-
 export function PhotoList() {
   const { photos, selectedId, select, removePhoto, addPhotos, importErrors, setImportErrors } =
     usePhotoStore();
   const autoPreviewEnabled = usePhotoStore((s) => s.autoPreviewEnabled);
   const setAutoPreviewEnabled = usePhotoStore((s) => s.setAutoPreviewEnabled);
   const enqueueParse = usePhotoStore((s) => s.enqueueParse);
-  const selected = photos.find((p) => p.id === selectedId) ?? null;
   const jobs = useExportStore((s) => s.jobs);
   const enqueue = useExportStore((s) => s.enqueue);
   const updateJob = useExportStore((s) => s.updateJob);
   const setRunning = useExportStore((s) => s.setRunning);
-  const { frameParams, config } = useTemplateStore();
+  const { currentKind, frameParams, config } = useTemplateStore();
   const [exportOpen, setExportOpen] = useState(false);
   const [format, setFormat] = useState<ExportFormat>("jpg");
+  const [conflictStrategy, setConflictStrategy] =
+    useState<ExportConflictStrategy>("skip");
   const [quality, setQuality] = useState(92);
   const [exporting, setExporting] = useState(false);
   const [copyingId, setCopyingId] = useState<string | null>(null);
@@ -58,6 +62,10 @@ export function PhotoList() {
   }, [exportOpen]);
 
   const canExport = photos.length > 0;
+  const exportedRecords = jobs
+    .filter((job) => job.status === "done")
+    .map((job) => ({ photoId: job.photoId, outputPath: job.outputPath }));
+  const exportedPhotoIds = new Set(exportedRecords.map((record) => record.photoId));
   const queuedIds = usePhotoStore((s) => s.parseQueue);
   const parseableIds = photos
     .filter(
@@ -98,16 +106,7 @@ export function PhotoList() {
     }
   };
 
-  const onExport = async () => {
-    if (!selected || exporting) return;
-    const ext = format === "jpg" ? "jpg" : format;
-    const outputPath = await save({
-      title: "导出照片",
-      defaultPath: `${selected.path.replace(/\.[^.]+$/, "")}-painting-box.${ext}`,
-      filters: [{ name: format.toUpperCase(), extensions: [ext] }],
-    });
-    if (!outputPath) return;
-
+  const runSingleExport = async (photo: Photo, outputPath: string) => {
     const jobId = crypto.randomUUID();
     try {
       setExporting(true);
@@ -115,25 +114,107 @@ export function PhotoList() {
       enqueue([
         {
           id: jobId,
-          photoId: selected.id,
+          photoId: photo.id,
           status: "running",
           progress: 0,
+          outputPath,
         },
       ]);
       await exportSinglePhoto({
-        photoPath: selected.path,
+        photoPath: photo.path,
         outputPath,
+        templateKind: currentKind,
         frameParams,
-        exif: selected.exif,
+        exif: photo.exif,
         config,
         exportQuality: quality,
       });
-      updateJob(jobId, { status: "done", progress: 100 });
-      setExportOpen(false);
+      updateJob(jobId, { status: "done", progress: 100, outputPath });
+      return true;
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "导出失败";
+        error instanceof Error ? error.message : String(error || "导出失败");
       updateJob(jobId, { status: "error", error: message });
+      return false;
+    } finally {
+      setExporting(false);
+      setRunning(false);
+    }
+  };
+
+  const onExportPhoto = async (photo: Photo) => {
+    if (exporting) return;
+    const ext = format === "jpg" ? "jpg" : format;
+    const outputPath = await save({
+      title: "导出照片",
+      defaultPath: defaultSingleExportPath(photo.path, format),
+      filters: [{ name: format.toUpperCase(), extensions: [ext] }],
+    });
+    if (!outputPath) return;
+
+    const ok = await runSingleExport(photo, outputPath);
+    if (ok) setExportOpen(false);
+  };
+
+  const onExportAll = async () => {
+    if (photos.length === 0 || exporting) return;
+    const outputDir = await open({
+      title: "选择导出目录",
+      directory: true,
+      multiple: false,
+    });
+    if (!outputDir || Array.isArray(outputDir)) return;
+
+    const plan = buildBatchExportPlan({
+      photos,
+      exported: exportedRecords,
+      outputDir,
+      format,
+      conflictStrategy,
+    });
+
+    if (plan.length === 0) {
+      setExportOpen(false);
+      return;
+    }
+
+    setExporting(true);
+    setRunning(true);
+    try {
+      for (const item of plan) {
+        const jobId = crypto.randomUUID();
+        enqueue([
+          {
+            id: jobId,
+            photoId: item.photo.id,
+            status: "running",
+            progress: 0,
+            outputPath: item.outputPath,
+          },
+        ]);
+        try {
+          await exportSinglePhoto({
+            photoPath: item.photo.path,
+            outputPath: item.outputPath,
+            templateKind: currentKind,
+            frameParams,
+            exif: item.photo.exif,
+            config,
+            exportQuality: quality,
+          });
+          updateJob(jobId, {
+            status: "done",
+            progress: 100,
+            outputPath: item.outputPath,
+          });
+        } catch (error) {
+          updateJob(jobId, {
+            status: "error",
+            error: error instanceof Error ? error.message : String(error || "导出失败"),
+          });
+        }
+      }
+      setExportOpen(false);
     } finally {
       setExporting(false);
       setRunning(false);
@@ -203,8 +284,8 @@ export function PhotoList() {
           </button>
           <button
             type="button"
-            aria-label="批量导出"
-            title={canExport ? "批量导出" : "先导入照片"}
+            aria-label="导出整个列表"
+            title={canExport ? "导出整个列表" : "先导入照片"}
             disabled={!canExport}
             onClick={() => setExportOpen((v) => !v)}
             className={cn(
@@ -220,10 +301,13 @@ export function PhotoList() {
               quality={quality}
               onFormat={setFormat}
               onQuality={setQuality}
+              conflictStrategy={conflictStrategy}
+              onConflictStrategy={setConflictStrategy}
               count={photos.length}
+              exportedCount={exportedPhotoIds.size}
               exporting={exporting}
-              canExport={!!selected}
-              onExport={onExport}
+              canExport={photos.length > 0}
+              onExport={onExportAll}
             />
           ) : null}
         </div>
@@ -288,6 +372,16 @@ export function PhotoList() {
                             </span>
                           ) : null}
                         </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void onExportPhoto(p)}
+                        aria-label={`导出 ${name}`}
+                        title="导出当前照片"
+                        className="btn-neu h-6 w-6 shrink-0 px-0"
+                        disabled={exporting}
+                      >
+                        <Download className="h-3 w-3 text-muted-foreground" />
                       </button>
                       <button
                         type="button"
@@ -453,7 +547,10 @@ function ExportPopover({
   quality,
   onFormat,
   onQuality,
+  conflictStrategy,
+  onConflictStrategy,
   count,
+  exportedCount,
   exporting,
   canExport,
   onExport,
@@ -462,19 +559,22 @@ function ExportPopover({
   quality: number;
   onFormat: (f: ExportFormat) => void;
   onQuality: (q: number) => void;
+  conflictStrategy: ExportConflictStrategy;
+  onConflictStrategy: (strategy: ExportConflictStrategy) => void;
   count: number;
+  exportedCount: number;
   exporting: boolean;
   canExport: boolean;
   onExport: () => void;
 }) {
   return (
     <div
-      className="absolute right-0 top-9 z-20 w-56 rounded-lg border border-border/60 bg-card p-3 shadow-[var(--shadow-apple-popover)]"
+      className="absolute right-0 top-9 z-[9999] w-60 rounded-lg border border-border/60 bg-card p-3 shadow-[var(--shadow-apple-popover)]"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="mb-2.5 flex items-center justify-between">
         <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          批量导出
+          导出整个列表
         </span>
         <span className="text-[10px] tabular-nums text-muted-foreground/70">
           {count} 张
@@ -519,14 +619,30 @@ function ExportPopover({
         </div>
       ) : null}
 
-      <button
-        type="button"
-        disabled
-        className="btn-neu mb-2 flex h-7 w-full items-center justify-start gap-1.5 px-2 text-[11px] text-muted-foreground"
-      >
-        <FolderOpen className="h-3 w-3" />
-        <span className="truncate">选择输出目录…</span>
-      </button>
+      {exportedCount > 0 ? (
+        <div className="mb-2.5">
+          <span className="label-plain mb-1.5 block">已导出处理</span>
+          <div className="grid grid-cols-3 gap-1">
+            {[
+              { value: "skip", label: "跳过" },
+              { value: "overwrite", label: "覆盖" },
+              { value: "rename", label: "重命名" },
+            ].map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => onConflictStrategy(option.value as ExportConflictStrategy)}
+                className={cn(
+                  "chip text-[10px]",
+                  conflictStrategy === option.value && "chip-active",
+                )}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <button
         type="button"

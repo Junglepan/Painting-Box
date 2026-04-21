@@ -17,6 +17,7 @@ import {
   getResolvedLogoKey,
   resolveLogoSelection,
 } from "@/lib/exif/logo";
+import { getTemplateDisplayFields } from "@/lib/template-capabilities";
 import {
   Aperture,
   Bold,
@@ -90,6 +91,7 @@ type SectionId =
 
 export function FrameParamsPanel() {
   const {
+    currentKind,
     frameParams,
     setFrameParams,
     resetFrameParams,
@@ -132,6 +134,7 @@ export function FrameParamsPanel() {
   const logoVariantValue = logoVariants.includes(frameParams.logoVariant)
     ? frameParams.logoVariant
     : resolvedLogo.variant;
+  const displayFields = getTemplateDisplayFields(currentKind);
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -190,29 +193,11 @@ export function FrameParamsPanel() {
             <SliderRow
               hint="主图占比"
               min={70}
-              max={85}
+              max={95}
               step={1}
               value={frameParams.mainImageWidthRatio}
               unit="%"
               onChange={(v) => set({ mainImageWidthRatio: v })}
-            />
-            <SliderRow
-              hint="水印顶距"
-              min={0}
-              max={5}
-              step={0.5}
-              value={frameParams.watermarkTopPadding}
-              unit="%"
-              onChange={(v) => set({ watermarkTopPadding: v })}
-            />
-            <SliderRow
-              hint="水印底距"
-              min={5}
-              max={15}
-              step={0.5}
-              value={frameParams.watermarkBottomPadding}
-              unit="%"
-              onChange={(v) => set({ watermarkBottomPadding: v })}
             />
             <SliderRow
               hint="内圆角"
@@ -444,15 +429,21 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="grid grid-cols-3 gap-1.5">
-            {FIELDS.map((f) => {
+            {FIELDS.filter((f) => displayFields.includes(f.key)).map((f) => {
               const Icon = f.icon;
               const active = config[f.key];
+              const fixed = currentKind === "classic-white";
               return (
                 <button
                   key={f.key}
                   type="button"
+                  disabled={fixed}
                   onClick={() => setConfig({ [f.key]: !active })}
-                  className={cn("chip", active && "chip-active")}
+                  className={cn(
+                    "chip",
+                    active && "chip-active",
+                    fixed && "cursor-not-allowed opacity-80",
+                  )}
                 >
                   <Icon className="h-3 w-3" />
                   <span>{f.label}</span>

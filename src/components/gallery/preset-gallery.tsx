@@ -9,7 +9,7 @@ import { Bookmark, BookmarkPlus, Trash2, Check, X } from "lucide-react";
 export function PresetGallery() {
   const { presets, selectedId, add, remove, rename, select } =
     usePresetStore();
-  const { currentKind, frameParams, config, setKind, setFrameParams, setConfig } =
+  const { currentKind, frameParams, config, applyPreset } =
     useTemplateStore();
   const selectedPhoto = usePhotoStore((s) =>
     s.photos.find((p) => p.id === s.selectedId),
@@ -56,10 +56,8 @@ export function PresetGallery() {
   const apply = (p: Preset) => {
     if (locked) return;
     if (renamingId === p.id) return;
+    applyPreset(p);
     select(p.id);
-    setKind(p.kind);
-    setFrameParams(p.frameParams);
-    setConfig(p.config);
   };
 
   const confirmRename = (id: string, name: string) => {

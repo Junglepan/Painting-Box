@@ -1,11 +1,14 @@
 use std::{
     io::Cursor,
     path::{Path, PathBuf},
+    sync::atomic::{AtomicUsize, Ordering},
 };
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use image::codecs::jpeg::JpegEncoder;
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
+use tauri::Emitter;
 use uuid::Uuid;
 
 use crate::exif::{read_exif, ExifData};
@@ -48,6 +51,7 @@ pub struct LoadPhotosResponse {
 pub struct ExportSinglePhotoRequest {
     pub photo_path: String,
     pub output_path: String,
+    pub template_kind: String,
     pub frame_params: ExportFrameParams,
     pub exif: Option<ExportExif>,
     pub config: ExportTemplateConfig,
@@ -93,9 +97,65 @@ pub async fn export_single_photo(
         .await
         .map_err(|err| format!("导出任务执行失败：{err}"))??;
 
-    Ok(ExportSinglePhotoResult {
-        output_path,
+    Ok(ExportSinglePhotoResult { output_path })
+}
+
+/// Exports multiple photos in parallel using Rayon.
+/// Emits `"export-progress"` events: `{ jobId, completed, total, outputPath?, error? }`.
+#[tauri::command]
+pub async fn export_batch_photos(
+    requests: Vec<ExportBatchRequest>,
+    app: tauri::AppHandle,
+) -> Vec<ExportBatchResult> {
+    let total = requests.len();
+    tauri::async_runtime::spawn_blocking(move || {
+        let completed = AtomicUsize::new(0);
+        requests
+            .into_par_iter()
+            .map(|req| {
+                let job_id = req.job_id.clone();
+                let output_path = req.request.output_path.clone();
+                let result = render_to_path(&req.request);
+                let done = completed.fetch_add(1, Ordering::Relaxed) + 1;
+                let (ok_path, err_msg) = match &result {
+                    Ok(_) => (Some(output_path.clone()), None),
+                    Err(e) => (None, Some(e.clone())),
+                };
+                let _ = app.emit(
+                    "export-progress",
+                    serde_json::json!({
+                        "jobId": job_id,
+                        "completed": done,
+                        "total": total,
+                        "outputPath": ok_path,
+                        "error": err_msg,
+                    }),
+                );
+                ExportBatchResult {
+                    job_id,
+                    output_path: result.ok().map(|_| output_path),
+                    error: err_msg,
+                }
+            })
+            .collect()
     })
+    .await
+    .unwrap_or_default()
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportBatchRequest {
+    pub job_id: String,
+    pub request: ExportSinglePhotoRequest,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExportBatchResult {
+    pub job_id: String,
+    pub output_path: Option<String>,
+    pub error: Option<String>,
 }
 
 #[tauri::command]
