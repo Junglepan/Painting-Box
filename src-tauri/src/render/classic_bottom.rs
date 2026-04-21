@@ -1,4 +1,10 @@
-use std::{fs::File, io::BufWriter, path::{Path, PathBuf}};
+use std::{
+    collections::HashMap,
+    fs::File,
+    io::BufWriter,
+    path::{Path, PathBuf},
+    sync::{Mutex, OnceLock},
+};
 
 use image::{
     codecs::jpeg::JpegEncoder, imageops::overlay, DynamicImage, ImageFormat, Rgba, RgbaImage,
@@ -9,12 +15,8 @@ use serde::Deserialize;
 use crate::commands::photos::ExportSinglePhotoRequest;
 use crate::exif::{brand, read_exif, CameraInfo, ExifData, GpsInfo};
 use crate::images::decode_image;
+use crate::render::layout_spec::{logo_catalog, watermark_layout_spec};
 use crate::render::text::TextRenderer;
-
-const LOGO_VISUAL_SCALE: f32 = 1.18;
-const LOGO_FONT_SCALE_BASE: f32 = 20.0;
-const BASELINE_ASCENT_RATIO: f32 = 0.8;
-const LOGO_BASELINE_OFFSET_RATIO: f32 = 0.0;
 
 // ── EXIF types (deserialized from frontend) ─────────────────────────────────
 
@@ -79,6 +81,7 @@ pub struct ExportTemplateConfig {
     pub show_camera: bool,
     pub show_lens: bool,
     pub show_params: bool,
+    pub watermark_template: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -106,6 +109,7 @@ pub struct ExportFrameParams {
     pub logo_gap: u32,
     pub font_family: String,
     pub font_size: u32,
+    pub auto_text_contrast: bool,
     pub divider_show: bool,
     pub divider_color: String,
     pub canvas_ratio: String,
@@ -120,8 +124,15 @@ pub fn render_to_path(request: &ExportSinglePhotoRequest) -> Result<(), String> 
         .exif
         .clone()
         .unwrap_or_else(|| read_exif(Path::new(&request.photo_path)).into());
-    let renderer = TextRenderer::load(&request.frame_params.font_family);
-    let rendered = compose(source, &request.frame_params, &exif, &request.config, renderer.as_ref());
+    let renderer = TextRenderer::cached(&request.frame_params.font_family);
+    let rendered = compose(
+        source,
+        &request.frame_params,
+        &exif,
+        &request.config,
+        renderer.as_deref(),
+        &request.template_kind,
+    );
     save_image(&rendered, Path::new(&request.output_path), request.frame_params.export_quality)
 }
 
@@ -133,23 +144,45 @@ pub fn compose(
     exif: &ExportExif,
     config: &ExportTemplateConfig,
     text: Option<&TextRenderer>,
+    template_kind: &str,
 ) -> RgbaImage {
+    let spec = watermark_layout_spec();
     let src_w = source.width();
     let resolution_scale = src_w as f32 / 900.0;
+    let bottom_bar_mode = is_bottom_bar_template(template_kind);
     let top_margin = ((src_w as f32) * (frame.min_top_bottom_margin.max(0.0) / 100.0)).round() as u32;
-    let extra_line_gap = (8.0 * resolution_scale).round().max(8.0) as u32;
+    let extra_line_gap = (spec.base_line_gap_px * resolution_scale)
+        .round()
+        .max(spec.base_line_gap_px) as u32;
 
     let lines = build_lines(exif, config);
-    let primary_pt = frame.font_size as f32 * 1.18 * resolution_scale;
-    let secondary_pt = frame.font_size as f32 * 0.96 * resolution_scale;
+    let logo = load_logo_rgba(frame, exif, config);
+    let render_lines = build_render_lines(lines.clone(), logo.is_some());
+    let logo_only_watermark = render_lines.len() == 1 && render_lines[0].is_empty();
+    let primary_pt = (frame.font_size as f32 * spec.primary_font_scale)
+        .max(spec.base_min_primary_font_size)
+        * resolution_scale;
+    let secondary_pt = (frame.font_size as f32 * spec.secondary_font_scale)
+        .max(spec.base_min_secondary_font_size)
+        * resolution_scale;
 
-    let text_block_h = lines.iter().enumerate().fold(0u32, |acc, (index, _)| {
-        let size = if index == 0 { primary_pt as u32 } else { secondary_pt as u32 };
-        acc + size + if index == 0 { 0 } else { extra_line_gap }
-    });
+    let text_block_h = render_lines
+        .iter()
+        .enumerate()
+        .fold(0u32, |acc, (index, _)| {
+            let size = if index == 0 { primary_pt } else { secondary_pt };
+            let line_h = text
+                .map(|r| r.line_height(size, true))
+                .unwrap_or(size)
+                .round() as u32;
+            acc + line_h + if index == 0 { 0 } else { extra_line_gap }
+        });
     let min_info_bar_h = text_block_h + 12;
-    let info_bar_h = frame.info_bar_height
-        .max(min_info_bar_h);
+    let info_bar_h = if bottom_bar_mode {
+        frame.info_bar_height.max(min_info_bar_h)
+    } else {
+        0
+    };
 
     // ── Canvas dimensions ─────────────────────────────────────────────────
     let img_ratio = frame.main_image_width_ratio.clamp(1.0, 100.0);
@@ -157,7 +190,11 @@ pub fn compose(
     let canvas_ratio = parse_canvas_ratio(&frame.canvas_ratio, source.width(), source.height());
     let canvas_h = ((src_w as f32) / canvas_ratio).round().max(1.0) as u32;
     let bar_top = canvas_h.saturating_sub(info_bar_h);
-    let avail_h = bar_top.saturating_sub(top_margin.saturating_mul(2)).max(1);
+    let avail_h = if bottom_bar_mode {
+        bar_top.saturating_sub(top_margin.saturating_mul(2)).max(1)
+    } else {
+        canvas_h.saturating_sub(top_margin.saturating_mul(2)).max(1)
+    };
     let natural_w = ((src_w as f32) * (img_ratio / 100.0)).round().max(1.0);
     let natural_h = source.height() as f32 * natural_w / source.width() as f32;
     let fit = if natural_h > avail_h as f32 {
@@ -173,8 +210,6 @@ pub fn compose(
     let bg = parse_color(&frame.bg_color, &frame.background);
     let text_color = parse_color(&frame.text_color, "white");
     let divider_color = parse_color(&frame.divider_color, "white");
-    let logo = load_logo_rgba(frame, exif, config);
-
     let mut canvas = RgbaImage::from_pixel(canvas_w, canvas_h, bg);
 
     // ── Photo ────────────────────────────────────────────────────────────────
@@ -213,33 +248,80 @@ pub fn compose(
         );
     }
 
-    // ── Info bar ─────────────────────────────────────────────────────────────
-    if frame.divider_show {
-        let margin = (24.0 * (src_w as f32 / 900.0)) as u32;
-        for x in margin..canvas_w.saturating_sub(margin) {
-            canvas.put_pixel(x, bar_top, divider_color);
-        }
-    }
-
-    if lines.is_empty() {
+    if render_lines.is_empty() {
         return canvas;
     }
 
-    let total_text_h = lines.iter().enumerate().fold(0f32, |acc, (index, _)| {
-        let size = if index == 0 { primary_pt } else { secondary_pt };
-        acc + size + if index == 0 { 0.0 } else { extra_line_gap as f32 }
-    });
-    let watermark_top_padding_px =
-        info_bar_h as f32 * (frame.watermark_top_padding.max(0.0) / 100.0);
-    let watermark_bottom_padding_px =
-        info_bar_h as f32 * (frame.watermark_bottom_padding.max(0.0) / 100.0);
-    let preferred_top = bar_top as f32 + watermark_top_padding_px;
-    let max_top = (bar_top as f32 + info_bar_h as f32 - total_text_h - watermark_bottom_padding_px)
-        .max(bar_top as f32);
-    let block_top = preferred_top.clamp(bar_top as f32, max_top);
+    let total_text_h = render_lines
+        .iter()
+        .enumerate()
+        .fold(0f32, |acc, (index, _)| {
+            let size = if index == 0 { primary_pt } else { secondary_pt };
+            let line_h = text
+                .map(|r| r.line_height(size, true))
+                .unwrap_or(size);
+            acc + line_h + if index == 0 { 0.0 } else { extra_line_gap as f32 }
+        });
+    let image_bottom = image_top as f32 + photo_h as f32;
+    let block_top = if bottom_bar_mode {
+        let offset_y = if should_lift_logo_only_watermark(template_kind, logo_only_watermark) {
+            -primary_pt
+        } else {
+            0.0
+        };
+        compute_watermark_block_top(
+            bar_top as f32,
+            canvas_h as f32,
+            image_bottom,
+            total_text_h,
+            offset_y,
+        )
+    } else {
+        compute_corner_watermark_block_top(
+            image_top as f32,
+            image_bottom,
+            total_text_h,
+            spec.corner_padding_px * resolution_scale,
+        )
+    };
+
+    let avg_luma = sample_watermark_luminance(
+        &canvas,
+        template_kind,
+        bottom_bar_mode,
+        image_left as f32,
+        image_top as f32,
+        photo_w as f32,
+        photo_h as f32,
+        bar_top as f32,
+        canvas_h as f32,
+        block_top,
+        total_text_h,
+        spec.corner_padding_px * resolution_scale,
+    );
+    let (text_color, divider_color) = resolve_readable_colors(
+        frame.auto_text_contrast,
+        avg_luma,
+        text_color,
+        divider_color,
+    );
+
+    if frame.divider_show && bottom_bar_mode {
+        let divider_y = if block_top > image_bottom {
+            image_bottom + (block_top - image_bottom) / 2.0
+        } else {
+            bar_top as f32
+        };
+        let divider_y = divider_y.round().clamp(0.0, canvas_h.saturating_sub(1) as f32) as u32;
+        let margin = (spec.divider_horizontal_margin_px * (src_w as f32 / 900.0)) as u32;
+        for x in margin..canvas_w.saturating_sub(margin) {
+            canvas.put_pixel(x, divider_y, divider_color);
+        }
+    }
+
     let mut cursor_y = block_top;
 
-    for (i, line) in lines.iter().enumerate() {
+    for (i, line) in render_lines.iter().enumerate() {
         let is_first = i == 0;
         let pt = if is_first { primary_pt } else { secondary_pt };
         let bold = true;
@@ -247,9 +329,17 @@ pub fn compose(
             cursor_y += extra_line_gap as f32;
         }
         let y = cursor_y;
-        let text_baseline = y + pt * BASELINE_ASCENT_RATIO;
+        let text_ascent = text
+            .map(|r| r.ascent(pt, bold))
+            .unwrap_or(pt * 0.8);
+        let line_height = text
+            .map(|r| r.line_height(pt, bold))
+            .unwrap_or(pt);
+        let text_baseline = y + text_ascent;
 
-        let text_w = if let Some(r) = text {
+        let text_w = if line.is_empty() {
+            0.0
+        } else if let Some(r) = text {
             r.measure(line, pt, bold)
         } else {
             (line.len() as f32) * pt * 0.6
@@ -258,10 +348,10 @@ pub fn compose(
         let logo_inline = if is_first {
             logo.as_ref().map(|image| {
                 let ratio = image.width() as f32 / image.height().max(1) as f32;
-                let logo_font_scale = (pt / LOGO_FONT_SCALE_BASE).max(0.5);
+                let logo_font_scale = (pt / spec.logo_font_scale_base).max(0.5);
                 let h = (frame.logo_size as f32
                     * resolution_scale
-                    * LOGO_VISUAL_SCALE
+                    * spec.logo_visual_scale
                     * logo_font_scale)
                     .max(12.0);
                 let w = h * ratio;
@@ -270,28 +360,44 @@ pub fn compose(
         } else {
             None
         };
+        let inline_gap = if logo_inline.is_some() && !line.is_empty() {
+            frame.logo_gap as f32 * resolution_scale
+        } else {
+            0.0
+        };
         let inline_w = text_w
             + logo_inline
-                .map(|(w, _)| w + frame.logo_gap as f32 * resolution_scale)
+                .map(|(w, _)| w + inline_gap)
                 .unwrap_or(0.0);
 
-        let x = ((canvas_w as f32) - inline_w) / 2.0;
+        let x = compute_inline_x(
+            canvas_w as f32,
+            image_left as f32,
+            photo_w as f32,
+            inline_w,
+            resolution_scale,
+            bottom_bar_mode,
+            template_kind,
+        );
 
         if let (Some(logo_image), Some((_logo_w, logo_h))) = (logo.as_ref(), logo_inline) {
             let logo_x = x.round() as i64;
-            let logo_y = (text_baseline + pt * LOGO_BASELINE_OFFSET_RATIO - logo_h).round() as i64;
+            let logo_y =
+                (text_baseline + pt * spec.logo_baseline_offset_ratio - logo_h).round() as i64;
             overlay(&mut canvas, logo_image, logo_x, logo_y);
         }
 
         let text_x = x
             + logo_inline
-                .map(|(w, _)| w + frame.logo_gap as f32 * resolution_scale)
+                .map(|(w, _)| w + inline_gap)
                 .unwrap_or(0.0);
 
-        if let Some(r) = text {
+        if !line.is_empty() {
+            if let Some(r) = text {
             r.draw(&mut canvas, line, text_x, y, pt, bold, text_color);
+            }
         }
-        cursor_y += pt;
+        cursor_y += line_height;
     }
 
     canvas
@@ -314,6 +420,12 @@ fn parse_canvas_ratio(ratio: &str, source_w: u32, source_h: u32) -> f32 {
 // ── Text content ─────────────────────────────────────────────────────────────
 
 fn build_lines(exif: &ExportExif, config: &ExportTemplateConfig) -> Vec<String> {
+    if let Some(templates) = &config.watermark_template {
+        if !templates.is_empty() {
+            return build_dsl_lines(exif, templates);
+        }
+    }
+
     let mut lines: Vec<String> = Vec::new();
 
     if config.show_camera {
@@ -338,6 +450,137 @@ fn build_lines(exif: &ExportExif, config: &ExportTemplateConfig) -> Vec<String> 
         }
     }
     lines.into_iter().filter(|s| !s.is_empty()).collect()
+}
+
+fn build_dsl_lines(exif: &ExportExif, templates: &[String]) -> Vec<String> {
+    let model = format_camera(exif);
+    let lens = clean_display_text(&exif.lens);
+    let params: Vec<String> = [
+        if exif.focal_length > 0.0 {
+            format!("{}mm", exif.focal_length.round() as u32)
+        } else {
+            String::new()
+        },
+        if exif.aperture > 0.0 {
+            format!("f/{:.1}", exif.aperture)
+        } else {
+            String::new()
+        },
+        exif.shutter_speed.clone(),
+        if exif.iso > 0 {
+            format!("ISO{}", exif.iso)
+        } else {
+            String::new()
+        },
+    ]
+    .into_iter()
+    .filter(|s| !s.is_empty())
+    .collect();
+    let params_joined = params.join(" ");
+
+    templates
+        .iter()
+        .map(|line| {
+            let focal_length = if exif.focal_length > 0.0 {
+                format!("{}", exif.focal_length.round() as u32)
+            } else {
+                String::new()
+            };
+            let f_number = if exif.aperture > 0.0 {
+                format!("{:.1}", exif.aperture)
+            } else {
+                String::new()
+            };
+            let iso = if exif.iso > 0 {
+                format!("{}", exif.iso)
+            } else {
+                String::new()
+            };
+            line.replace("{Make}", &exif.camera.make)
+                .replace("{Model}", &model)
+                .replace("{Camera}", &model)
+                .replace("{LensModel}", &lens)
+                .replace("{Lens}", &lens)
+                .replace("{FocalLength}", &focal_length)
+                .replace("{FNumber}", &f_number)
+                .replace("{ExposureTime}", &exif.shutter_speed)
+                .replace("{ISO}", &iso)
+                .replace("{Params}", &params_joined)
+        })
+        .map(|line| line.split_whitespace().collect::<Vec<_>>().join(" "))
+        .filter(|line| !line.is_empty())
+        .collect()
+}
+
+fn build_render_lines(lines: Vec<String>, has_logo: bool) -> Vec<String> {
+    if !lines.is_empty() {
+        return lines;
+    }
+    if has_logo {
+        return vec![String::new()];
+    }
+    Vec::new()
+}
+
+fn should_lift_logo_only_watermark(template_kind: &str, logo_only_watermark: bool) -> bool {
+    logo_only_watermark
+        && watermark_layout_spec()
+            .logo_only_lift_templates
+            .iter()
+            .any(|item| item == template_kind)
+}
+
+fn is_bottom_bar_template(template_kind: &str) -> bool {
+    !matches!(template_kind, "corner-overlay")
+}
+
+fn is_corner_bottom_right_template(template_kind: &str) -> bool {
+    matches!(template_kind, "minimal-corner")
+}
+
+fn compute_inline_x(
+    canvas_w: f32,
+    image_left: f32,
+    photo_w: f32,
+    inline_w: f32,
+    resolution_scale: f32,
+    bottom_bar_mode: bool,
+    template_kind: &str,
+) -> f32 {
+    let corner_padding = watermark_layout_spec().corner_padding_px * resolution_scale;
+    if is_corner_bottom_right_template(template_kind) {
+        return image_left + photo_w - inline_w - corner_padding;
+    }
+    if bottom_bar_mode {
+        return (canvas_w - inline_w) / 2.0;
+    }
+    image_left + photo_w - inline_w - corner_padding
+}
+
+fn compute_watermark_block_top(
+    bar_top: f32,
+    canvas_h: f32,
+    image_bottom: f32,
+    total_text_h: f32,
+    offset_y: f32,
+) -> f32 {
+    let centered_top = image_bottom + (canvas_h - image_bottom - total_text_h) / 2.0;
+    let preferred_top = centered_top + offset_y;
+    let min_top = bar_top.max(image_bottom);
+    let max_top = min_top.max(canvas_h - total_text_h);
+    preferred_top.clamp(min_top, max_top)
+}
+
+fn compute_corner_watermark_block_top(
+    image_top: f32,
+    image_bottom: f32,
+    total_text_h: f32,
+    corner_padding: f32,
+) -> f32 {
+    let preferred_top = image_bottom - total_text_h - corner_padding;
+    let min_top = image_top + corner_padding;
+    let max_top = image_bottom - total_text_h - corner_padding;
+    preferred_top.clamp(min_top, max_top)
 }
 
 fn format_camera(exif: &ExportExif) -> String {
@@ -367,7 +610,24 @@ fn load_logo_rgba(
         frame.logo_variant.trim().to_ascii_lowercase()
     };
     let path = resolve_logo_asset_path(&key, &variant)?;
-    render_svg_logo(&path).ok()
+    cached_svg_logo(&path)
+}
+
+fn cached_svg_logo(path: &Path) -> Option<RgbaImage> {
+    static LOGO_CACHE: OnceLock<Mutex<HashMap<PathBuf, RgbaImage>>> = OnceLock::new();
+    let cache = LOGO_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+
+    if let Ok(guard) = cache.lock() {
+        if let Some(image) = guard.get(path) {
+            return Some(image.clone());
+        }
+    }
+
+    let image = render_svg_logo(path).ok()?;
+    if let Ok(mut guard) = cache.lock() {
+        guard.insert(path.to_path_buf(), image.clone());
+    }
+    Some(image)
 }
 
 fn infer_logo_key(make: &str) -> Option<String> {
@@ -382,36 +642,42 @@ fn infer_logo_key(make: &str) -> Option<String> {
 }
 
 fn resolve_logo_asset_path(key: &str, variant: &str) -> Option<PathBuf> {
-    let base = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()?
-        .join("public")
-        .join("brand-logos");
+    let catalog = logo_catalog();
+    let lookup_keys = logo_lookup_keys(key);
+    let base = Path::new(env!("CARGO_MANIFEST_DIR")).parent()?.join("public");
 
-    let candidates = [
-        format!("{key}-{variant}.svg"),
-        format!("{key}-original.svg"),
-        format!("{key}-black.svg"),
-        format!("{key}-white.svg"),
-        format!("{key}-icon-original.svg"),
-        format!("{key}-icon-black.svg"),
-        format!("{key}-icon-white.svg"),
-    ];
-
-    for candidate in candidates {
-        let path = base.join(candidate);
-        if path.exists() {
-            return Some(path);
+    for candidate_key in &lookup_keys {
+        let Some(entry) = catalog.get(candidate_key.as_str()) else { continue };
+        if let Some(asset) = entry.get(variant) {
+            return Some(base.join(asset.trim_start_matches('/')));
         }
     }
 
-    if key == "panasonic" {
-        return resolve_logo_asset_path("lumix", variant);
-    }
-    if key == "sony" {
-        return resolve_logo_asset_path("sonyalpha", variant);
+    for candidate_key in &lookup_keys {
+        let Some(entry) = catalog.get(candidate_key.as_str()) else { continue };
+        for fallback in [
+            "original",
+            "black",
+            "white",
+            "icon-original",
+            "icon-black",
+            "icon-white",
+        ] {
+            if let Some(asset) = entry.get(fallback) {
+                return Some(base.join(asset.trim_start_matches('/')));
+            }
+        }
     }
 
     None
+}
+
+fn logo_lookup_keys(key: &str) -> Vec<String> {
+    match key {
+        "panasonic" => vec!["panasonic".into(), "lumix".into()],
+        "sony" => vec!["sony".into(), "sonyalpha".into()],
+        _ => vec![key.to_string()],
+    }
 }
 
 fn render_svg_logo(path: &Path) -> Result<RgbaImage, String> {
@@ -456,6 +722,71 @@ fn trim_transparent_bounds(image: &RgbaImage) -> RgbaImage {
 
 fn clean_display_text(value: &str) -> String {
     value.trim().trim_matches('"').trim().to_string()
+}
+
+fn resolve_readable_colors(
+    auto: bool,
+    average_luminance: f32,
+    fallback_text: Rgba<u8>,
+    fallback_divider: Rgba<u8>,
+) -> (Rgba<u8>, Rgba<u8>) {
+    if !auto {
+        return (fallback_text, fallback_divider);
+    }
+    let spec = watermark_layout_spec();
+    if average_luminance >= spec.readability_threshold_luma {
+        return (
+            parse_hex_color(&spec.readability_dark_text_color, fallback_text),
+            parse_hex_color(&spec.readability_dark_divider_color, fallback_divider),
+        );
+    }
+    (
+        parse_hex_color(&spec.readability_light_text_color, fallback_text),
+        parse_hex_color(&spec.readability_light_divider_color, fallback_divider),
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn sample_watermark_luminance(
+    canvas: &RgbaImage,
+    template_kind: &str,
+    bottom_bar_mode: bool,
+    image_left: f32,
+    image_top: f32,
+    image_w: f32,
+    image_h: f32,
+    bar_top: f32,
+    canvas_h: f32,
+    block_top: f32,
+    text_h: f32,
+    corner_padding: f32,
+) -> f32 {
+    let is_corner = !bottom_bar_mode || template_kind == "minimal-corner";
+    if is_corner {
+        let x = (image_left + image_w - 260.0).max(image_left);
+        let y = (image_top + image_h - 120.0 - corner_padding).max(image_top);
+        return average_luminance(canvas, x as u32, y as u32, 240, 90);
+    }
+
+    let y = (block_top.max(bar_top) - 8.0).max(0.0);
+    let h = (text_h + 20.0).max(20.0).min((canvas_h - y).max(1.0));
+    average_luminance(canvas, 0, y as u32, canvas.width(), h as u32)
+}
+
+fn average_luminance(canvas: &RgbaImage, x: u32, y: u32, width: u32, height: u32) -> f32 {
+    let x0 = x.min(canvas.width().saturating_sub(1));
+    let y0 = y.min(canvas.height().saturating_sub(1));
+    let w = width.min(canvas.width().saturating_sub(x0)).max(1);
+    let h = height.min(canvas.height().saturating_sub(y0)).max(1);
+
+    let mut total = 0.0f32;
+    for py in y0..y0 + h {
+        for px in x0..x0 + w {
+            let p = canvas.get_pixel(px, py);
+            total += 0.2126 * p[0] as f32 + 0.7152 * p[1] as f32 + 0.0722 * p[2] as f32;
+        }
+    }
+    total / (w * h) as f32
 }
 
 // ── Save ─────────────────────────────────────────────────────────────────────
@@ -575,6 +906,75 @@ fn draw_soft_shadow(
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn minimal_corner_uses_bottom_watermark_area() {
+        assert!(is_bottom_bar_template("minimal-corner"));
+    }
+
+    #[test]
+    fn minimal_corner_inline_content_aligns_to_photo_right_edge() {
+        let x = compute_inline_x(900.0, 100.0, 700.0, 80.0, 1.0, true, "minimal-corner");
+        assert_eq!(x, 702.0);
+    }
+
+    #[test]
+    fn logo_only_lift_applies_to_white_and_minimal_templates() {
+        assert!(should_lift_logo_only_watermark("classic-white", true));
+        assert!(should_lift_logo_only_watermark("minimal-corner", true));
+        assert!(!should_lift_logo_only_watermark("classic-bottom", true));
+        assert!(!should_lift_logo_only_watermark("classic-white", false));
+    }
+
+    #[test]
+    fn dsl_template_builds_expected_lines() {
+        let exif = ExportExif {
+            camera: ExportCamera {
+                make: "NIKON CORPORATION".to_string(),
+                model: "NIKON Z 7_2".to_string(),
+            },
+            lens: "NIKKOR Z 24-70mm f/2.8 S".to_string(),
+            iso: 64,
+            aperture: 2.8,
+            shutter_speed: "1/160 s".to_string(),
+            focal_length: 70.0,
+            taken_at: String::new(),
+            gps: None,
+        };
+        let lines = build_dsl_lines(
+            &exif,
+            &vec![
+                "{Model}".to_string(),
+                "{LensModel}".to_string(),
+                "{FocalLength}mm f/{FNumber} {ExposureTime} ISO{ISO}".to_string(),
+            ],
+        );
+        assert_eq!(
+            lines,
+            vec![
+                "Z 7II".to_string(),
+                "NIKKOR Z 24-70mm f/2.8 S".to_string(),
+                "70mm f/2.8 1/160 s ISO64".to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn readable_color_prefers_dark_text_on_light_background() {
+        let (text, divider) = resolve_readable_colors(
+            true,
+            220.0,
+            Rgba([255, 255, 255, 255]),
+            Rgba([215, 220, 230, 255]),
+        );
+        assert_eq!(text, Rgba([17, 24, 39, 255]));
+        assert_eq!(divider, Rgba([156, 163, 175, 255]));
+    }
+}
+
 fn draw_rounded_rect_alpha(
     canvas: &mut RgbaImage, x: u32, y: u32, w: u32, h: u32, radius: u32, alpha: u8,
 ) {
@@ -613,3 +1013,13 @@ fn parse_color(hex: &str, _background: &str) -> Rgba<u8> {
     fallback
 }
 
+fn parse_hex_color(hex: &str, fallback: Rgba<u8>) -> Rgba<u8> {
+    let value = hex.trim_start_matches('#');
+    if value.len() == 6 {
+        let r = u8::from_str_radix(&value[0..2], 16).unwrap_or(fallback[0]);
+        let g = u8::from_str_radix(&value[2..4], 16).unwrap_or(fallback[1]);
+        let b = u8::from_str_radix(&value[4..6], 16).unwrap_or(fallback[2]);
+        return Rgba([r, g, b, 255]);
+    }
+    fallback
+}

@@ -1,3 +1,8 @@
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex, OnceLock},
+};
+
 use ab_glyph::{Font, FontVec, GlyphId, PxScale, ScaleFont, point};
 use image::{Rgba, RgbaImage};
 
@@ -7,6 +12,24 @@ pub struct TextRenderer {
 }
 
 impl TextRenderer {
+    pub fn cached(family: &str) -> Option<Arc<Self>> {
+        static FONT_CACHE: OnceLock<Mutex<HashMap<String, Arc<TextRenderer>>>> = OnceLock::new();
+        let cache = FONT_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+        let key = family.to_string();
+
+        if let Ok(guard) = cache.lock() {
+            if let Some(renderer) = guard.get(&key) {
+                return Some(Arc::clone(renderer));
+            }
+        }
+
+        let renderer = Arc::new(Self::load(family)?);
+        if let Ok(mut guard) = cache.lock() {
+            guard.insert(key, Arc::clone(&renderer));
+        }
+        Some(renderer)
+    }
+
     pub fn load(family: &str) -> Option<Self> {
         let regular = load_font(font_paths(family, false))?;
         let bold = load_font(font_paths(family, true))
@@ -28,6 +51,21 @@ impl TextRenderer {
             prev = Some(id);
         }
         w
+    }
+
+    pub fn ascent(&self, size: f32, bold: bool) -> f32 {
+        let font = if bold { &self.bold } else { &self.regular };
+        let scaled = font.as_scaled(PxScale::from(size));
+        scaled.ascent()
+    }
+
+    pub fn line_height(&self, size: f32, bold: bool) -> f32 {
+        let font = if bold { &self.bold } else { &self.regular };
+        let scaled = font.as_scaled(PxScale::from(size));
+        let ascent = scaled.ascent();
+        let descent = scaled.descent().abs();
+        let h = ascent + descent;
+        h.max(size)
     }
 
     #[allow(clippy::too_many_arguments)]

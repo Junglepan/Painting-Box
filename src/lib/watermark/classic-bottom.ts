@@ -1,7 +1,8 @@
 import { normalizeModel } from "@/lib/exif/brand";
 import { resolveLogoSelection } from "@/lib/exif/logo";
-import type { ExifData, FrameParams, TemplateConfig } from "@/stores/types";
-import { getWatermarkPlacement } from "./template-layout";
+import type { ExifData, FrameParams, TemplateConfig, TemplateKind } from "@/stores/types";
+import { getTemplateLayout } from "./template-layout";
+import { WATERMARK_LAYOUT_SPEC } from "./layout-spec";
 
 type PreviewData = {
   width: number;
@@ -10,11 +11,40 @@ type PreviewData = {
   exif: ExifData;
 };
 
-const LOGO_VISUAL_SCALE = 1.18;
-const LOGO_FONT_SCALE_BASE = 20;
-const BASELINE_ASCENT_RATIO = 0.8;
-const LOGO_BASELINE_OFFSET_RATIO = 0;
+const LOGO_VISUAL_SCALE = WATERMARK_LAYOUT_SPEC.logoVisualScale;
+const LOGO_FONT_SCALE_BASE = WATERMARK_LAYOUT_SPEC.logoFontScaleBase;
+const LOGO_BASELINE_OFFSET_RATIO = WATERMARK_LAYOUT_SPEC.logoBaselineOffsetRatio;
 const logoBoundsCache = new WeakMap<HTMLImageElement, LogoContentBounds>();
+
+type ReadableColorsArgs = {
+  autoTextContrast: boolean;
+  averageLuminance: number;
+  fallbackTextColor: string;
+  fallbackDividerColor: string;
+};
+
+export function resolveReadableTextAndDivider({
+  autoTextContrast,
+  averageLuminance,
+  fallbackTextColor,
+  fallbackDividerColor,
+}: ReadableColorsArgs) {
+  if (!autoTextContrast) {
+    return { textColor: fallbackTextColor, dividerColor: fallbackDividerColor };
+  }
+
+  if (averageLuminance >= WATERMARK_LAYOUT_SPEC.readabilityThresholdLuma) {
+    return {
+      textColor: WATERMARK_LAYOUT_SPEC.readabilityDarkTextColor,
+      dividerColor: WATERMARK_LAYOUT_SPEC.readabilityDarkDividerColor,
+    };
+  }
+
+  return {
+    textColor: WATERMARK_LAYOUT_SPEC.readabilityLightTextColor,
+    dividerColor: WATERMARK_LAYOUT_SPEC.readabilityLightDividerColor,
+  };
+}
 
 export function drawClassicBottomPreview(
   canvas: HTMLCanvasElement,
@@ -23,6 +53,7 @@ export function drawClassicBottomPreview(
   photo: PreviewData,
   frameParams: FrameParams,
   config: TemplateConfig,
+  templateKind: TemplateKind = "classic-bottom",
 ) {
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
@@ -30,24 +61,42 @@ export function drawClassicBottomPreview(
   const dpr = window.devicePixelRatio || 1;
   const baseWidth = 900;
   const scale = baseWidth / photo.width;
+  const templateLayout = getTemplateLayout(templateKind);
   const topBottomMargin = baseWidth * (frameParams.minTopBottomMargin / 100);
   const textLines = buildPreviewLines(photo.exif, config);
-  const primaryFontSize = Math.max(16, frameParams.fontSize * 1.18);
-  const secondaryFontSize = Math.max(13, frameParams.fontSize * 0.96);
-  const extraLineGap = 8;
-  const textBlockHeight = textLines.reduce((acc, _line, index) => {
-    const size = index === 0 ? primaryFontSize : secondaryFontSize;
-    return acc + size + (index === 0 ? 0 : extraLineGap);
-  }, 0);
-  const minInfoBarHeight = textBlockHeight + 12;
-  const infoBarHeight = Math.max(
-    frameParams.infoBarHeight * scale,
-    minInfoBarHeight,
+  const renderLines = buildRenderableLines(textLines, Boolean(logoImage));
+  const logoOnlyWatermark = renderLines.length === 1 && renderLines[0] === "";
+  const primaryFontSize = Math.max(
+    WATERMARK_LAYOUT_SPEC.baseMinPrimaryFontSize,
+    frameParams.fontSize * WATERMARK_LAYOUT_SPEC.primaryFontScale,
   );
+  const secondaryFontSize = Math.max(
+    WATERMARK_LAYOUT_SPEC.baseMinSecondaryFontSize,
+    frameParams.fontSize * WATERMARK_LAYOUT_SPEC.secondaryFontScale,
+  );
+  const extraLineGap = WATERMARK_LAYOUT_SPEC.baseLineGapPx;
+  const lineMetrics = computeLineMetrics(
+    ctx,
+    renderLines,
+    frameParams.fontFamily,
+    primaryFontSize,
+    secondaryFontSize,
+  );
+  const textBlockHeight = lineMetrics.reduce(
+    (acc, metric, index) => acc + metric.height + (index === 0 ? 0 : extraLineGap),
+    0,
+  );
+  const minInfoBarHeight = textBlockHeight + 12;
+  const infoBarHeight = templateLayout.mode === "bottom-bar"
+    ? Math.max(frameParams.infoBarHeight * scale, minInfoBarHeight)
+    : 0;
   const canvasRatio = getCanvasRatio(frameParams.canvasRatio, photo.width, photo.height);
   const canvasHeight = baseWidth / canvasRatio;
   const barTop = canvasHeight - infoBarHeight;
-  const availableHeight = Math.max(1, barTop - topBottomMargin * 2);
+  const availableHeight = Math.max(
+    1,
+    (templateLayout.mode === "bottom-bar" ? barTop : canvasHeight) - topBottomMargin * 2,
+  );
   const naturalWidth = baseWidth * (frameParams.mainImageWidthRatio / 100);
   const naturalHeight = (photo.height * naturalWidth) / photo.width;
   const fitScale = Math.min(1, availableHeight / naturalHeight);
@@ -109,48 +158,72 @@ export function drawClassicBottomPreview(
     ctx.stroke();
   }
 
-  if (frameParams.dividerShow) {
-    ctx.strokeStyle = frameParams.dividerColor;
+  const horizontalMargin = WATERMARK_LAYOUT_SPEC.dividerHorizontalMarginPx * scale;
+  const cornerPadding = WATERMARK_LAYOUT_SPEC.cornerPaddingPx * scale;
+  const left = horizontalMargin;
+  const right = contentWidth - horizontalMargin;
+  const totalTextHeight = textBlockHeight;
+  const imageBottom = imageY + imageDrawHeight;
+  const blockTop = templateLayout.mode === "bottom-bar"
+    ? computeWatermarkBlockTop({
+        barTop,
+        contentHeight,
+        imageBottom,
+        totalTextHeight,
+        offsetY: shouldLiftLogoOnlyWatermark(templateKind, logoOnlyWatermark)
+          ? -primaryFontSize
+          : 0,
+      })
+    : computeCornerWatermarkBlockTop({
+        imageY,
+        imageBottom,
+        totalTextHeight,
+        cornerPadding: WATERMARK_LAYOUT_SPEC.cornerPaddingPx,
+      });
+
+  const averageLuminance = sampleWatermarkLuminance(ctx, {
+    templateKind,
+    templateMode: templateLayout.mode,
+    imageX,
+    imageY,
+    imageWidth: imageDrawWidth,
+    imageHeight: imageDrawHeight,
+    barTop,
+    contentHeight,
+    blockTop,
+    totalTextHeight,
+    cornerPadding,
+  });
+  const readable = resolveReadableTextAndDivider({
+    autoTextContrast: frameParams.autoTextContrast,
+    averageLuminance,
+    fallbackTextColor: frameParams.textColor,
+    fallbackDividerColor: frameParams.dividerColor,
+  });
+
+  if (frameParams.dividerShow && templateLayout.mode === "bottom-bar") {
+    const dividerY =
+      blockTop > imageBottom ? imageBottom + (blockTop - imageBottom) / 2 : barTop;
+    ctx.strokeStyle = readable.dividerColor;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(24 * scale, barTop);
-    ctx.lineTo(contentWidth - 24 * scale, barTop);
+    ctx.moveTo(horizontalMargin, dividerY);
+    ctx.lineTo(contentWidth - horizontalMargin, dividerY);
     ctx.stroke();
   }
 
-  const left = 24 * scale;
-  const right = contentWidth - 24 * scale;
-  const totalTextHeight = textLines.reduce((acc, _line, index) => {
-    const size = index === 0 ? primaryFontSize : secondaryFontSize;
-    return acc + size + (index === 0 ? 0 : extraLineGap);
-  }, 0);
-  const watermarkTopPadding = Number.isFinite(frameParams.watermarkTopPadding)
-    ? frameParams.watermarkTopPadding
-    : 8;
-  const watermarkBottomPadding = Number.isFinite(frameParams.watermarkBottomPadding)
-    ? frameParams.watermarkBottomPadding
-    : 8;
-  const watermarkTopPaddingPx = (infoBarHeight * watermarkTopPadding) / 100;
-  const watermarkBottomPaddingPx = (infoBarHeight * watermarkBottomPadding) / 100;
-  const preferredTop = barTop + watermarkTopPaddingPx;
-  const maxTop = Math.max(
-    barTop,
-    barTop + infoBarHeight - totalTextHeight - watermarkBottomPaddingPx,
-  );
-  const blockTop = Math.min(Math.max(barTop, preferredTop), maxTop);
-
-  ctx.fillStyle = frameParams.textColor;
+  ctx.fillStyle = readable.textColor;
   ctx.textBaseline = "alphabetic";
 
   const textStart = left;
   let cursorY = blockTop;
-  textLines.forEach((line, index) => {
+  renderLines.forEach((line, index) => {
     const firstLine = index === 0;
     const fontSize = firstLine ? primaryFontSize : secondaryFontSize;
     const weight = 700;
     if (index > 0) cursorY += extraLineGap;
-    const y = cursorY + fontSize * BASELINE_ASCENT_RATIO;
     ctx.font = `${weight} ${fontSize}px ${getPreviewFontFamily(frameParams.fontFamily)}`;
+    const y = cursorY + lineMetrics[index].ascent;
     const metrics = ctx.measureText(line);
     const logoFontScale = Math.max(0.5, fontSize / LOGO_FONT_SCALE_BASE);
     const logoInline =
@@ -160,34 +233,50 @@ export function drawClassicBottomPreview(
             frameParams.logoSize * LOGO_VISUAL_SCALE * logoFontScale,
           )
         : null;
-    const inlineWidth = metrics.width + (logoInline ? logoInline.width + frameParams.logoGap * scale : 0);
+    const textWidth = line ? metrics.width : 0;
+    const inlineGap = logoInline && line ? frameParams.logoGap * scale : 0;
+    const inlineWidth = textWidth + (logoInline ? logoInline.width + inlineGap : 0);
     // Strict baseline alignment: icon bottom follows text baseline exactly.
     const logoTop = logoInline
       ? y + fontSize * LOGO_BASELINE_OFFSET_RATIO - logoInline.height
       : y;
 
-    const placement = getWatermarkPlacement("classic-bottom");
     const centerX = (textStart + right) / 2;
-    if (placement !== "center") {
-      // Placeholder branch for future template placement strategies.
-      ctx.textAlign = "center";
-      ctx.fillText(line, centerX, y);
-      cursorY += fontSize;
+    if (templateLayout.placement === "corner-bottom-right") {
+      const textX = imageX + imageDrawWidth - cornerPadding;
+      ctx.textAlign = "right";
+      if (logoInline && logoImage) {
+        const inlineStart = textX - inlineWidth;
+        drawLogoInline(ctx, logoImage, logoInline, inlineStart, logoTop);
+        if (line) {
+          ctx.textAlign = "left";
+          ctx.fillText(line, inlineStart + logoInline.width + inlineGap, y);
+        }
+        cursorY += lineMetrics[index].height;
+        return;
+      }
+      if (line) {
+        ctx.fillText(line, textX, y);
+      }
+      cursorY += lineMetrics[index].height;
       return;
     }
 
-    // Classic bottom template currently uses centered watermark layout.
     ctx.textAlign = "center";
     if (logoInline && logoImage) {
       const inlineStart = centerX - inlineWidth / 2;
       drawLogoInline(ctx, logoImage, logoInline, inlineStart, logoTop);
-      ctx.textAlign = "left";
-      ctx.fillText(line, inlineStart + logoInline.width + frameParams.logoGap * scale, y);
-      cursorY += fontSize;
+      if (line) {
+        ctx.textAlign = "left";
+        ctx.fillText(line, inlineStart + logoInline.width + inlineGap, y);
+      }
+      cursorY += lineMetrics[index].height;
       return;
     }
-    ctx.fillText(line, centerX, y);
-    cursorY += fontSize;
+    if (line) {
+      ctx.fillText(line, centerX, y);
+    }
+    cursorY += lineMetrics[index].height;
   });
 }
 
@@ -208,6 +297,10 @@ function getCanvasRatio(
 }
 
 export function buildPreviewLines(exif: ExifData, config: TemplateConfig) {
+  if (config.watermarkTemplate && config.watermarkTemplate.length > 0) {
+    return buildDslLines(exif, config.watermarkTemplate);
+  }
+
   const lines: string[] = [];
 
   if (config.showCamera) {
@@ -232,8 +325,157 @@ export function buildPreviewLines(exif: ExifData, config: TemplateConfig) {
   return lines.filter(Boolean);
 }
 
+export function buildRenderableLines(lines: string[], hasLogo: boolean) {
+  if (lines.length > 0) return lines;
+  return hasLogo ? [""] : [];
+}
+
+export function shouldLiftLogoOnlyWatermark(
+  templateKind: TemplateKind,
+  logoOnlyWatermark: boolean,
+) {
+  return logoOnlyWatermark && WATERMARK_LAYOUT_SPEC.logoOnlyLiftTemplates.includes(templateKind);
+}
+
+type WatermarkBlockTopArgs = {
+  barTop: number;
+  contentHeight: number;
+  imageBottom: number;
+  totalTextHeight: number;
+  offsetY?: number;
+};
+
+export function computeWatermarkBlockTop({
+  barTop,
+  contentHeight,
+  imageBottom,
+  totalTextHeight,
+  offsetY = 0,
+}: WatermarkBlockTopArgs) {
+  const centeredTop =
+    imageBottom + (contentHeight - imageBottom - totalTextHeight) / 2;
+  const preferredTop = centeredTop + offsetY;
+  const minTop = Math.max(barTop, imageBottom);
+  const maxTop = Math.max(minTop, contentHeight - totalTextHeight);
+  return Math.min(Math.max(minTop, preferredTop), maxTop);
+}
+
+function computeCornerWatermarkBlockTop({
+  imageY,
+  imageBottom,
+  totalTextHeight,
+  cornerPadding,
+}: {
+  imageY: number;
+  imageBottom: number;
+  totalTextHeight: number;
+  cornerPadding: number;
+}) {
+  const preferredTop = imageBottom - totalTextHeight - cornerPadding;
+  const minTop = imageY + cornerPadding;
+  const maxTop = imageBottom - totalTextHeight - cornerPadding;
+  return Math.min(Math.max(minTop, preferredTop), maxTop);
+}
+
 function trim(value: number) {
   return Number.isInteger(value) ? String(value) : value.toFixed(1);
+}
+
+type LineMetric = { ascent: number; height: number };
+
+function computeLineMetrics(
+  ctx: CanvasRenderingContext2D,
+  lines: string[],
+  fontFamily: FrameParams["fontFamily"],
+  primarySize: number,
+  secondarySize: number,
+) {
+  return lines.map((line, index): LineMetric => {
+    const fontSize = index === 0 ? primarySize : secondarySize;
+    ctx.font = `700 ${fontSize}px ${getPreviewFontFamily(fontFamily)}`;
+    const target = line || "A";
+    const metrics = ctx.measureText(target);
+    const ascent = metrics.actualBoundingBoxAscent || fontSize * 0.8;
+    const descent = metrics.actualBoundingBoxDescent || fontSize * 0.2;
+    return { ascent, height: Math.max(fontSize, ascent + descent) };
+  });
+}
+
+function sampleWatermarkLuminance(
+  ctx: CanvasRenderingContext2D,
+  args: {
+    templateKind: TemplateKind;
+    templateMode: "bottom-bar" | "corner-overlay";
+    imageX: number;
+    imageY: number;
+    imageWidth: number;
+    imageHeight: number;
+    barTop: number;
+    contentHeight: number;
+    blockTop: number;
+    totalTextHeight: number;
+    cornerPadding: number;
+  },
+) {
+  const { templateKind, templateMode } = args;
+  const isCorner = templateMode !== "bottom-bar" || templateKind === "minimal-corner";
+  if (isCorner) {
+    const x = Math.max(args.imageX, args.imageX + args.imageWidth - 260);
+    const y = Math.max(args.imageY, args.imageY + args.imageHeight - 120 - args.cornerPadding);
+    return averageLuminance(ctx, x, y, 240, 90);
+  }
+
+  const y = Math.max(args.barTop, args.blockTop - 8);
+  const h = Math.max(20, Math.min(args.contentHeight - y, args.totalTextHeight + 20));
+  return averageLuminance(ctx, 0, y, ctx.canvas.width, h);
+}
+
+function averageLuminance(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  const sx = Math.max(0, Math.floor(x));
+  const sy = Math.max(0, Math.floor(y));
+  const sw = Math.max(1, Math.min(Math.floor(width), ctx.canvas.width - sx));
+  const sh = Math.max(1, Math.min(Math.floor(height), ctx.canvas.height - sy));
+  const data = ctx.getImageData(sx, sy, sw, sh).data;
+  let total = 0;
+  for (let i = 0; i < data.length; i += 4) {
+    total += 0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2];
+  }
+  return total / (sw * sh);
+}
+
+function buildDslLines(exif: ExifData, templates: string[]) {
+  const cameraModel = normalizeModel(exif.camera.make, exif.camera.model);
+  const params = [
+    exif.focalLength ? `${Math.round(exif.focalLength)}mm` : "",
+    exif.aperture ? `f/${trim(exif.aperture)}` : "",
+    exif.shutterSpeed,
+    exif.iso ? `ISO${exif.iso}` : "",
+  ].filter(Boolean).join(" ");
+
+  const dict: Record<string, string> = {
+    Make: exif.camera.make,
+    Model: cameraModel,
+    Camera: cameraModel,
+    LensModel: cleanDisplayText(exif.lens),
+    Lens: cleanDisplayText(exif.lens),
+    FocalLength: exif.focalLength ? String(Math.round(exif.focalLength)) : "",
+    FNumber: exif.aperture ? trim(exif.aperture) : "",
+    ExposureTime: exif.shutterSpeed,
+    ISO: exif.iso ? String(exif.iso) : "",
+    Params: params,
+  };
+
+  return templates
+    .map((line) =>
+      line.replace(/\{([A-Za-z0-9_]+)\}/g, (_full, key: string) => dict[key] ?? ""))
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean);
 }
 
 function roundRect(

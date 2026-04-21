@@ -1,0 +1,18 @@
+{
+  "primaryFontScale": 1.18,
+  "secondaryFontScale": 0.96,
+  "baseMinPrimaryFontSize": 16,
+  "baseMinSecondaryFontSize": 13,
+  "baseLineGapPx": 8,
+  "logoVisualScale": 1.18,
+  "logoFontScaleBase": 20,
+  "logoBaselineOffsetRatio": 0,
+  "dividerHorizontalMarginPx": 24,
+  "cornerPaddingPx": 18,
+  "logoOnlyLiftTemplates": ["classic-white", "minimal-corner"],
+  "readabilityThresholdLuma": 150,
+  "readabilityDarkTextColor": "#111827",
+  "readabilityDarkDividerColor": "#9ca3af",
+  "readabilityLightTextColor": "#f9fafb",
+  "readabilityLightDividerColor": "#d1d5db"
+}

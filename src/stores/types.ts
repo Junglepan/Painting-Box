@@ -58,6 +58,7 @@ export type LoadPhotosResponse = {
 
 export type TemplateKind =
   | "classic-bottom"
+  | "classic-white"
   | "polaroid"
   | "minimal-corner"
   | "magazine"
@@ -75,6 +76,7 @@ export type TemplateConfig = {
   showCamera: boolean;
   showLens: boolean;
   showParams: boolean;
+  watermarkTemplate?: string[];
 };
 
 export type CanvasRatio =
@@ -135,6 +137,7 @@ export type FrameParams = {
   fontFamily: WatermarkFontFamily;
   fontSize: number;
   textColor: string;
+  autoTextContrast: boolean;
 
   // Logo
   logoKey: string;
@@ -177,12 +180,14 @@ export type ExportJob = {
   photoId: string;
   status: "queued" | "running" | "done" | "error";
   progress: number;
+  outputPath?: string;
   error?: string;
 };
 
 export type ExportSinglePhotoRequest = {
   photoPath: string;
   outputPath: string;
+  templateKind: TemplateKind;
   frameParams: FrameParams;
   exif?: ExifData;
   config: TemplateConfig;

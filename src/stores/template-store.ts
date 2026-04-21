@@ -1,6 +1,11 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { CanvasRatio, FrameParams, TemplateConfig, TemplateKind } from "./types";
+import {
+  applyTemplateConfigConstraints,
+  applyTemplateFrameConstraints,
+} from "@/lib/template-capabilities";
+import { usePresetStore } from "./preset-store";
+import type { CanvasRatio, FrameParams, Preset, TemplateConfig, TemplateKind } from "./types";
 
 type TemplateState = {
   currentKind: TemplateKind;
@@ -10,6 +15,7 @@ type TemplateState = {
   setKind: (kind: TemplateKind) => void;
   setConfig: (partial: Partial<TemplateConfig>) => void;
   setFrameParams: (partial: Partial<FrameParams>) => void;
+  applyPreset: (preset: Pick<Preset, "kind" | "frameParams" | "config">) => void;
   resetFrameParams: () => void;
   setFieldOverride: (field: string, value: string) => void;
 };
@@ -33,8 +39,8 @@ const defaultFrameParams: FrameParams = {
   mainImageWidthRatio: 85,
   minTopBottomMargin: 2.4,
   textMargin: 0,
-  watermarkTopPadding: 2,
-  watermarkBottomPadding: 8,
+  watermarkTopPadding: 12,
+  watermarkBottomPadding: 64,
 
   background: "white",
   bgColor: "#ffffff",
@@ -51,6 +57,7 @@ const defaultFrameParams: FrameParams = {
   fontFamily: "pingfang-sc",
   fontSize: 10,
   textColor: "#1f2937",
+  autoTextContrast: true,
 
   logoSize: 15,
   logoKey: "",
@@ -83,8 +90,68 @@ function createTemplateBase(
 
 const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
   "classic-bottom": createTemplateBase(),
-  polaroid: createTemplateBase(),
-  "minimal-corner": createTemplateBase(),
+  "classic-white": createTemplateBase(
+    {
+      background: "white",
+      bgColor: "#ffffff",
+      textColor: "#111827",
+      dividerColor: "#d1d5db",
+      shadowOpacity: 72,
+    },
+    {
+      showLogo: true,
+      showCamera: false,
+      showLens: false,
+      showParams: false,
+    },
+  ),
+  polaroid: createTemplateBase(
+    {
+      background: "white",
+      bgColor: "#ffffff",
+      textColor: "#1f2937",
+      dividerShow: false,
+      innerRadius: 0,
+      outerRadius: 0,
+      photoBorder: 10,
+      infoBarHeight: 148,
+      mainImageWidthRatio: 82,
+      minTopBottomMargin: 2,
+      fontSize: 9,
+      logoSize: 12,
+      logoGap: 18,
+      shadow: false,
+    },
+    {
+      showLogo: false,
+      showCamera: true,
+      showLens: false,
+      showParams: false,
+    },
+  ),
+  "minimal-corner": createTemplateBase(
+    {
+      background: "white",
+      bgColor: "#ffffff",
+      textColor: "#ffffff",
+      dividerShow: false,
+      innerRadius: 12,
+      outerRadius: 0,
+      mainImageWidthRatio: 94,
+      minTopBottomMargin: 1.4,
+      infoBarHeight: 0,
+      fontSize: 9,
+      logoSize: 12,
+      logoGap: 12,
+      shadow: false,
+    },
+    {
+      showLogo: true,
+      showCamera: false,
+      showLens: false,
+      showParams: false,
+    },
+  ),
   magazine: createTemplateBase(),
   "film-strip": createTemplateBase(),
   "full-frame": createTemplateBase(),
@@ -99,9 +166,13 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
 function getTemplateBase(kind: TemplateKind): TemplateBaseState {
   const base = TEMPLATE_BASES[kind];
   return {
-    config: { ...base.config },
-    frameParams: { ...base.frameParams },
+    config: applyTemplateConfigConstraints(kind, { ...base.config }),
+    frameParams: applyTemplateFrameConstraints({ ...base.frameParams }),
   };
+}
+
+function clearSelectedPreset() {
+  usePresetStore.getState().select(null);
 }
 
 export const useTemplateStore = create<TemplateState>()(
@@ -113,6 +184,7 @@ export const useTemplateStore = create<TemplateState>()(
       fieldOverrides: {},
       setKind: (kind) => {
         const base = getTemplateBase(kind);
+        clearSelectedPreset();
         set({
           currentKind: kind,
           config: base.config,
@@ -120,9 +192,18 @@ export const useTemplateStore = create<TemplateState>()(
         });
       },
       setConfig: (partial) =>
-        set((s) => ({ config: { ...s.config, ...partial } })),
+        set((s) => {
+          clearSelectedPreset();
+          return {
+            config: applyTemplateConfigConstraints(s.currentKind, {
+              ...s.config,
+              ...partial,
+            }),
+          };
+        }),
       setFrameParams: (partial) =>
         set((s) => {
+          clearSelectedPreset();
           if (
             s.frameParams.paddingLocked &&
             (partial.paddingTop !== undefined ||
@@ -137,22 +218,41 @@ export const useTemplateStore = create<TemplateState>()(
               partial.paddingLeft ??
               0;
             return {
-              frameParams: {
+              frameParams: applyTemplateFrameConstraints({
                 ...s.frameParams,
                 paddingTop: v,
                 paddingRight: v,
                 paddingBottom: v,
                 paddingLeft: v,
                 ...partial,
-              },
+              }),
             };
           }
-          return { frameParams: { ...s.frameParams, ...partial } };
+          return {
+            frameParams: applyTemplateFrameConstraints({
+              ...s.frameParams,
+              ...partial,
+            }),
+          };
+        }),
+      applyPreset: (preset) =>
+        set({
+          currentKind: preset.kind,
+          config: applyTemplateConfigConstraints(preset.kind, {
+            ...preset.config,
+          }),
+          frameParams: applyTemplateFrameConstraints({ ...preset.frameParams }),
         }),
       resetFrameParams: () =>
-        set((s) => ({ frameParams: getTemplateBase(s.currentKind).frameParams })),
+        set((s) => {
+          clearSelectedPreset();
+          return { frameParams: getTemplateBase(s.currentKind).frameParams };
+        }),
       setFieldOverride: (field, value) =>
-        set((s) => ({ fieldOverrides: { ...s.fieldOverrides, [field]: value } })),
+        set((s) => {
+          clearSelectedPreset();
+          return { fieldOverrides: { ...s.fieldOverrides, [field]: value } };
+        }),
     }),
     {
       name: "painting-box-template-config",
@@ -163,8 +263,14 @@ export const useTemplateStore = create<TemplateState>()(
         return {
           ...base,
           ...next,
-          config: { ...base.config, ...(next?.config ?? {}) },
-          frameParams: { ...base.frameParams, ...(next?.frameParams ?? {}) },
+          config: applyTemplateConfigConstraints(
+            next?.currentKind ?? base.currentKind,
+            { ...base.config, ...(next?.config ?? {}) },
+          ),
+          frameParams: applyTemplateFrameConstraints({
+            ...base.frameParams,
+            ...(next?.frameParams ?? {}),
+          }),
           fieldOverrides: { ...base.fieldOverrides, ...(next?.fieldOverrides ?? {}) },
         };
       },

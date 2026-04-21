@@ -42,6 +42,7 @@ fn jpg_import_and_export_pipeline_works() {
         let request = ExportSinglePhotoRequest {
             photo_path: photo.path.clone(),
             output_path: output.display().to_string(),
+            template_kind: "classic-bottom".to_string(),
             frame_params: ExportFrameParams {
                 info_bar_height: 160,
                 main_image_width_ratio: 90.0,
@@ -65,6 +66,7 @@ fn jpg_import_and_export_pipeline_works() {
                 logo_gap: 12,
                 font_family: "pingfang-sc".to_string(),
                 font_size: 22,
+                auto_text_contrast: true,
                 divider_show: true,
                 divider_color: "#d7dce6".to_string(),
                 canvas_ratio: "auto".to_string(),
@@ -76,6 +78,7 @@ fn jpg_import_and_export_pipeline_works() {
                 show_camera: true,
                 show_lens: true,
                 show_params: true,
+                watermark_template: None,
             },
         };
 
