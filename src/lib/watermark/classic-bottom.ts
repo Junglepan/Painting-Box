@@ -23,6 +23,49 @@ type ReadableColorsArgs = {
   fallbackDividerColor: string;
 };
 
+type PreviewGeometryMetrics = {
+  infoBarHeight: number;
+  innerRadius: number;
+  photoBorder: number;
+  horizontalMargin: number;
+  cornerPadding: number;
+  logoGap: number;
+};
+
+type PreviewRenderPlan = {
+  templateMode: "bottom-bar" | "corner-overlay";
+  placement: "center" | "corner-bottom-right";
+  canvasW: number;
+  canvasH: number;
+  infoBarHeight: number;
+  topBottomMargin: number;
+  availableHeight: number;
+  imageX: number;
+  imageY: number;
+  photoW: number;
+  photoH: number;
+  imageBottom: number;
+  barTop: number;
+  blockTop: number;
+  totalTextHeight: number;
+  extraLineGap: number;
+  primaryFontSize: number;
+  secondaryFontSize: number;
+  horizontalMargin: number;
+  cornerPadding: number;
+};
+
+export function resolvePreviewGeometryMetrics(frameParams: FrameParams): PreviewGeometryMetrics {
+  return {
+    infoBarHeight: frameParams.infoBarHeight,
+    innerRadius: frameParams.innerRadius,
+    photoBorder: frameParams.photoBorder,
+    horizontalMargin: WATERMARK_LAYOUT_SPEC.dividerHorizontalMarginPx,
+    cornerPadding: WATERMARK_LAYOUT_SPEC.cornerPaddingPx,
+    logoGap: frameParams.logoGap,
+  };
+}
+
 export function resolveReadableTextAndDivider({
   autoTextContrast,
   averageLuminance,
@@ -46,6 +89,95 @@ export function resolveReadableTextAndDivider({
   };
 }
 
+export function buildPreviewRenderPlan({
+  photoWidth,
+  photoHeight,
+  frameParams,
+  templateKind,
+  totalTextHeight,
+  logoOnlyWatermark,
+  baseWidth = 900,
+}: {
+  photoWidth: number;
+  photoHeight: number;
+  frameParams: FrameParams;
+  templateKind: TemplateKind;
+  totalTextHeight: number;
+  logoOnlyWatermark: boolean;
+  baseWidth?: number;
+}): PreviewRenderPlan {
+  const templateLayout = getTemplateLayout(templateKind);
+  const topBottomMargin = Math.round(baseWidth * (frameParams.minTopBottomMargin / 100));
+  const primaryFontSize = Math.max(
+    WATERMARK_LAYOUT_SPEC.baseMinPrimaryFontSize,
+    frameParams.fontSize * WATERMARK_LAYOUT_SPEC.primaryFontScale,
+  );
+  const secondaryFontSize = Math.max(
+    WATERMARK_LAYOUT_SPEC.baseMinSecondaryFontSize,
+    frameParams.fontSize * WATERMARK_LAYOUT_SPEC.secondaryFontScale,
+  );
+  const extraLineGap = WATERMARK_LAYOUT_SPEC.baseLineGapPx;
+  const geometry = resolvePreviewGeometryMetrics(frameParams);
+  const minInfoBarHeight = Math.round(totalTextHeight) + 12;
+  const infoBarHeight = templateLayout.mode === "bottom-bar"
+    ? Math.max(geometry.infoBarHeight, minInfoBarHeight)
+    : 0;
+  const canvasRatio = getCanvasRatio(frameParams.canvasRatio, photoWidth, photoHeight);
+  const canvasH = baseWidth / canvasRatio;
+  const barTop = canvasH - infoBarHeight;
+  const availableHeight = Math.max(
+    1,
+    (templateLayout.mode === "bottom-bar" ? barTop : canvasH) - topBottomMargin * 2,
+  );
+  const naturalWidth = Math.round(baseWidth * (frameParams.mainImageWidthRatio / 100));
+  const naturalHeight = (photoHeight * naturalWidth) / photoWidth;
+  const fitScale = Math.min(1, availableHeight / naturalHeight);
+  const photoW = Math.round(naturalWidth * fitScale);
+  const photoH = Math.round(naturalHeight * fitScale);
+  const imageX = Math.floor((baseWidth - photoW) / 2);
+  const imageY = topBottomMargin + Math.floor((availableHeight - photoH) / 2);
+  const imageBottom = imageY + photoH;
+  const blockTop = templateLayout.mode === "bottom-bar"
+    ? computeWatermarkBlockTop({
+        barTop,
+        contentHeight: canvasH,
+        imageBottom,
+        totalTextHeight,
+        offsetY: shouldLiftLogoOnlyWatermark(templateKind, logoOnlyWatermark)
+          ? -primaryFontSize
+          : 0,
+      })
+    : computeCornerWatermarkBlockTop({
+        imageY,
+        imageBottom,
+        totalTextHeight,
+        cornerPadding: geometry.cornerPadding,
+      });
+
+  return {
+    templateMode: templateLayout.mode,
+    placement: templateLayout.placement,
+    canvasW: baseWidth,
+    canvasH,
+    infoBarHeight,
+    topBottomMargin,
+    availableHeight,
+    imageX,
+    imageY,
+    photoW,
+    photoH,
+    imageBottom,
+    barTop,
+    blockTop,
+    totalTextHeight,
+    extraLineGap,
+    primaryFontSize,
+    secondaryFontSize,
+    horizontalMargin: geometry.horizontalMargin,
+    cornerPadding: geometry.cornerPadding,
+  };
+}
+
 export function drawClassicBottomPreview(
   canvas: HTMLCanvasElement,
   image: HTMLImageElement,
@@ -60,12 +192,8 @@ export function drawClassicBottomPreview(
 
   const dpr = window.devicePixelRatio || 1;
   const baseWidth = 900;
-  const scale = baseWidth / photo.width;
-  const templateLayout = getTemplateLayout(templateKind);
-  const topBottomMargin = baseWidth * (frameParams.minTopBottomMargin / 100);
   const textLines = buildPreviewLines(photo.exif, config);
   const renderLines = buildRenderableLines(textLines, Boolean(logoImage));
-  const logoOnlyWatermark = renderLines.length === 1 && renderLines[0] === "";
   const primaryFontSize = Math.max(
     WATERMARK_LAYOUT_SPEC.baseMinPrimaryFontSize,
     frameParams.fontSize * WATERMARK_LAYOUT_SPEC.primaryFontScale,
@@ -86,37 +214,25 @@ export function drawClassicBottomPreview(
     (acc, metric, index) => acc + metric.height + (index === 0 ? 0 : extraLineGap),
     0,
   );
-  const minInfoBarHeight = textBlockHeight + 12;
-  const infoBarHeight = templateLayout.mode === "bottom-bar"
-    ? Math.max(frameParams.infoBarHeight * scale, minInfoBarHeight)
-    : 0;
-  const canvasRatio = getCanvasRatio(frameParams.canvasRatio, photo.width, photo.height);
-  const canvasHeight = baseWidth / canvasRatio;
-  const barTop = canvasHeight - infoBarHeight;
-  const availableHeight = Math.max(
-    1,
-    (templateLayout.mode === "bottom-bar" ? barTop : canvasHeight) - topBottomMargin * 2,
-  );
-  const naturalWidth = baseWidth * (frameParams.mainImageWidthRatio / 100);
-  const naturalHeight = (photo.height * naturalWidth) / photo.width;
-  const fitScale = Math.min(1, availableHeight / naturalHeight);
+  const plan = buildPreviewRenderPlan({
+    photoWidth: photo.width,
+    photoHeight: photo.height,
+    frameParams,
+    templateKind,
+    totalTextHeight: textBlockHeight,
+    logoOnlyWatermark: Boolean(logoImage) && renderLines.length === 1 && renderLines[0] === "",
+    baseWidth,
+  });
+  const geometry = resolvePreviewGeometryMetrics(frameParams);
 
-  // ── Canvas dimensions ─────────────────────────────────────────────────────
-  const contentWidth = baseWidth;
-  const contentHeight = canvasHeight;
-  const imageDrawWidth = naturalWidth * fitScale;
-  const imageDrawHeight = naturalHeight * fitScale;
-  const imageX = (contentWidth - imageDrawWidth) / 2;
-  const imageY = topBottomMargin + (availableHeight - imageDrawHeight) / 2;
-
-  canvas.width = Math.round(contentWidth * dpr);
-  canvas.height = Math.round(contentHeight * dpr);
-  canvas.style.aspectRatio = `${contentWidth} / ${contentHeight}`;
+  canvas.width = Math.round(plan.canvasW * dpr);
+  canvas.height = Math.round(plan.canvasH * dpr);
+  canvas.style.aspectRatio = `${plan.canvasW} / ${plan.canvasH}`;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  ctx.clearRect(0, 0, contentWidth, contentHeight);
+  ctx.clearRect(0, 0, plan.canvasW, plan.canvasH);
 
   ctx.fillStyle = backgroundFill(frameParams);
-  ctx.fillRect(0, 0, contentWidth, contentHeight);
+  ctx.fillRect(0, 0, plan.canvasW, plan.canvasH);
 
   // Shadow is cast by a filled shape drawn BEFORE the clipped image so it's
   // visible outside the photo bounds. The fill is then covered by the image.
@@ -124,9 +240,9 @@ export function drawClassicBottomPreview(
     ctx.save();
     ctx.shadowColor = `rgba(17,24,39,${frameParams.shadowOpacity / 100})`;
     ctx.shadowBlur = frameParams.shadowBlur;
-    ctx.shadowOffsetY = imageDrawHeight * (frameParams.shadowOffsetY / 100);
+    ctx.shadowOffsetY = plan.photoH * (frameParams.shadowOffsetY / 100);
     ctx.fillStyle = "#000000";
-    roundRect(ctx, imageX, imageY, imageDrawWidth, imageDrawHeight, frameParams.innerRadius * scale);
+    roundRect(ctx, plan.imageX, plan.imageY, plan.photoW, plan.photoH, geometry.innerRadius);
     ctx.fill();
     ctx.restore();
   }
@@ -134,65 +250,45 @@ export function drawClassicBottomPreview(
   ctx.save();
   roundRect(
     ctx,
-    imageX,
-    imageY,
-    imageDrawWidth,
-    imageDrawHeight,
-    frameParams.innerRadius * scale,
+    plan.imageX,
+    plan.imageY,
+    plan.photoW,
+    plan.photoH,
+    geometry.innerRadius,
   );
   ctx.clip();
-  ctx.drawImage(image, imageX, imageY, imageDrawWidth, imageDrawHeight);
+  ctx.drawImage(image, plan.imageX, plan.imageY, plan.photoW, plan.photoH);
   ctx.restore();
 
   if (frameParams.photoBorder > 0) {
     ctx.strokeStyle = "#ffffff";
-    ctx.lineWidth = frameParams.photoBorder * scale;
+    ctx.lineWidth = geometry.photoBorder;
     roundRect(
       ctx,
-      imageX,
-      imageY,
-      imageDrawWidth,
-      imageDrawHeight,
-      frameParams.innerRadius * scale,
+      plan.imageX,
+      plan.imageY,
+      plan.photoW,
+      plan.photoH,
+      geometry.innerRadius,
     );
     ctx.stroke();
   }
 
-  const horizontalMargin = WATERMARK_LAYOUT_SPEC.dividerHorizontalMarginPx * scale;
-  const cornerPadding = WATERMARK_LAYOUT_SPEC.cornerPaddingPx * scale;
-  const left = horizontalMargin;
-  const right = contentWidth - horizontalMargin;
-  const totalTextHeight = textBlockHeight;
-  const imageBottom = imageY + imageDrawHeight;
-  const blockTop = templateLayout.mode === "bottom-bar"
-    ? computeWatermarkBlockTop({
-        barTop,
-        contentHeight,
-        imageBottom,
-        totalTextHeight,
-        offsetY: shouldLiftLogoOnlyWatermark(templateKind, logoOnlyWatermark)
-          ? -primaryFontSize
-          : 0,
-      })
-    : computeCornerWatermarkBlockTop({
-        imageY,
-        imageBottom,
-        totalTextHeight,
-        cornerPadding: WATERMARK_LAYOUT_SPEC.cornerPaddingPx,
-      });
+  const left = plan.horizontalMargin;
+  const right = plan.canvasW - plan.horizontalMargin;
 
   const averageLuminance = sampleWatermarkLuminance(ctx, {
     templateKind,
-    templateMode: templateLayout.mode,
-    imageX,
-    imageY,
-    imageWidth: imageDrawWidth,
-    imageHeight: imageDrawHeight,
-    barTop,
-    contentHeight,
-    blockTop,
-    totalTextHeight,
-    cornerPadding,
+    templateMode: plan.templateMode,
+    imageX: plan.imageX,
+    imageY: plan.imageY,
+    imageWidth: plan.photoW,
+    imageHeight: plan.photoH,
+    barTop: plan.barTop,
+    contentHeight: plan.canvasH,
+    blockTop: plan.blockTop,
+    totalTextHeight: plan.totalTextHeight,
+    cornerPadding: plan.cornerPadding,
   });
   const readable = resolveReadableTextAndDivider({
     autoTextContrast: frameParams.autoTextContrast,
@@ -201,14 +297,16 @@ export function drawClassicBottomPreview(
     fallbackDividerColor: frameParams.dividerColor,
   });
 
-  if (frameParams.dividerShow && templateLayout.mode === "bottom-bar") {
+  if (frameParams.dividerShow && plan.templateMode === "bottom-bar") {
     const dividerY =
-      blockTop > imageBottom ? imageBottom + (blockTop - imageBottom) / 2 : barTop;
+      plan.blockTop > plan.imageBottom
+        ? plan.imageBottom + (plan.blockTop - plan.imageBottom) / 2
+        : plan.barTop;
     ctx.strokeStyle = readable.dividerColor;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.moveTo(horizontalMargin, dividerY);
-    ctx.lineTo(contentWidth - horizontalMargin, dividerY);
+    ctx.moveTo(plan.horizontalMargin, dividerY);
+    ctx.lineTo(plan.canvasW - plan.horizontalMargin, dividerY);
     ctx.stroke();
   }
 
@@ -216,12 +314,12 @@ export function drawClassicBottomPreview(
   ctx.textBaseline = "alphabetic";
 
   const textStart = left;
-  let cursorY = blockTop;
+  let cursorY = plan.blockTop;
   renderLines.forEach((line, index) => {
     const firstLine = index === 0;
-    const fontSize = firstLine ? primaryFontSize : secondaryFontSize;
+    const fontSize = firstLine ? plan.primaryFontSize : plan.secondaryFontSize;
     const weight = 700;
-    if (index > 0) cursorY += extraLineGap;
+    if (index > 0) cursorY += plan.extraLineGap;
     ctx.font = `${weight} ${fontSize}px ${getPreviewFontFamily(frameParams.fontFamily)}`;
     const y = cursorY + lineMetrics[index].ascent;
     const metrics = ctx.measureText(line);
@@ -234,16 +332,16 @@ export function drawClassicBottomPreview(
           )
         : null;
     const textWidth = line ? metrics.width : 0;
-    const inlineGap = logoInline && line ? frameParams.logoGap * scale : 0;
+    const inlineGap = logoInline && line ? geometry.logoGap : 0;
     const inlineWidth = textWidth + (logoInline ? logoInline.width + inlineGap : 0);
     // Strict baseline alignment: icon bottom follows text baseline exactly.
     const logoTop = logoInline
-      ? y + fontSize * LOGO_BASELINE_OFFSET_RATIO - logoInline.height
+      ? Math.max(cursorY, y + fontSize * LOGO_BASELINE_OFFSET_RATIO - logoInline.height)
       : y;
 
     const centerX = (textStart + right) / 2;
-    if (templateLayout.placement === "corner-bottom-right") {
-      const textX = imageX + imageDrawWidth - cornerPadding;
+    if (plan.placement === "corner-bottom-right") {
+      const textX = plan.imageX + plan.photoW - plan.cornerPadding;
       ctx.textAlign = "right";
       if (logoInline && logoImage) {
         const inlineStart = textX - inlineWidth;

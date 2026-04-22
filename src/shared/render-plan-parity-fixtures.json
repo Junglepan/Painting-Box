@@ -1,0 +1,87 @@
+{
+  "classicBottomDefault4032x3024TwoLines": {
+    "sourceW": 4032,
+    "sourceH": 3024,
+    "templateKind": "classic-bottom",
+    "scenario": "two-lines",
+    "expected": {
+      "canvasW": 4032,
+      "canvasH": 2688,
+      "topMargin": 97,
+      "barTop": 2510,
+      "photoW": 3088,
+      "photoH": 2316,
+      "imageLeft": 472,
+      "imageTop": 97,
+      "blockTop": 2510
+    }
+  },
+  "classicWhiteDefault4032x3024LogoOnly": {
+    "sourceW": 4032,
+    "sourceH": 3024,
+    "templateKind": "classic-white",
+    "scenario": "logo-only",
+    "expected": {
+      "canvasW": 4032,
+      "canvasH": 2688,
+      "topMargin": 97,
+      "barTop": 2604,
+      "photoW": 3213,
+      "photoH": 2410,
+      "imageLeft": 409,
+      "imageTop": 97,
+      "blockTop": 2604
+    }
+  },
+  "minimalCornerDefault4032x3024LogoOnly": {
+    "sourceW": 4032,
+    "sourceH": 3024,
+    "templateKind": "minimal-corner",
+    "scenario": "logo-only",
+    "expected": {
+      "canvasW": 4032,
+      "canvasH": 2688,
+      "topMargin": 56,
+      "barTop": 2604,
+      "photoW": 3323,
+      "photoH": 2492,
+      "imageLeft": 354,
+      "imageTop": 56,
+      "blockTop": 2604
+    }
+  },
+  "classicBottomDefault4032x3024LogoOnly": {
+    "sourceW": 4032,
+    "sourceH": 3024,
+    "templateKind": "classic-bottom",
+    "scenario": "logo-only",
+    "expected": {
+      "canvasW": 4032,
+      "canvasH": 2688,
+      "topMargin": 97,
+      "barTop": 2604,
+      "photoW": 3213,
+      "photoH": 2410,
+      "imageLeft": 409,
+      "imageTop": 97,
+      "blockTop": 2604
+    }
+  },
+  "polaroidDefault4032x3024TwoLines": {
+    "sourceW": 4032,
+    "sourceH": 3024,
+    "templateKind": "polaroid",
+    "scenario": "two-lines",
+    "expected": {
+      "canvasW": 4032,
+      "canvasH": 2688,
+      "topMargin": 81,
+      "barTop": 2510,
+      "photoW": 3131,
+      "photoH": 2348,
+      "imageLeft": 450,
+      "imageTop": 81,
+      "blockTop": 2510
+    }
+  }
+}
