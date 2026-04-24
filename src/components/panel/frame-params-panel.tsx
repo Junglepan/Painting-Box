@@ -230,7 +230,7 @@ export function FrameParamsPanel() {
             <SliderRow
               hint="内圆角"
               min={0}
-              max={200}
+              max={50}
               value={frameParams.innerRadius}
               onChange={(v) => set({ innerRadius: v })}
             />
@@ -408,14 +408,14 @@ export function FrameParamsPanel() {
           <SliderRow
             hint="尺寸"
             min={10}
-            max={30}
+            max={25}
             value={frameParams.logoSize}
             onChange={(v) => set({ logoSize: v })}
           />
           <SliderRow
             hint="间距"
-            min={40}
-            max={80}
+            min={0}
+            max={30}
             value={frameParams.logoGap}
             onChange={(v) => set({ logoGap: v })}
           />
@@ -598,7 +598,7 @@ function SliderRow({
           value={display}
           onChange={(e) => {
             const n = Number(e.target.value);
-            if (!Number.isNaN(n)) onChange(n);
+            if (!Number.isNaN(n)) onChange(clamp(n));
           }}
           onBlur={(e) => {
             const n = Number(e.target.value);
