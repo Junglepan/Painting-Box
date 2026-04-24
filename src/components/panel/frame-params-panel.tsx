@@ -194,9 +194,13 @@ export function FrameParamsPanel() {
             <div className="grid grid-cols-3 gap-1.5">
               {CANVAS_RATIOS.map((ratio) => {
                 const isSquare = ratio.value === "1:1";
-                const label = (!isSquare && frameParams.canvasOrientation === "portrait")
-                  ? ratio.value.split(":").reverse().join(":")
-                  : ratio.label;
+                // "原图" keeps its semantic label in both orientations;
+                // other non-square ratios show flipped string in portrait.
+                const hasSemanticLabel = ratio.label !== ratio.value;
+                const label =
+                  !isSquare && !hasSemanticLabel && frameParams.canvasOrientation === "portrait"
+                    ? ratio.value.split(":").reverse().join(":")
+                    : ratio.label;
                 return (
                   <button
                     key={ratio.value}
