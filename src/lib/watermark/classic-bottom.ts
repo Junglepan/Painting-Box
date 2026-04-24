@@ -104,6 +104,7 @@ export function buildPreviewRenderPlan({
   templateKind,
   totalTextHeight,
   logoOnlyWatermark,
+  showWatermark = true,
   baseWidth = 900,
 }: {
   photoWidth: number;
@@ -112,6 +113,7 @@ export function buildPreviewRenderPlan({
   templateKind: TemplateKind;
   totalTextHeight: number;
   logoOnlyWatermark: boolean;
+  showWatermark?: boolean;
   baseWidth?: number;
 }): PreviewRenderPlan {
   const templateLayout = getTemplateLayout(templateKind);
@@ -127,9 +129,12 @@ export function buildPreviewRenderPlan({
   const extraLineGap = WATERMARK_LAYOUT_SPEC.baseLineGapPx;
   const geometry = resolvePreviewGeometryMetrics(frameParams);
   const minInfoBarHeight = Math.round(totalTextHeight) + 12;
-  const infoBarHeight = templateLayout.mode === "bottom-bar"
-    ? Math.max(geometry.infoBarHeight, minInfoBarHeight)
-    : 0;
+  // When watermark is off the info bar disappears entirely → image fills the canvas.
+  const infoBarHeight = !showWatermark
+    ? 0
+    : templateLayout.mode === "bottom-bar"
+      ? Math.max(geometry.infoBarHeight, minInfoBarHeight)
+      : 0;
   const canvasRatio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation ?? "landscape");
   const canvasH = baseWidth / canvasRatio;
   const barTop = canvasH - infoBarHeight;
@@ -231,6 +236,7 @@ export function drawClassicBottomPreview(
     templateKind,
     totalTextHeight: textBlockHeight,
     logoOnlyWatermark: Boolean(effectiveLogo) && renderLines.length === 1 && renderLines[0] === "",
+    showWatermark: watermarkActive,
     baseWidth,
   });
   const geometry = resolvePreviewGeometryMetrics(frameParams);

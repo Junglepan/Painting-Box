@@ -219,6 +219,7 @@ pub fn compose(
         text,
         logo.as_ref()
             .map(|image| image.width() as f32 / image.height().max(1) as f32),
+        config.show_watermark,
     );
     compose_with_plan(
         source,
@@ -373,6 +374,7 @@ fn compose_with_plan(
     canvas
 }
 
+#[allow(clippy::too_many_arguments)]
 fn build_render_plan(
     source_w: u32,
     source_h: u32,
@@ -381,6 +383,7 @@ fn build_render_plan(
     render_lines: &[String],
     text: Option<&TextRenderer>,
     logo_ratio: Option<f32>,
+    show_watermark: bool,
 ) -> RenderPlan {
     let spec = watermark_layout_spec();
     let resolution_scale = source_w as f32 / 900.0;
@@ -413,7 +416,10 @@ fn build_render_plan(
     let min_info_bar_h = text_block_h + (12.0 * resolution_scale).round() as u32;
     // infoBarHeight is in 900px canvas-pixel space; scale to full resolution.
     let scaled_info_bar_h = (frame.info_bar_height as f32 * resolution_scale).round() as u32;
-    let info_bar_h = if bottom_bar_mode {
+    // When watermark is off the info bar disappears → image fills the full canvas.
+    let info_bar_h = if !show_watermark {
+        0
+    } else if bottom_bar_mode {
         scaled_info_bar_h.max(min_info_bar_h)
     } else {
         0
@@ -1485,7 +1491,7 @@ mod tests {
             export_quality: 92,
         };
         let lines = vec!["Z 7II".to_string(), "50mm f/1.4 1/800 ISO100".to_string()];
-        let plan = build_render_plan(4032, 3024, &frame, "classic-bottom", &lines, None, None);
+        let plan = build_render_plan(4032, 3024, &frame, "classic-bottom", &lines, None, None, true);
 
         assert!(plan.bottom_bar_mode);
         assert_eq!(plan.canvas_w, 4032);
@@ -1537,6 +1543,7 @@ mod tests {
             &lines,
             None,
             Some(3.0),
+            true,
         );
 
         assert_eq!(plan.line_plans.len(), 2);
@@ -1669,6 +1676,7 @@ mod tests {
                 &lines,
                 None,
                 logo_ratio,
+                true,
             );
 
             assert_eq!(plan.canvas_w, case.expected.canvas_w);
