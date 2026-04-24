@@ -32,6 +32,10 @@ impl TextRenderer {
     }
 
     pub fn load(family: &str) -> Option<Self> {
+        // Try bundled Inter first (compiled in when fonts/inter-*.ttf exist in src-tauri/fonts/).
+        if let Some(renderer) = load_bundled(family) {
+            return Some(renderer);
+        }
         let regular = load_font(font_paths(family, false))?;
         let bold = load_font(font_paths(family, true))
             .unwrap_or_else(|| load_font(font_paths(family, false)).unwrap());
@@ -147,41 +151,78 @@ fn load_font(paths: Vec<&'static str>) -> Option<FontVec> {
 }
 
 fn font_paths(family: &str, bold: bool) -> Vec<&'static str> {
+    let mut paths: Vec<&'static str> = Vec::new();
+
     if let Some(mapped) = mapped_font_paths(family, bold) {
-        return mapped;
+        paths.extend(mapped);
     }
 
-    // Fallbacks for safety if shared mapping config is missing.
+    // Always append platform-reliable fallbacks so text renders even when the
+    // primary font is unavailable (e.g. PingFang paths change across macOS versions).
     if cfg!(target_os = "macos") {
         if bold {
-            vec![
+            paths.extend_from_slice(&[
                 "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+                "/System/Library/Fonts/ArialHB.ttc",
                 "/Library/Fonts/Arial Bold.ttf",
                 "/System/Library/Fonts/Supplemental/Arial.ttf",
-            ]
+            ]);
         } else {
-            vec![
+            paths.extend_from_slice(&[
                 "/System/Library/Fonts/Supplemental/Arial.ttf",
+                "/System/Library/Fonts/ArialHB.ttc",
                 "/Library/Fonts/Arial.ttf",
-            ]
+            ]);
         }
     } else if cfg!(target_os = "windows") {
         if bold {
-            vec![
+            paths.extend_from_slice(&[
                 "C:\\Windows\\Fonts\\arialbd.ttf",
                 "C:\\Windows\\Fonts\\arial.ttf",
-            ]
+            ]);
         } else {
-            vec!["C:\\Windows\\Fonts\\arial.ttf"]
+            paths.push("C:\\Windows\\Fonts\\arial.ttf");
         }
-    } else if bold {
-        vec![
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        ]
     } else {
-        vec!["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
+        if bold {
+            paths.push("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf");
+        }
+        paths.push("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf");
     }
+
+    paths
+}
+
+/// Load bundled Inter font when compiled-in bytes are available.
+/// Activated automatically by build.rs when src-tauri/fonts/inter-*.ttf exist.
+fn load_bundled(family: &str) -> Option<TextRenderer> {
+    #[cfg(bundled_inter)]
+    {
+        const INTER_REGULAR: &[u8] = include_bytes!("../../fonts/inter-regular.ttf");
+        const INTER_BOLD: &[u8] = include_bytes!("../../fonts/inter-bold.ttf");
+
+        if family == "inter" || family == "pingfang-sc" || family == "arial" {
+            let regular = load_font_from_bytes(INTER_REGULAR)?;
+            let bold = load_font_from_bytes(INTER_BOLD)
+                .unwrap_or_else(|| load_font_from_bytes(INTER_REGULAR).unwrap());
+            return Some(TextRenderer { regular, bold });
+        }
+    }
+    let _ = family;
+    None
+}
+
+#[allow(dead_code)]
+fn load_font_from_bytes(data: &[u8]) -> Option<FontVec> {
+    if let Ok(font) = FontVec::try_from_vec(data.to_vec()) {
+        return Some(font);
+    }
+    for i in 0..4u32 {
+        if let Ok(font) = FontVec::try_from_vec_and_index(data.to_vec(), i) {
+            return Some(font);
+        }
+    }
+    None
 }
 
 #[derive(Debug, Deserialize)]

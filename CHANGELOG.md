@@ -10,6 +10,8 @@
 - **画布比例列表整理**：移除"原图（auto）"和 2.39:1 选项，比例全部规范化为横图基准（宽≥高），共 8 项；首位改为"原图"标签（对应 3:2，竖图模式下保持"原图"语义标签不变）。
 
 ### 修复
+- **内置字体支持 + 导出字体消失修复**：新增 Inter 字体内置通道（`src-tauri/fonts/` 放入 TTF 后自动编译进二进制，无需依赖系统字体）；修复 `font_paths` 在所有映射路径失败时不回退 Arial 的 bug，确保任何系统上导出都能渲染文字；默认字体改为 `inter`（内置时优先），前端同步加 `@font-face`；PingFang 路径不可靠时自动降级到 Arial/ArialHB。
+- **阴影扩散范围修正**：Rust 阴影 `pad = blur * 2`，使盒模糊尾部有足够空间，避免截断成矩形边缘，视觉上与 Canvas shadowBlur 更接近。
 - **导出端几何缩放对齐预览基准**：Rust 导出修复了 `infoBarHeight`、`innerRadius`、`photoBorder` 在高分辨率图片下未按 `resolution_scale` 缩放的问题，水印区域与照片边界在预览/导出间保持一致。
 - **Logo 缩放与绘制路径一致化**：导出端首行 Logo 改为先按排版计算尺寸缩放后再叠加，避免“排版按小尺寸、实际按原图尺寸绘制”导致的 Logo 偏大。
 - **字体度量对齐**：Canvas 预览文本度量改为优先使用 `fontBoundingBoxAscent/Descent`，减小与 Rust `ab_glyph` 字体指标差异造成的基线偏移。

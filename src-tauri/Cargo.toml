@@ -32,6 +32,9 @@ resvg = "0.45"
 rayon = "1"
 fast_image_resize = "4"
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ["cfg(bundled_inter)"] }
+
 [profile.release]
 opt-level = 3
 lto = "thin"

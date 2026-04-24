@@ -52,6 +52,7 @@ const BG_OPTIONS: { value: FrameBackground; label: string; swatch: string }[] =
   ];
 
 const FONT_FAMILIES: { value: WatermarkFontFamily; label: string }[] = [
+  { value: "inter", label: "Inter（内置）" },
   { value: "pingfang-sc", label: "PingFang SC" },
   { value: "arial", label: "Arial" },
 ];

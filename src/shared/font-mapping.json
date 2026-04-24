@@ -1,4 +1,21 @@
 {
+  "inter": {
+    "cssFamily": "Inter, \"Inter Variable\", system-ui, sans-serif",
+    "platformPaths": {
+      "macos": {
+        "regular": [],
+        "bold": []
+      },
+      "windows": {
+        "regular": [],
+        "bold": []
+      },
+      "linux": {
+        "regular": [],
+        "bold": []
+      }
+    }
+  },
   "pingfang-sc": {
     "cssFamily": "\"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
     "platformPaths": {
@@ -43,10 +60,12 @@
       "macos": {
         "regular": [
           "/System/Library/Fonts/Supplemental/Arial.ttf",
+          "/System/Library/Fonts/ArialHB.ttc",
           "/Library/Fonts/Arial.ttf"
         ],
         "bold": [
           "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+          "/System/Library/Fonts/ArialHB.ttc",
           "/Library/Fonts/Arial Bold.ttf",
           "/System/Library/Fonts/Supplemental/Arial.ttf"
         ]

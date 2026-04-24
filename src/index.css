@@ -1,6 +1,26 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Inter — bundled font for watermark preview. Files live in public/fonts/.
+   If font files are present, they take priority; otherwise the browser
+   falls back to system Inter or system-ui. */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/inter-regular.woff2") format("woff2"),
+       url("/fonts/inter-regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/inter-bold.woff2") format("woff2"),
+       url("/fonts/inter-bold.ttf") format("truetype");
+}
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

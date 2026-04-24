@@ -1190,7 +1190,11 @@ fn draw_soft_shadow(
         return;
     }
 
-    let pad = blur.clamp(1, 120) as usize;
+    // Match Canvas shadow semantics more closely: keep a much wider blur
+    // spread area so the blur tail does not get clipped into a rectangle.
+    let blur_px = blur.clamp(1, 120) as usize;
+    // Keep enough spread to avoid clipping, but closer to preview's softness.
+    let pad = (blur_px * 2).clamp(2, 240);
     let off = offset_y as usize;
     let mw = width as usize + pad * 2;
     let mh = height as usize + pad * 2 + off;
@@ -1227,15 +1231,16 @@ fn draw_soft_shadow(
         }
     }
 
-    // Three-pass box blur ≈ Gaussian (σ ≈ blur / 2).
-    let k = (blur as usize / 2).max(1);
+    // Three-pass box blur ≈ Gaussian.
+    let k = (blur_px / 2).max(1);
     for _ in 0..3 {
         box_blur_h(&mut mask, mw, mh, k);
         box_blur_v(&mut mask, mw, mh, k);
     }
 
-    // Multiply-blend the shadow onto the canvas.
+    // Blend shadow onto canvas. Keep a tiny cutoff only to avoid useless work.
     let alpha_scale = opacity_pct.min(100) as f32 / 100.0;
+    let cutoff = 1u8;
     let ox = x as i32 - pad as i32;
     let oy = y as i32 - pad as i32;
     let (cw, ch) = (canvas.width() as i32, canvas.height() as i32);
@@ -1251,9 +1256,7 @@ fn draw_soft_shadow(
                 continue;
             }
             let a_raw = mask[row + mx as usize];
-            // Ignore tiny tail alpha from box blur kernels; otherwise the whole
-            // mask bounds can look like a faint gray rectangle on bright backgrounds.
-            if a_raw <= 2 {
+            if a_raw <= cutoff {
                 continue;
             }
             let a = a_raw as f32 / 255.0 * alpha_scale;

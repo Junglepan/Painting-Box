@@ -54,7 +54,7 @@ const defaultFrameParams: FrameParams = {
   photoScale: 100,
   photoBorder: 0,
 
-  fontFamily: "pingfang-sc",
+  fontFamily: "inter",
   fontSize: 10,
   textColor: "#1f2937",
   autoTextContrast: true,
