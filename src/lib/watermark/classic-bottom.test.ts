@@ -1,9 +1,11 @@
 import { describe, expect, test } from "bun:test";
 
 import {
+  averageLuminance,
   buildPreviewRenderPlan,
   buildPreviewLines,
   buildRenderableLines,
+  buildTextSampleBoxes,
   computeWatermarkBlockTop,
   getPreviewFontFamily,
   resolvePreviewGeometryMetrics,
@@ -140,6 +142,63 @@ describe("classic bottom preview lines", () => {
       textColor: "#f9fafb",
       dividerColor: "#d1d5db",
     });
+  });
+
+  test("text background sampling uses text bounds instead of the full watermark bar", () => {
+    const ctx = {
+      font: "",
+      measureText: () => ({ width: 92 }),
+    } as unknown as CanvasRenderingContext2D;
+
+    const plan = buildPreviewRenderPlan({
+      photoWidth: 4032,
+      photoHeight: 3024,
+      frameParams: useTemplateStore.getState().frameParams,
+      templateKind: "classic-bottom",
+      totalTextHeight: 56,
+      logoOnlyWatermark: false,
+      baseWidth: 900,
+    });
+    const renderLines = ["Z 7II"];
+    const lineMetrics = [{ ascent: 14, height: 18 }];
+
+    const boxes = buildTextSampleBoxes({
+      ctx,
+      renderLines,
+      lineMetrics,
+      plan,
+      frameParams: useTemplateStore.getState().frameParams,
+      logoImage: null,
+      left: plan.horizontalMargin,
+      right: plan.canvasW - plan.horizontalMargin,
+    });
+
+    expect(boxes).toHaveLength(1);
+    expect(boxes[0].width).toBeGreaterThan(0);
+    expect(boxes[0].width).toBeLessThan(plan.canvasW / 2);
+    expect(boxes[0].x).toBeGreaterThan(0);
+    expect(boxes[0].x + boxes[0].width).toBeLessThan(plan.canvasW);
+  });
+
+  test("samples logical preview coordinates against the device-pixel backing store", () => {
+    const ctx = {
+      canvas: { width: 1800, height: 1200 },
+      getTransform: () => ({ a: 2, d: 2 }),
+      getImageData: (_x: number, y: number, width: number, height: number) => {
+        const channels = width * height * 4;
+        const data = new Uint8ClampedArray(channels);
+        const value = y === 1080 ? 255 : 0;
+        for (let index = 0; index < channels; index += 4) {
+          data[index] = value;
+          data[index + 1] = value;
+          data[index + 2] = value;
+          data[index + 3] = 255;
+        }
+        return { data };
+      },
+    } as unknown as CanvasRenderingContext2D;
+
+    expect(averageLuminance(ctx, 0, 540, 92, 18)).toBeCloseTo(255);
   });
 
   test("keeps preview geometry metrics width-invariant and aligned to shared spec", () => {

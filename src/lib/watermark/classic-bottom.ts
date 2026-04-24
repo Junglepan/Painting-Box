@@ -55,6 +55,13 @@ type PreviewRenderPlan = {
   cornerPadding: number;
 };
 
+type TextSampleBox = {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
+
 export function resolvePreviewGeometryMetrics(frameParams: FrameParams): PreviewGeometryMetrics {
   return {
     infoBarHeight: frameParams.infoBarHeight,
@@ -277,19 +284,32 @@ export function drawClassicBottomPreview(
   const left = plan.horizontalMargin;
   const right = plan.canvasW - plan.horizontalMargin;
 
-  const averageLuminance = sampleWatermarkLuminance(ctx, {
-    templateKind,
-    templateMode: plan.templateMode,
-    imageX: plan.imageX,
-    imageY: plan.imageY,
-    imageWidth: plan.photoW,
-    imageHeight: plan.photoH,
-    barTop: plan.barTop,
-    contentHeight: plan.canvasH,
-    blockTop: plan.blockTop,
-    totalTextHeight: plan.totalTextHeight,
-    cornerPadding: plan.cornerPadding,
+  const sampleBoxes = buildTextSampleBoxes({
+    ctx,
+    renderLines,
+    lineMetrics,
+    plan,
+    frameParams,
+    logoImage,
+    left,
+    right,
   });
+
+  const averageLuminance = sampleBoxes.length > 0
+    ? averageLuminanceForBoxes(ctx, sampleBoxes)
+    : sampleWatermarkLuminance(ctx, {
+        templateKind,
+        templateMode: plan.templateMode,
+        imageX: plan.imageX,
+        imageY: plan.imageY,
+        imageWidth: plan.photoW,
+        imageHeight: plan.photoH,
+        barTop: plan.barTop,
+        contentHeight: plan.canvasH,
+        blockTop: plan.blockTop,
+        totalTextHeight: plan.totalTextHeight,
+        cornerPadding: plan.cornerPadding,
+      });
   const readable = resolveReadableTextAndDivider({
     autoTextContrast: frameParams.autoTextContrast,
     averageLuminance,
@@ -528,17 +548,104 @@ function sampleWatermarkLuminance(
   return averageLuminance(ctx, 0, y, ctx.canvas.width, h);
 }
 
-function averageLuminance(
+export function buildTextSampleBoxes({
+  ctx,
+  renderLines,
+  lineMetrics,
+  plan,
+  frameParams,
+  logoImage,
+  left,
+  right,
+}: {
+  ctx: CanvasRenderingContext2D;
+  renderLines: string[];
+  lineMetrics: LineMetric[];
+  plan: PreviewRenderPlan;
+  frameParams: FrameParams;
+  logoImage: HTMLImageElement | null;
+  left: number;
+  right: number;
+}) {
+  const boxes: TextSampleBox[] = [];
+  const textStart = left;
+  let cursorY = plan.blockTop;
+
+  renderLines.forEach((line, index) => {
+    const firstLine = index === 0;
+    const fontSize = firstLine ? plan.primaryFontSize : plan.secondaryFontSize;
+    if (index > 0) cursorY += plan.extraLineGap;
+    ctx.font = `700 ${fontSize}px ${getPreviewFontFamily(frameParams.fontFamily)}`;
+    const baselineY = cursorY + lineMetrics[index].ascent;
+    const metrics = ctx.measureText(line);
+    const logoFontScale = Math.max(0.5, fontSize / LOGO_FONT_SCALE_BASE);
+    const logoInline =
+      firstLine && logoImage
+        ? calcLogoInline(
+            logoImage,
+            frameParams.logoSize * LOGO_VISUAL_SCALE * logoFontScale,
+          )
+        : null;
+    const textWidth = line ? metrics.width : 0;
+    const inlineGap = logoInline && line ? frameParams.logoGap : 0;
+    const inlineWidth = textWidth + (logoInline ? logoInline.width + inlineGap : 0);
+    const centerX = (textStart + right) / 2;
+    let textX = 0;
+
+    if (plan.placement === "corner-bottom-right") {
+      const textRight = plan.imageX + plan.photoW - plan.cornerPadding;
+      textX = logoInline ? textRight - inlineWidth + logoInline.width + inlineGap : textRight - textWidth;
+    } else {
+      textX = logoInline
+        ? centerX - inlineWidth / 2 + logoInline.width + inlineGap
+        : centerX - textWidth / 2;
+    }
+
+    if (textWidth > 0) {
+      boxes.push({
+        x: textX,
+        y: baselineY - lineMetrics[index].ascent,
+        width: textWidth,
+        height: lineMetrics[index].height,
+      });
+    }
+
+    cursorY += lineMetrics[index].height;
+  });
+
+  return boxes;
+}
+
+function averageLuminanceForBoxes(
+  ctx: CanvasRenderingContext2D,
+  boxes: TextSampleBox[],
+) {
+  let totalLuminance = 0;
+  let totalArea = 0;
+  for (const box of boxes) {
+    const width = Math.max(1, Math.round(box.width));
+    const height = Math.max(1, Math.round(box.height));
+    const area = width * height;
+    totalLuminance += averageLuminance(ctx, box.x, box.y, width, height) * area;
+    totalArea += area;
+  }
+  return totalArea > 0 ? totalLuminance / totalArea : 0;
+}
+
+export function averageLuminance(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   width: number,
   height: number,
 ) {
-  const sx = Math.max(0, Math.floor(x));
-  const sy = Math.max(0, Math.floor(y));
-  const sw = Math.max(1, Math.min(Math.floor(width), ctx.canvas.width - sx));
-  const sh = Math.max(1, Math.min(Math.floor(height), ctx.canvas.height - sy));
+  const transform = ctx.getTransform();
+  const scaleX = Math.abs(transform.a) || 1;
+  const scaleY = Math.abs(transform.d) || 1;
+  const sx = Math.max(0, Math.floor(x * scaleX));
+  const sy = Math.max(0, Math.floor(y * scaleY));
+  const sw = Math.max(1, Math.min(Math.floor(width * scaleX), ctx.canvas.width - sx));
+  const sh = Math.max(1, Math.min(Math.floor(height * scaleY), ctx.canvas.height - sy));
   const data = ctx.getImageData(sx, sy, sw, sh).data;
   let total = 0;
   for (let i = 0; i < data.length; i += 4) {
