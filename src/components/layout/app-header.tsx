@@ -1,4 +1,54 @@
-import { Camera, Settings2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Camera, CheckCheck, Loader2, Settings2 } from "lucide-react";
+import { useExportStore } from "@/stores/export-store";
+import { cn } from "@/lib/utils";
+
+function ExportBadge() {
+  const jobs = useExportStore((s) => s.jobs);
+  const isRunning = useExportStore((s) => s.isRunning);
+  const [justDone, setJustDone] = useState(false);
+
+  const total = jobs.length;
+  const done = jobs.filter((j) => j.status === "done" || j.status === "error").length;
+  const errors = jobs.filter((j) => j.status === "error").length;
+  const allSettled = total > 0 && done === total;
+
+  // Briefly show "完成" after the last job settles.
+  useEffect(() => {
+    if (allSettled && !isRunning) {
+      setJustDone(true);
+      const t = window.setTimeout(() => setJustDone(false), 2500);
+      return () => window.clearTimeout(t);
+    }
+  }, [allSettled, isRunning]);
+
+  if (!isRunning && !justDone) return null;
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium transition-all",
+        justDone && !isRunning
+          ? errors > 0
+            ? "bg-destructive/10 text-destructive"
+            : "bg-emerald-50 text-emerald-600"
+          : "bg-primary/8 text-primary",
+      )}
+    >
+      {justDone && !isRunning ? (
+        <>
+          <CheckCheck className="h-3 w-3" />
+          <span>{errors > 0 ? `${errors} 张失败` : "导出完成"}</span>
+        </>
+      ) : (
+        <>
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>导出中 {done}/{total}</span>
+        </>
+      )}
+    </div>
+  );
+}
 
 export function AppHeader() {
   return (
@@ -11,7 +61,9 @@ export function AppHeader() {
           Painting Box
         </span>
       </div>
-      <div className="flex items-center gap-1.5">
+
+      <div className="flex items-center gap-2">
+        <ExportBadge />
         <button
           type="button"
           aria-label="设置"
