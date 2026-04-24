@@ -58,15 +58,14 @@ const FONT_FAMILIES: { value: WatermarkFontFamily; label: string }[] = [
 
 // All entries are landscape-first (w >= h); portrait toggle flips them.
 const CANVAS_RATIOS: { value: CanvasRatio; label: string }[] = [
+  { value: "3:2",    label: "原图"   },
   { value: "1:1",    label: "1:1"    },
   { value: "4:3",    label: "4:3"    },
-  { value: "3:2",    label: "3:2"    },
   { value: "5:4",    label: "5:4"    },
   { value: "16:10",  label: "16:10"  },
   { value: "16:9",   label: "16:9"   },
   { value: "21:9",   label: "21:9"   },
   { value: "2.35:1", label: "2.35:1" },
-  { value: "2.39:1", label: "2.39:1" },
 ];
 
 const FIELDS: {
