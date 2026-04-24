@@ -7,7 +7,9 @@ use std::{
 };
 
 use image::{
-    codecs::jpeg::JpegEncoder, imageops::overlay, DynamicImage, ImageFormat, Rgba, RgbaImage,
+    codecs::jpeg::JpegEncoder,
+    imageops::{overlay, resize, FilterType},
+    DynamicImage, ImageFormat, Rgba, RgbaImage,
 };
 use resvg::{tiny_skia, usvg};
 use serde::Deserialize;
@@ -241,8 +243,7 @@ fn compose_with_plan(
 
     // ── Photo ────────────────────────────────────────────────────────────────
     let mut photo = resize_photo(source, plan.photo_w, plan.photo_h);
-    let r = frame
-        .inner_radius
+    let r = ((frame.inner_radius as f32 * plan.resolution_scale).round() as u32)
         .min(plan.photo_h / 2)
         .min(plan.photo_w / 2);
     apply_rounded_corners(&mut photo, r);
@@ -271,6 +272,7 @@ fn compose_with_plan(
     );
 
     if frame.photo_border > 0 {
+        let border = (frame.photo_border as f32 * plan.resolution_scale).round() as u32;
         draw_rounded_rect_stroke(
             &mut canvas,
             plan.image_left,
@@ -278,7 +280,7 @@ fn compose_with_plan(
             plan.photo_w,
             plan.photo_h,
             r,
-            frame.photo_border,
+            border,
             Rgba([255, 255, 255, 255]),
         );
     }
@@ -339,11 +341,14 @@ fn compose_with_plan(
         let line_plan = &plan.line_plans[index];
         let text_baseline = y + line_plan.text_ascent;
 
-        if let (Some(logo_image), Some((_logo_w, logo_h))) = (logo, line_plan.logo_inline) {
+        if let (Some(logo_image), Some((logo_w, logo_h))) = (logo, line_plan.logo_inline) {
             let logo_x = line_plan.inline_x.round() as i64;
             let logo_y = (text_baseline + line_plan.pt * spec.logo_baseline_offset_ratio - logo_h)
                 .round() as i64;
-            overlay(&mut canvas, logo_image, logo_x, logo_y);
+            let target_w = logo_w.round().max(1.0) as u32;
+            let target_h = logo_h.round().max(1.0) as u32;
+            let resized_logo = resize(logo_image, target_w, target_h, FilterType::Lanczos3);
+            overlay(&mut canvas, &resized_logo, logo_x, logo_y);
         }
 
         let text_x = line_plan.inline_x
@@ -400,9 +405,11 @@ fn build_render_plan(
                 .round() as u32;
             acc + line_h + if index == 0 { 0 } else { extra_line_gap }
         });
-    let min_info_bar_h = text_block_h + 12;
+    let min_info_bar_h = text_block_h + (12.0 * resolution_scale).round() as u32;
+    // infoBarHeight is in 900px canvas-pixel space; scale to full resolution.
+    let scaled_info_bar_h = (frame.info_bar_height as f32 * resolution_scale).round() as u32;
     let info_bar_h = if bottom_bar_mode {
-        frame.info_bar_height.max(min_info_bar_h)
+        scaled_info_bar_h.max(min_info_bar_h)
     } else {
         0
     };
@@ -571,9 +578,11 @@ fn compute_logo_inline(
 ) -> Option<(f32, f32)> {
     let spec = watermark_layout_spec();
     let ratio = logo_ratio?;
-    let logo_font_scale = (pt / spec.logo_font_scale_base).max(0.5);
+    // Use 900px-equivalent pt so the scale factor matches the Canvas preview formula.
+    let pt_900 = pt / resolution_scale;
+    let logo_font_scale = (pt_900 / spec.logo_font_scale_base).max(0.5);
     let h = (frame.logo_size as f32 * resolution_scale * spec.logo_visual_scale * logo_font_scale)
-        .max(12.0);
+        .max(12.0 * resolution_scale);
     let w = h * ratio;
     Some((w, h))
 }
@@ -1464,6 +1473,7 @@ mod tests {
             divider_show: false,
             divider_color: "#d7dce6".to_string(),
             canvas_ratio: "auto".to_string(),
+            canvas_orientation: "landscape".to_string(),
             export_quality: 92,
         };
         let lines = vec!["Z 7II".to_string(), "50mm f/1.4 1/800 ISO100".to_string()];
@@ -1507,6 +1517,7 @@ mod tests {
             divider_show: false,
             divider_color: "#d7dce6".to_string(),
             canvas_ratio: "auto".to_string(),
+            canvas_orientation: "landscape".to_string(),
             export_quality: 92,
         };
         let lines = vec!["Z 7II".to_string(), "50mm f/1.4 1/800 ISO100".to_string()];
@@ -1563,6 +1574,7 @@ mod tests {
                     divider_show: false,
                     divider_color: "#d7dce6".to_string(),
                     canvas_ratio: "auto".to_string(),
+                    canvas_orientation: "landscape".to_string(),
                     export_quality: 92,
                 }
             } else if case.template_kind == "polaroid" {
@@ -1593,6 +1605,7 @@ mod tests {
                     divider_show: false,
                     divider_color: "#d7dce6".to_string(),
                     canvas_ratio: "auto".to_string(),
+                    canvas_orientation: "landscape".to_string(),
                     export_quality: 92,
                 }
             } else {
@@ -1627,6 +1640,7 @@ mod tests {
                     divider_show: false,
                     divider_color: "#d7dce6".to_string(),
                     canvas_ratio: "auto".to_string(),
+                    canvas_orientation: "landscape".to_string(),
                     export_quality: 92,
                 }
             };

@@ -10,6 +10,11 @@
 - **画布比例列表整理**：移除"原图（auto）"和 2.39:1 选项，比例全部规范化为横图基准（宽≥高），共 8 项；首位改为"原图"标签（对应 3:2，竖图模式下保持"原图"语义标签不变）。
 
 ### 修复
+- **导出端几何缩放对齐预览基准**：Rust 导出修复了 `infoBarHeight`、`innerRadius`、`photoBorder` 在高分辨率图片下未按 `resolution_scale` 缩放的问题，水印区域与照片边界在预览/导出间保持一致。
+- **Logo 缩放与绘制路径一致化**：导出端首行 Logo 改为先按排版计算尺寸缩放后再叠加，避免“排版按小尺寸、实际按原图尺寸绘制”导致的 Logo 偏大。
+- **字体度量对齐**：Canvas 预览文本度量改为优先使用 `fontBoundingBoxAscent/Descent`，减小与 Rust `ab_glyph` 字体指标差异造成的基线偏移。
+- **跨端字体映射统一**：新增共享字体映射 `src/shared/font-mapping.json`，前端预览与 Rust 导出统一从同一映射源解析字体族与平台路径，降低字体 fallback 不一致导致的观感漂移。
+- **Rust 测试参数结构同步**：`canvas_orientation` 新字段已补到相关渲染测试与 smoke test 构造体，避免测试因结构体字段缺失而编译失败。
 - **预览/导出共享水印版式常量**：新增 `src/shared/watermark-layout-spec.json`，预览 Canvas 与 Rust 导出统一读取同一套字重比例、行距、Logo 比例、角标边距与可读性阈值，减少双端漂移。
 - **Rust 导出接入共享 Logo Catalog**：新增 `src/shared/logo-catalog.json` 并由前端/导出共用；Rust 不再只靠文件名猜测，改为按 catalog 与统一 fallback 规则解析 Logo 资源。
 - **新增内部水印模板 DSL（无 UI 暴露）**：`TemplateConfig` 新增 `watermarkTemplate?: string[]`，支持 `{Make}`、`{Model}`、`{LensModel}`、`{FocalLength}`、`{FNumber}`、`{ExposureTime}`、`{ISO}`、`{Params}` 占位符；未配置时保持原显示项逻辑。

@@ -5,6 +5,7 @@ use std::{
 
 use ab_glyph::{Font, FontVec, GlyphId, PxScale, ScaleFont, point};
 use image::{Rgba, RgbaImage};
+use serde::Deserialize;
 
 pub struct TextRenderer {
     regular: FontVec,
@@ -146,16 +147,12 @@ fn load_font(paths: Vec<&'static str>) -> Option<FontVec> {
 }
 
 fn font_paths(family: &str, bold: bool) -> Vec<&'static str> {
+    if let Some(mapped) = mapped_font_paths(family, bold) {
+        return mapped;
+    }
+
+    // Fallbacks for safety if shared mapping config is missing.
     if cfg!(target_os = "macos") {
-        if family == "pingfang-sc" {
-            return vec![
-                "/System/Library/AssetsV2/com_apple_MobileAsset_Font8/86ba2c91f017a3749571a82f2c6d890ac7ffb2fb.asset/AssetData/PingFang.ttc",
-                "/System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Reserved/PingFangUI.ttc",
-                "/System/Library/Fonts/ArialHB.ttc",
-                "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
-                "/System/Library/Fonts/Supplemental/Arial.ttf",
-            ];
-        }
         if bold {
             vec![
                 "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
@@ -177,18 +174,60 @@ fn font_paths(family: &str, bold: bool) -> Vec<&'static str> {
         } else {
             vec!["C:\\Windows\\Fonts\\arial.ttf"]
         }
+    } else if bold {
+        vec![
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        ]
     } else {
-        if bold {
-            vec![
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-                "/usr/share/fonts/truetype/noto/NotoSans-Bold.ttf",
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-            ]
-        } else {
-            vec![
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                "/usr/share/fonts/truetype/noto/NotoSans-Regular.ttf",
-            ]
-        }
+        vec!["/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"]
     }
+}
+
+#[derive(Debug, Deserialize)]
+struct FontMapEntry {
+    #[serde(rename = "platformPaths")]
+    platform_paths: FontPlatformPaths,
+}
+
+#[derive(Debug, Deserialize)]
+struct FontPlatformPaths {
+    macos: FontWeightPaths,
+    windows: FontWeightPaths,
+    linux: FontWeightPaths,
+}
+
+#[derive(Debug, Deserialize)]
+struct FontWeightPaths {
+    regular: Vec<String>,
+    bold: Vec<String>,
+}
+
+fn mapped_font_paths(family: &str, bold: bool) -> Option<Vec<&'static str>> {
+    let config = font_mapping();
+    let entry = config.get(family)?;
+    let platform = if cfg!(target_os = "macos") {
+        &entry.platform_paths.macos
+    } else if cfg!(target_os = "windows") {
+        &entry.platform_paths.windows
+    } else {
+        &entry.platform_paths.linux
+    };
+    let selected = if bold { &platform.bold } else { &platform.regular };
+    if selected.is_empty() {
+        return None;
+    }
+    Some(selected.iter().map(|path| leak_string(path.clone())).collect())
+}
+
+fn font_mapping() -> &'static HashMap<String, FontMapEntry> {
+    static FONT_MAPPING: OnceLock<HashMap<String, FontMapEntry>> = OnceLock::new();
+    FONT_MAPPING.get_or_init(|| {
+        serde_json::from_str(include_str!("../../../src/shared/font-mapping.json"))
+            .unwrap_or_default()
+    })
+}
+
+fn leak_string(value: String) -> &'static str {
+    Box::leak(value.into_boxed_str())
 }

@@ -70,6 +70,7 @@ fn jpg_import_and_export_pipeline_works() {
                 divider_show: true,
                 divider_color: "#d7dce6".to_string(),
                 canvas_ratio: "auto".to_string(),
+                canvas_orientation: "landscape".to_string(),
                 export_quality: 92,
             },
             exif: None,

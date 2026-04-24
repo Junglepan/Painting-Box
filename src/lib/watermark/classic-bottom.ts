@@ -1,5 +1,6 @@
 import { normalizeModel } from "@/lib/exif/brand";
 import { resolveLogoSelection } from "@/lib/exif/logo";
+import FONT_MAPPING from "@/shared/font-mapping.json";
 import type { ExifData, FrameParams, TemplateConfig, TemplateKind } from "@/stores/types";
 import { getTemplateLayout } from "./template-layout";
 import { WATERMARK_LAYOUT_SPEC } from "./layout-spec";
@@ -507,8 +508,9 @@ function computeLineMetrics(
     ctx.font = `700 ${fontSize}px ${getPreviewFontFamily(fontFamily)}`;
     const target = line || "A";
     const metrics = ctx.measureText(target);
-    const ascent = metrics.actualBoundingBoxAscent || fontSize * 0.8;
-    const descent = metrics.actualBoundingBoxDescent || fontSize * 0.2;
+    // fontBoundingBox matches ab_glyph's ascent/descent from the same font tables.
+    const ascent = metrics.fontBoundingBoxAscent ?? metrics.actualBoundingBoxAscent ?? fontSize * 0.8;
+    const descent = metrics.fontBoundingBoxDescent ?? metrics.actualBoundingBoxDescent ?? fontSize * 0.2;
     return { ascent, height: Math.max(fontSize, ascent + descent) };
   });
 }
@@ -707,9 +709,8 @@ function cleanDisplayText(value: string) {
 }
 
 export function getPreviewFontFamily(fontFamily: FrameParams["fontFamily"]) {
-  if (fontFamily === "arial") {
-    return 'Arial, "Helvetica Neue", sans-serif';
-  }
+  const mapped = FONT_MAPPING[fontFamily];
+  if (mapped?.cssFamily) return mapped.cssFamily;
   return '"PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif';
 }
 

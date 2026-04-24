@@ -1,0 +1,74 @@
+{
+  "pingfang-sc": {
+    "cssFamily": "\"PingFang SC\", \"Hiragino Sans GB\", \"Microsoft YaHei\", sans-serif",
+    "platformPaths": {
+      "macos": {
+        "regular": [
+          "/System/Library/AssetsV2/com_apple_MobileAsset_Font8/86ba2c91f017a3749571a82f2c6d890ac7ffb2fb.asset/AssetData/PingFang.ttc",
+          "/System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Reserved/PingFangUI.ttc"
+        ],
+        "bold": [
+          "/System/Library/AssetsV2/com_apple_MobileAsset_Font8/86ba2c91f017a3749571a82f2c6d890ac7ffb2fb.asset/AssetData/PingFang.ttc",
+          "/System/Library/PrivateFrameworks/FontServices.framework/Versions/A/Resources/Reserved/PingFangUI.ttc"
+        ]
+      },
+      "windows": {
+        "regular": [
+          "C:\\Windows\\Fonts\\msyh.ttc",
+          "C:\\Windows\\Fonts\\msyh.ttf"
+        ],
+        "bold": [
+          "C:\\Windows\\Fonts\\msyhbd.ttc",
+          "C:\\Windows\\Fonts\\msyhbd.ttf",
+          "C:\\Windows\\Fonts\\msyh.ttc"
+        ]
+      },
+      "linux": {
+        "regular": [
+          "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
+          "/usr/share/fonts/truetype/noto/NotoSansSC-Regular.otf",
+          "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        ],
+        "bold": [
+          "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
+          "/usr/share/fonts/truetype/noto/NotoSansSC-Bold.otf",
+          "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+        ]
+      }
+    }
+  },
+  "arial": {
+    "cssFamily": "Arial, \"Helvetica Neue\", sans-serif",
+    "platformPaths": {
+      "macos": {
+        "regular": [
+          "/System/Library/Fonts/Supplemental/Arial.ttf",
+          "/Library/Fonts/Arial.ttf"
+        ],
+        "bold": [
+          "/System/Library/Fonts/Supplemental/Arial Bold.ttf",
+          "/Library/Fonts/Arial Bold.ttf",
+          "/System/Library/Fonts/Supplemental/Arial.ttf"
+        ]
+      },
+      "windows": {
+        "regular": [
+          "C:\\Windows\\Fonts\\arial.ttf"
+        ],
+        "bold": [
+          "C:\\Windows\\Fonts\\arialbd.ttf",
+          "C:\\Windows\\Fonts\\arial.ttf"
+        ]
+      },
+      "linux": {
+        "regular": [
+          "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        ],
+        "bold": [
+          "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+          "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
+        ]
+      }
+    }
+  }
+}
