@@ -32,14 +32,18 @@ impl TextRenderer {
     }
 
     pub fn load(family: &str) -> Option<Self> {
-        // Try bundled Inter first (compiled in when fonts/inter-*.ttf exist in src-tauri/fonts/).
-        if let Some(renderer) = load_bundled(family) {
-            return Some(renderer);
+        // "inter" always uses the bundled font — never falls through to system paths.
+        if family == "inter" {
+            return load_bundled_inter();
         }
-        let regular = load_font(font_paths(family, false))?;
-        let bold = load_font(font_paths(family, true))
-            .unwrap_or_else(|| load_font(font_paths(family, false)).unwrap());
-        Some(Self { regular, bold })
+        // Other families try their system fonts first, then use bundled Inter as last resort.
+        if let Some(regular) = load_font(font_paths(family, false)) {
+            let bold = load_font(font_paths(family, true))
+                .unwrap_or_else(|| load_font(font_paths(family, false)).unwrap());
+            return Some(Self { regular, bold });
+        }
+        // All system font paths failed — fall back to bundled Inter so text always renders.
+        load_bundled_inter()
     }
 
     pub fn measure(&self, text: &str, size: f32, bold: bool) -> f32 {
@@ -193,22 +197,18 @@ fn font_paths(family: &str, bold: bool) -> Vec<&'static str> {
     paths
 }
 
-/// Load bundled Inter font when compiled-in bytes are available.
-/// Activated automatically by build.rs when src-tauri/fonts/inter-*.ttf exist.
-fn load_bundled(family: &str) -> Option<TextRenderer> {
+/// Returns a TextRenderer using the bundled Inter font, or None if not compiled in.
+fn load_bundled_inter() -> Option<TextRenderer> {
     #[cfg(bundled_inter)]
     {
         const INTER_REGULAR: &[u8] = include_bytes!("../../fonts/inter-regular.ttf");
         const INTER_BOLD: &[u8] = include_bytes!("../../fonts/inter-bold.ttf");
-
-        if family == "inter" || family == "pingfang-sc" || family == "arial" {
-            let regular = load_font_from_bytes(INTER_REGULAR)?;
-            let bold = load_font_from_bytes(INTER_BOLD)
-                .unwrap_or_else(|| load_font_from_bytes(INTER_REGULAR).unwrap());
-            return Some(TextRenderer { regular, bold });
-        }
+        let regular = load_font_from_bytes(INTER_REGULAR)?;
+        let bold = load_font_from_bytes(INTER_BOLD)
+            .unwrap_or_else(|| load_font_from_bytes(INTER_REGULAR).unwrap());
+        Some(TextRenderer { regular, bold })
     }
-    let _ = family;
+    #[cfg(not(bundled_inter))]
     None
 }
 
