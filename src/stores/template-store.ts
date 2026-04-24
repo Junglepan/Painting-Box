@@ -21,6 +21,7 @@ type TemplateState = {
 };
 
 const defaultConfig: TemplateConfig = {
+  showWatermark: true,
   showLogo: true,
   showCamera: true,
   showLens: false,

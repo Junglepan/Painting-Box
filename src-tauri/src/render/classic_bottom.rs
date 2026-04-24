@@ -85,6 +85,7 @@ impl From<GpsInfo> for ExportGps {
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ExportTemplateConfig {
+    pub show_watermark: bool,
     pub show_logo: bool,
     pub show_camera: bool,
     pub show_lens: bool,
@@ -203,8 +204,12 @@ pub fn compose(
     let src_h = source.height();
 
     let lines = build_lines(exif, config);
-    let logo = load_logo_rgba(frame, exif, config);
-    let render_lines = build_render_lines(lines.clone(), logo.is_some());
+    let logo = if config.show_watermark { load_logo_rgba(frame, exif, config) } else { None };
+    let render_lines = if config.show_watermark {
+        build_render_lines(lines.clone(), logo.is_some())
+    } else {
+        Vec::new()
+    };
     let plan = build_render_plan(
         src_w,
         src_h,

@@ -200,8 +200,10 @@ export function drawClassicBottomPreview(
 
   const dpr = window.devicePixelRatio || 1;
   const baseWidth = 900;
-  const textLines = buildPreviewLines(photo.exif, config);
-  const renderLines = buildRenderableLines(textLines, Boolean(logoImage));
+  const watermarkActive = config.showWatermark ?? true;
+  const textLines = watermarkActive ? buildPreviewLines(photo.exif, config) : [];
+  const effectiveLogo = watermarkActive ? logoImage : null;
+  const renderLines = buildRenderableLines(textLines, Boolean(effectiveLogo));
   const primaryFontSize = Math.max(
     WATERMARK_LAYOUT_SPEC.baseMinPrimaryFontSize,
     frameParams.fontSize * WATERMARK_LAYOUT_SPEC.primaryFontScale,
@@ -228,7 +230,7 @@ export function drawClassicBottomPreview(
     frameParams,
     templateKind,
     totalTextHeight: textBlockHeight,
-    logoOnlyWatermark: Boolean(logoImage) && renderLines.length === 1 && renderLines[0] === "",
+    logoOnlyWatermark: Boolean(effectiveLogo) && renderLines.length === 1 && renderLines[0] === "",
     baseWidth,
   });
   const geometry = resolvePreviewGeometryMetrics(frameParams);
@@ -291,7 +293,7 @@ export function drawClassicBottomPreview(
     lineMetrics,
     plan,
     frameParams,
-    logoImage,
+    logoImage: effectiveLogo,
     left,
     right,
   });

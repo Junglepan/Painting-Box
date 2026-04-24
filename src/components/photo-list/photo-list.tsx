@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { usePhotoStore } from "@/stores/photo-store";
-import { exportSinglePhoto } from "@/lib/tauri/photos";
+import { exportBatchPhotos, exportSinglePhoto, onExportProgress } from "@/lib/tauri/photos";
 import {
   buildBatchExportPlan,
   defaultSingleExportPath,
@@ -143,7 +143,6 @@ export function PhotoList() {
   };
 
   const onExportPhoto = async (photo: Photo) => {
-    if (exporting) return;
     const ext = format === "jpg" ? "jpg" : format;
     const outputPath = await save({
       title: "导出照片",
@@ -178,47 +177,58 @@ export function PhotoList() {
       return;
     }
 
+    // Assign job IDs upfront so progress events can be matched.
+    const batchItems = plan.map((item) => ({
+      jobId: crypto.randomUUID(),
+      photo: item.photo,
+      outputPath: item.outputPath,
+    }));
+
+    enqueue(
+      batchItems.map((item) => ({
+        id: item.jobId,
+        photoId: item.photo.id,
+        status: "queued" as const,
+        progress: 0,
+        outputPath: item.outputPath,
+      })),
+    );
+
     setExporting(true);
     setRunning(true);
-    try {
-      for (const item of plan) {
-        const jobId = crypto.randomUUID();
-        enqueue([
-          {
-            id: jobId,
-            photoId: item.photo.id,
-            status: "running",
-            progress: 0,
-            outputPath: item.outputPath,
-          },
-        ]);
-        try {
-          await exportSinglePhoto({
-            photoPath: item.photo.path,
-            outputPath: item.outputPath,
-            templateKind: currentKind,
-            frameParams,
-            exif: item.photo.exif,
-            config,
-            exportQuality: quality,
-          });
-          updateJob(jobId, {
-            status: "done",
-            progress: 100,
-            outputPath: item.outputPath,
-          });
-        } catch (error) {
-          updateJob(jobId, {
-            status: "error",
-            error: error instanceof Error ? error.message : String(error || "导出失败"),
-          });
-        }
-      }
-      setExportOpen(false);
-    } finally {
-      setExporting(false);
-      setRunning(false);
-    }
+    setExportOpen(false);
+
+    // Subscribe to per-job progress events before firing the batch.
+    const unlisten = await onExportProgress((event) => {
+      updateJob(event.jobId, {
+        status: event.error ? "error" : "done",
+        progress: event.error ? 0 : 100,
+        outputPath: event.outputPath ?? undefined,
+        error: event.error ?? undefined,
+      });
+    });
+
+    // Fire the parallel batch — non-blocking, rayon processes all photos concurrently.
+    exportBatchPhotos(
+      batchItems.map((item) => ({
+        jobId: item.jobId,
+        request: {
+          photoPath: item.photo.path,
+          outputPath: item.outputPath,
+          templateKind: currentKind,
+          frameParams,
+          exif: item.photo.exif,
+          config,
+          exportQuality: quality,
+        },
+      })),
+    )
+      .catch(() => {/* individual errors are surfaced via progress events */})
+      .finally(() => {
+        unlisten();
+        setExporting(false);
+        setRunning(false);
+      });
   };
 
   const copyExif = async (photo: Photo) => {

@@ -457,29 +457,41 @@ export function FrameParamsPanel() {
           open={open.display}
           onToggle={toggle}
         >
-          <div className="grid grid-cols-3 gap-1.5">
-            {FIELDS.filter((f) => displayFields.includes(f.key)).map((f) => {
-              const Icon = f.icon;
-              const active = config[f.key];
-              const fixed = currentKind === "classic-white";
-              return (
-                <button
-                  key={f.key}
-                  type="button"
-                  disabled={fixed}
-                  onClick={() => setConfig({ [f.key]: !active })}
-                  className={cn(
-                    "chip",
-                    active && "chip-active",
-                    fixed && "cursor-not-allowed opacity-80",
-                  )}
-                >
-                  <Icon className="h-3 w-3" />
-                  <span>{f.label}</span>
-                </button>
-              );
-            })}
+          {/* Watermark master toggle */}
+          <div className="param-row mb-2">
+            <span className="label-plain">水印</span>
+            <Toggle
+              active={config.showWatermark ?? true}
+              onClick={() => setConfig({ showWatermark: !(config.showWatermark ?? true) })}
+            />
           </div>
+          {(config.showWatermark ?? true) ? (
+            <div className="grid grid-cols-3 gap-1.5">
+              {FIELDS.filter((f) => displayFields.includes(f.key)).map((f) => {
+                const Icon = f.icon;
+                const active = config[f.key];
+                const fixed = currentKind === "classic-white";
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    disabled={fixed}
+                    onClick={() => setConfig({ [f.key]: !active })}
+                    className={cn(
+                      "chip",
+                      active && "chip-active",
+                      fixed && "cursor-not-allowed opacity-80",
+                    )}
+                  >
+                    <Icon className="h-3 w-3" />
+                    <span>{f.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-[11px] text-muted-foreground/60">水印已关闭，导出将不含水印区域</p>
+          )}
         </Section>
 
         {selectedPhoto ? (

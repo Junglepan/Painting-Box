@@ -72,6 +72,7 @@ export type TemplateKind =
   | "custom";
 
 export type TemplateConfig = {
+  showWatermark: boolean;
   showLogo: boolean;
   showCamera: boolean;
   showLens: boolean;
