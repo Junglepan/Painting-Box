@@ -79,19 +79,19 @@ export type TemplateConfig = {
   watermarkTemplate?: string[];
 };
 
+// All ratios are in landscape-first (w:h, w >= h) form.
+// canvasOrientation controls whether to flip to portrait.
 export type CanvasRatio =
-  | "auto"
   | "1:1"
-  | "4:5"
-  | "3:2"
   | "4:3"
+  | "3:2"
   | "5:4"
   | "16:10"
   | "16:9"
-  | "20:9"
+  | "21:9"
   | "2.35:1"
-  | "2.39:1"
-  | "21:9";
+  | "2.39:1";
+export type CanvasOrientation = "landscape" | "portrait";
 export type FrameBackground = "white" | "black" | "blur" | "custom";
 export type LogoColor = "original" | "black" | "white";
 export type LogoVariant = string;
@@ -150,8 +150,9 @@ export type FrameParams = {
   dividerShow: boolean;
   dividerColor: string;
 
-  // Canvas ratio
+  // Canvas ratio & orientation
   canvasRatio: CanvasRatio;
+  canvasOrientation: CanvasOrientation;
 
   // Info position
   infoPosition: InfoPosition;

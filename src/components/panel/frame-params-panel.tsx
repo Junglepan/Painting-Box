@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useTemplateStore } from "@/stores/template-store";
 import { usePhotoStore } from "@/stores/photo-store";
 import type {
+  CanvasOrientation,
   CanvasRatio,
   ExifData,
   FrameBackground,
@@ -28,6 +29,8 @@ import {
   Layout,
   Minus,
   Palette,
+  RectangleHorizontal,
+  RectangleVertical,
   RotateCcw,
   Sparkles,
   SquareDashed,
@@ -53,17 +56,15 @@ const FONT_FAMILIES: { value: WatermarkFontFamily; label: string }[] = [
   { value: "arial", label: "Arial" },
 ];
 
+// All entries are landscape-first (w >= h); portrait toggle flips them.
 const CANVAS_RATIOS: { value: CanvasRatio; label: string }[] = [
-  { value: "auto", label: "原图" },
-  { value: "1:1", label: "1:1" },
-  { value: "4:5", label: "4:5" },
-  { value: "3:2", label: "3:2" },
-  { value: "4:3", label: "4:3" },
-  { value: "5:4", label: "5:4" },
-  { value: "16:10", label: "16:10" },
-  { value: "16:9", label: "16:9" },
-  { value: "20:9", label: "20:9" },
-  { value: "21:9", label: "21:9" },
+  { value: "1:1",    label: "1:1"    },
+  { value: "4:3",    label: "4:3"    },
+  { value: "3:2",    label: "3:2"    },
+  { value: "5:4",    label: "5:4"    },
+  { value: "16:10",  label: "16:10"  },
+  { value: "16:9",   label: "16:9"   },
+  { value: "21:9",   label: "21:9"   },
   { value: "2.35:1", label: "2.35:1" },
   { value: "2.39:1", label: "2.39:1" },
 ];
@@ -172,21 +173,45 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <div className="mb-3">
-            <span className="label-plain mb-2 block">画布比例</span>
-            <div className="grid grid-cols-4 gap-1.5">
-              {CANVAS_RATIOS.map((ratio) => (
+            <div className="mb-2 flex items-center gap-1.5">
+              <span className="label-plain flex-1">画布比例</span>
+              {(["landscape", "portrait"] as CanvasOrientation[]).map((o) => (
                 <button
-                  key={ratio.value}
+                  key={o}
                   type="button"
-                  onClick={() => set({ canvasRatio: ratio.value })}
+                  title={o === "landscape" ? "横图" : "竖图"}
+                  onClick={() => set({ canvasOrientation: o })}
                   className={cn(
-                    "chip text-[10px]",
-                    frameParams.canvasRatio === ratio.value && "chip-active",
+                    "chip h-6 w-7 px-0",
+                    frameParams.canvasOrientation === o && "chip-active",
                   )}
                 >
-                  {ratio.label}
+                  {o === "landscape"
+                    ? <RectangleHorizontal className="h-3 w-3" />
+                    : <RectangleVertical className="h-3 w-3" />}
                 </button>
               ))}
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {CANVAS_RATIOS.map((ratio) => {
+                const isSquare = ratio.value === "1:1";
+                const label = (!isSquare && frameParams.canvasOrientation === "portrait")
+                  ? ratio.value.split(":").reverse().join(":")
+                  : ratio.label;
+                return (
+                  <button
+                    key={ratio.value}
+                    type="button"
+                    onClick={() => set({ canvasRatio: ratio.value })}
+                    className={cn(
+                      "chip text-[10px]",
+                      frameParams.canvasRatio === ratio.value && "chip-active",
+                    )}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <div className="space-y-1.5">

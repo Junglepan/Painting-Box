@@ -129,7 +129,7 @@ export function buildPreviewRenderPlan({
   const infoBarHeight = templateLayout.mode === "bottom-bar"
     ? Math.max(geometry.infoBarHeight, minInfoBarHeight)
     : 0;
-  const canvasRatio = getCanvasRatio(frameParams.canvasRatio, photoWidth, photoHeight);
+  const canvasRatio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation ?? "landscape");
   const canvasH = baseWidth / canvasRatio;
   const barTop = canvasH - infoBarHeight;
   const availableHeight = Math.max(
@@ -400,18 +400,12 @@ export function drawClassicBottomPreview(
 
 function getCanvasRatio(
   ratio: FrameParams["canvasRatio"],
-  _width: number,
-  _height: number,
+  orientation: FrameParams["canvasOrientation"],
 ) {
-  if (ratio === "auto") {
-    return 3 / 2;
-  }
-
   const [rw, rh] = ratio.split(":").map(Number);
-  if (!rw || !rh) {
-    return 3 / 2;
-  }
-  return rw / rh;
+  if (!rw || !rh) return 3 / 2;
+  // landscape = w/h (>1), portrait = h/w (flipped, <1 → taller canvas)
+  return orientation === "portrait" ? rh / rw : rw / rh;
 }
 
 export function buildPreviewLines(exif: ExifData, config: TemplateConfig) {

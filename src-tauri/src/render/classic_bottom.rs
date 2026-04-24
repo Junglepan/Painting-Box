@@ -119,6 +119,7 @@ pub struct ExportFrameParams {
     pub divider_show: bool,
     pub divider_color: String,
     pub canvas_ratio: String,
+    pub canvas_orientation: String, // "landscape" | "portrait"
     pub export_quality: u8,
 }
 
@@ -148,9 +149,18 @@ struct RenderLinePlan {
     pt: f32,
     line_height: f32,
     text_ascent: f32,
+    text_width: f32,
     inline_gap: f32,
     logo_inline: Option<(f32, f32)>,
     inline_x: f32,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+struct SampleRegion {
+    x: u32,
+    y: u32,
+    width: u32,
+    height: u32,
 }
 
 // ── Entry point ──────────────────────────────────────────────────────────────
@@ -278,20 +288,25 @@ fn compose_with_plan(
     }
     let image_bottom = plan.image_top as f32 + plan.photo_h as f32;
 
-    let avg_luma = sample_watermark_luminance(
-        &canvas,
-        template_kind,
-        plan.bottom_bar_mode,
-        plan.image_left as f32,
-        plan.image_top as f32,
-        plan.photo_w as f32,
-        plan.photo_h as f32,
-        plan.bar_top as f32,
-        plan.canvas_h as f32,
-        plan.block_top,
-        plan.total_text_h,
-        scaled_corner_padding(plan.resolution_scale),
-    );
+    let sample_regions = build_text_sample_regions(plan, render_lines);
+    let avg_luma = if sample_regions.is_empty() {
+        sample_watermark_luminance(
+            &canvas,
+            template_kind,
+            plan.bottom_bar_mode,
+            plan.image_left as f32,
+            plan.image_top as f32,
+            plan.photo_w as f32,
+            plan.photo_h as f32,
+            plan.bar_top as f32,
+            plan.canvas_h as f32,
+            plan.block_top,
+            plan.total_text_h,
+            scaled_corner_padding(plan.resolution_scale),
+        )
+    } else {
+        average_luminance_regions(&canvas, &sample_regions)
+    };
     let (text_color, divider_color) = resolve_readable_colors(
         frame.auto_text_contrast,
         avg_luma,
@@ -394,7 +409,7 @@ fn build_render_plan(
 
     let img_ratio = frame.main_image_width_ratio.clamp(1.0, 100.0);
     let canvas_w = source_w;
-    let canvas_ratio = parse_canvas_ratio(&frame.canvas_ratio, source_w, source_h);
+    let canvas_ratio = parse_canvas_ratio(&frame.canvas_ratio, &frame.canvas_orientation);
     let canvas_h = ((source_w as f32) / canvas_ratio).round().max(1.0) as u32;
     let bar_top = canvas_h.saturating_sub(info_bar_h);
     let avail_h = if bottom_bar_mode {
@@ -539,6 +554,7 @@ fn build_line_plans(
                 pt,
                 line_height,
                 text_ascent,
+                text_width: text_w,
                 inline_gap,
                 logo_inline,
                 inline_x,
@@ -562,17 +578,15 @@ fn compute_logo_inline(
     Some((w, h))
 }
 
-fn parse_canvas_ratio(ratio: &str, source_w: u32, source_h: u32) -> f32 {
-    if ratio == "auto" {
-        return 3.0 / 2.0;
-    }
-
+fn parse_canvas_ratio(ratio: &str, orientation: &str) -> f32 {
     let parts: Vec<f32> = ratio.split(':').filter_map(|s| s.parse().ok()).collect();
     if parts.len() == 2 && parts[0] > 0.0 && parts[1] > 0.0 {
-        return parts[0] / parts[1];
+        return if orientation == "portrait" {
+            parts[1] / parts[0]  // flip → taller canvas
+        } else {
+            parts[0] / parts[1]
+        };
     }
-
-    let _ = (source_w, source_h);
     3.0 / 2.0
 }
 
@@ -961,6 +975,52 @@ fn sample_watermark_luminance(
     average_luminance(canvas, 0, y as u32, canvas.width(), h as u32)
 }
 
+fn build_text_sample_regions(plan: &RenderPlan, render_lines: &[String]) -> Vec<SampleRegion> {
+    let mut regions = Vec::new();
+    let mut cursor_y = plan.block_top;
+    for (index, line) in render_lines.iter().enumerate() {
+        if index > 0 {
+            cursor_y += plan.extra_line_gap as f32;
+        }
+        let line_plan = &plan.line_plans[index];
+        if !line.is_empty() && line_plan.text_width > 0.0 {
+            let text_x = line_plan.inline_x
+                + line_plan
+                    .logo_inline
+                    .map(|(w, _)| w + line_plan.inline_gap)
+                    .unwrap_or(0.0);
+            let x = text_x.max(0.0).round() as u32;
+            let y = (cursor_y.max(0.0)).round() as u32;
+            let width = line_plan.text_width.max(1.0).round() as u32;
+            let height = line_plan.line_height.max(1.0).round() as u32;
+            regions.push(SampleRegion {
+                x,
+                y,
+                width,
+                height,
+            });
+        }
+        cursor_y += line_plan.line_height;
+    }
+    regions
+}
+
+fn average_luminance_regions(canvas: &RgbaImage, regions: &[SampleRegion]) -> f32 {
+    let mut total = 0.0f32;
+    let mut area = 0u32;
+    for region in regions {
+        let region_area = region.width.saturating_mul(region.height).max(1);
+        total += average_luminance(canvas, region.x, region.y, region.width, region.height)
+            * region_area as f32;
+        area = area.saturating_add(region_area);
+    }
+    if area == 0 {
+        0.0
+    } else {
+        total / area as f32
+    }
+}
+
 fn average_luminance(canvas: &RgbaImage, x: u32, y: u32, width: u32, height: u32) -> f32 {
     let x0 = x.min(canvas.width().saturating_sub(1));
     let y0 = y.min(canvas.height().saturating_sub(1));
@@ -1288,6 +1348,46 @@ mod tests {
         assert!(should_lift_logo_only_watermark("minimal-corner", true));
         assert!(!should_lift_logo_only_watermark("classic-bottom", true));
         assert!(!should_lift_logo_only_watermark("classic-white", false));
+    }
+
+    #[test]
+    fn text_sampling_regions_follow_text_bounds() {
+        let plan = RenderPlan {
+            resolution_scale: 1.0,
+            bottom_bar_mode: true,
+            top_margin: 24,
+            extra_line_gap: 8,
+            logo_only_watermark: false,
+            total_text_h: 40.0,
+            canvas_w: 900,
+            canvas_h: 600,
+            bar_top: 520,
+            photo_w: 700,
+            photo_h: 480,
+            image_left: 100,
+            image_top: 40,
+            block_top: 540.0,
+            line_plans: vec![RenderLinePlan {
+                pt: 16.0,
+                line_height: 18.0,
+                text_ascent: 14.0,
+                text_width: 92.0,
+                inline_gap: 0.0,
+                logo_inline: None,
+                inline_x: 404.0,
+            }],
+        };
+
+        let regions = build_text_sample_regions(&plan, &[String::from("Z 7II")]);
+        assert_eq!(
+            regions,
+            vec![SampleRegion {
+                x: 404,
+                y: 540,
+                width: 92,
+                height: 18,
+            }]
+        );
     }
 
     #[test]

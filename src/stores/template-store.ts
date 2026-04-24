@@ -5,7 +5,7 @@ import {
   applyTemplateFrameConstraints,
 } from "@/lib/template-capabilities";
 import { usePresetStore } from "./preset-store";
-import type { CanvasRatio, FrameParams, Preset, TemplateConfig, TemplateKind } from "./types";
+import type { CanvasOrientation, CanvasRatio, FrameParams, Preset, TemplateConfig, TemplateKind } from "./types";
 
 type TemplateState = {
   currentKind: TemplateKind;
@@ -68,7 +68,8 @@ const defaultFrameParams: FrameParams = {
   dividerShow: false,
   dividerColor: "#d7dce6",
 
-  canvasRatio: "auto" as CanvasRatio,
+  canvasRatio: "3:2" as CanvasRatio,
+  canvasOrientation: "landscape" as CanvasOrientation,
 
   infoPosition: "bottom",
 };
