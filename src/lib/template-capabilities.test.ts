@@ -8,23 +8,6 @@ import {
 import { useTemplateStore } from "@/stores/template-store";
 
 describe("template capabilities", () => {
-  test("classic-white only allows logo display", () => {
-    expect(getTemplateDisplayFields("classic-white")).toEqual(["showLogo"]);
-    expect(
-      applyTemplateConfigConstraints("classic-white", {
-        showLogo: false,
-        showCamera: true,
-        showLens: true,
-        showParams: true,
-      }),
-    ).toEqual({
-      showLogo: true,
-      showCamera: false,
-      showLens: false,
-      showParams: false,
-    });
-  });
-
   test("minimal-corner only allows logo display", () => {
     expect(getTemplateDisplayFields("minimal-corner")).toEqual(["showLogo"]);
     expect(

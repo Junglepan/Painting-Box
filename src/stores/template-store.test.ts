@@ -6,45 +6,13 @@ import type { TemplateKind } from "./types";
 
 describe("template defaults", () => {
   test("template defaults stay inside configurable main image ratio range", () => {
-    const kinds: TemplateKind[] = ["classic-bottom", "classic-white", "minimal-corner"];
+    const kinds: TemplateKind[] = ["classic-bottom", "minimal-corner"];
     for (const kind of kinds) {
       useTemplateStore.getState().setKind(kind);
       const ratio = useTemplateStore.getState().frameParams.mainImageWidthRatio;
       expect(ratio).toBeGreaterThanOrEqual(70);
       expect(ratio).toBeLessThanOrEqual(95);
     }
-    useTemplateStore.getState().setKind("classic-bottom");
-  });
-
-  test("classic-white defaults to logo only", () => {
-    useTemplateStore.getState().setKind("classic-white");
-
-    expect(useTemplateStore.getState().config).toEqual({
-      showLogo: true,
-      showCamera: false,
-      showLens: false,
-      showParams: false,
-    });
-
-    useTemplateStore.getState().setKind("classic-bottom");
-  });
-
-  test("classic-white rejects unsupported display fields", () => {
-    useTemplateStore.getState().setKind("classic-white");
-    useTemplateStore.getState().setConfig({
-      showLogo: false,
-      showCamera: true,
-      showLens: true,
-      showParams: true,
-    });
-
-    expect(useTemplateStore.getState().config).toEqual({
-      showLogo: true,
-      showCamera: false,
-      showLens: false,
-      showParams: false,
-    });
-
     useTemplateStore.getState().setKind("classic-bottom");
   });
 
@@ -79,25 +47,15 @@ describe("template defaults", () => {
   test("keeps selected preset when applying a preset atomically", () => {
     const presetId = usePresetStore.getState().add({
       name: "固定预设",
-      kind: "classic-white",
+      kind: "classic-bottom",
       frameParams: useTemplateStore.getState().frameParams,
-      config: {
-        showLogo: true,
-        showCamera: false,
-        showLens: false,
-        showParams: false,
-      },
+      config: useTemplateStore.getState().config,
     });
 
     useTemplateStore.getState().applyPreset({
-      kind: "classic-white",
+      kind: "classic-bottom",
       frameParams: useTemplateStore.getState().frameParams,
-      config: {
-        showLogo: true,
-        showCamera: false,
-        showLens: false,
-        showParams: false,
-      },
+      config: useTemplateStore.getState().config,
     });
     usePresetStore.getState().select(presetId);
 

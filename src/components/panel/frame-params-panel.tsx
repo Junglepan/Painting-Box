@@ -464,7 +464,7 @@ export function FrameParamsPanel() {
               {FIELDS.filter((f) => displayFields.includes(f.key)).map((f) => {
                 const Icon = f.icon;
                 const active = config[f.key];
-                const fixed = currentKind === "classic-white";
+                const fixed = false;
                 return (
                   <button
                     key={f.key}

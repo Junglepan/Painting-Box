@@ -91,27 +91,6 @@ describe("classic bottom preview lines", () => {
     });
   });
 
-  test("moves classic-white logo-only watermark upward by one line", () => {
-    expect(shouldLiftLogoOnlyWatermark("classic-white", true)).toBe(true);
-    expect(shouldLiftLogoOnlyWatermark("classic-bottom", true)).toBe(false);
-
-    const regularTop = computeWatermarkBlockTop({
-      barTop: 300,
-      contentHeight: 600,
-      imageBottom: 420,
-      totalTextHeight: 20,
-    });
-    const liftedTop = computeWatermarkBlockTop({
-      barTop: 300,
-      contentHeight: 600,
-      imageBottom: 420,
-      totalTextHeight: 20,
-      offsetY: -20,
-    });
-
-    expect(liftedTop).toBe(regularTop - 20);
-  });
-
   test("moves minimal-corner logo-only watermark upward by one line", () => {
     expect(shouldLiftLogoOnlyWatermark("minimal-corner", true)).toBe(true);
   });

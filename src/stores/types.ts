@@ -78,7 +78,6 @@ export type LoadPhotosResponse = {
 
 export type TemplateKind =
   | "classic-bottom"
-  | "classic-white"
   | "polaroid"
   | "minimal-corner"
   | "magazine"

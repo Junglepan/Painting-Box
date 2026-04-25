@@ -10,7 +10,6 @@ type TemplateLayout = {
 
 const TEMPLATE_LAYOUTS: Record<TemplateKind, TemplateLayout> = {
   "classic-bottom": { mode: "bottom-bar", placement: "center" },
-  "classic-white": { mode: "bottom-bar", placement: "center" },
   polaroid: { mode: "bottom-bar", placement: "center" },
   "minimal-corner": { mode: "bottom-bar", placement: "corner-bottom-right" },
   magazine: { mode: "bottom-bar", placement: "center" },

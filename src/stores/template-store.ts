@@ -92,21 +92,6 @@ function createTemplateBase(
 
 const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
   "classic-bottom": createTemplateBase(),
-  "classic-white": createTemplateBase(
-    {
-      background: "white",
-      bgColor: "#ffffff",
-      textColor: "#111827",
-      dividerColor: "#d1d5db",
-      shadowOpacity: 72,
-    },
-    {
-      showLogo: true,
-      showCamera: false,
-      showLens: false,
-      showParams: false,
-    },
-  ),
   polaroid: createTemplateBase(
     {
       background: "white",
@@ -259,15 +244,24 @@ export const useTemplateStore = create<TemplateState>()(
     }),
     {
       name: "painting-box-template-config",
-      version: 2,
+      version: 3,
+      migrate: (persisted, version) => {
+        const s = persisted as Record<string, unknown>;
+        // v2 → v3: "classic-white" removed, fall back to "classic-bottom".
+        if (version < 3 && s.currentKind === "classic-white") {
+          s.currentKind = "classic-bottom";
+        }
+        return s;
+      },
       merge: (persisted, current) => {
         const next = persisted as Partial<TemplateState> | undefined;
         const base = current as TemplateState;
+        const kind = next?.currentKind ?? base.currentKind;
         return {
           ...base,
           ...next,
           config: applyTemplateConfigConstraints(
-            next?.currentKind ?? base.currentKind,
+            kind,
             { ...base.config, ...(next?.config ?? {}) },
           ),
           frameParams: applyTemplateFrameConstraints({

@@ -8,7 +8,6 @@ const ALL_DISPLAY_FIELDS: (keyof TemplateConfig)[] = [
 ];
 
 const TEMPLATE_DISPLAY_FIELDS: Partial<Record<TemplateKind, (keyof TemplateConfig)[]>> = {
-  "classic-white": ["showLogo"],
   "minimal-corner": ["showLogo"],
 };
 
@@ -27,7 +26,7 @@ export function applyTemplateConfigConstraints(
   kind: TemplateKind,
   config: TemplateConfig,
 ): TemplateConfig {
-  if (kind === "classic-white" || kind === "minimal-corner") {
+  if (kind === "minimal-corner") {
     return {
       ...config,
       showLogo: true,
