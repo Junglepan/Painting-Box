@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "painting-box",
+  "productName": "Painting Box",
   "version": "0.1.0",
   "identifier": "com.junglepan.painting-box",
   "build": {
@@ -12,14 +12,16 @@
   "app": {
     "windows": [
       {
-        "title": "painting-box",
+        "title": "Painting Box",
         "center": true,
         "width": 1440,
-        "height": 900
+        "height": 900,
+        "minWidth": 1100,
+        "minHeight": 680
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' data: blob: asset: https://asset.localhost; style-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src ipc: http://ipc.localhost"
     }
   },
   "bundle": {

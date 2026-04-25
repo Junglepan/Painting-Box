@@ -38,9 +38,12 @@ impl TextRenderer {
         }
         // Other families try their system fonts first, then use bundled Inter as last resort.
         if let Some(regular) = load_font(font_paths(family, false)) {
+            // If bold path fails, reload regular as a substitute for bold.
             let bold = load_font(font_paths(family, true))
-                .unwrap_or_else(|| load_font(font_paths(family, false)).unwrap());
-            return Some(Self { regular, bold });
+                .or_else(|| load_font(font_paths(family, false)));
+            if let Some(bold) = bold {
+                return Some(Self { regular, bold });
+            }
         }
         // All system font paths failed — fall back to bundled Inter so text always renders.
         load_bundled_inter()
@@ -204,8 +207,9 @@ fn load_bundled_inter() -> Option<TextRenderer> {
         const INTER_REGULAR: &[u8] = include_bytes!("../../fonts/inter-regular.ttf");
         const INTER_BOLD: &[u8] = include_bytes!("../../fonts/inter-bold.ttf");
         let regular = load_font_from_bytes(INTER_REGULAR)?;
+        // INTER_REGULAR is compile-time embedded, so reloading it is safe.
         let bold = load_font_from_bytes(INTER_BOLD)
-            .unwrap_or_else(|| load_font_from_bytes(INTER_REGULAR).unwrap());
+            .or_else(|| load_font_from_bytes(INTER_REGULAR))?;
         Some(TextRenderer { regular, bold })
     }
     #[cfg(not(bundled_inter))]
