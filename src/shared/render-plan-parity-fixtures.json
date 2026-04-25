@@ -16,23 +16,6 @@
       "blockTop": 2510
     }
   },
-  "classicWhiteDefault4032x3024LogoOnly": {
-    "sourceW": 4032,
-    "sourceH": 3024,
-    "templateKind": "classic-white",
-    "scenario": "logo-only",
-    "expected": {
-      "canvasW": 4032,
-      "canvasH": 2688,
-      "topMargin": 97,
-      "barTop": 2604,
-      "photoW": 3213,
-      "photoH": 2410,
-      "imageLeft": 409,
-      "imageTop": 97,
-      "blockTop": 2604
-    }
-  },
   "minimalCornerDefault4032x3024LogoOnly": {
     "sourceW": 4032,
     "sourceH": 3024,

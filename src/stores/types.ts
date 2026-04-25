@@ -79,16 +79,7 @@ export type LoadPhotosResponse = {
 export type TemplateKind =
   | "classic-bottom"
   | "polaroid"
-  | "minimal-corner"
-  | "magazine"
-  | "film-strip"
-  | "full-frame"
-  | "leica"
-  | "poster"
-  | "square-social"
-  | "xpan"
-  | "minimal-blank"
-  | "custom";
+  | "minimal-corner";
 
 export type TemplateConfig = {
   showWatermark: boolean;
@@ -115,11 +106,6 @@ export type FrameBackground = "white" | "black" | "blur" | "custom";
 export type LogoColor = "original" | "black" | "white";
 export type LogoVariant = string;
 export type WatermarkFontFamily = "inter" | "pingfang-sc" | "arial";
-export type InfoPosition =
-  | "bottom"
-  | "top"
-  | "bottom-left"
-  | "bottom-right";
 
 export type FrameParams = {
   // Layout
@@ -173,15 +159,6 @@ export type FrameParams = {
   canvasRatio: CanvasRatio;
   canvasOrientation: CanvasOrientation;
 
-  // Info position
-  infoPosition: InfoPosition;
-};
-
-export type WatermarkTemplate = {
-  id: string;
-  name: string;
-  kind: TemplateKind;
-  config: TemplateConfig;
 };
 
 export type Preset = {

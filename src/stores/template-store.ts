@@ -11,13 +11,11 @@ type TemplateState = {
   currentKind: TemplateKind;
   config: TemplateConfig;
   frameParams: FrameParams;
-  fieldOverrides: Record<string, string>;
   setKind: (kind: TemplateKind) => void;
   setConfig: (partial: Partial<TemplateConfig>) => void;
   setFrameParams: (partial: Partial<FrameParams>) => void;
   applyPreset: (preset: Pick<Preset, "kind" | "frameParams" | "config">) => void;
   resetFrameParams: () => void;
-  setFieldOverride: (field: string, value: string) => void;
 };
 
 const defaultConfig: TemplateConfig = {
@@ -71,8 +69,6 @@ const defaultFrameParams: FrameParams = {
 
   canvasRatio: "3:2" as CanvasRatio,
   canvasOrientation: "landscape" as CanvasOrientation,
-
-  infoPosition: "bottom",
 };
 
 type TemplateBaseState = {
@@ -139,15 +135,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       showParams: false,
     },
   ),
-  magazine: createTemplateBase(),
-  "film-strip": createTemplateBase(),
-  "full-frame": createTemplateBase(),
-  leica: createTemplateBase(),
-  poster: createTemplateBase(),
-  "square-social": createTemplateBase(),
-  xpan: createTemplateBase(),
-  "minimal-blank": createTemplateBase(),
-  custom: createTemplateBase(),
 };
 
 function getTemplateBase(kind: TemplateKind): TemplateBaseState {
@@ -168,7 +155,6 @@ export const useTemplateStore = create<TemplateState>()(
       currentKind: "classic-bottom",
       config: getTemplateBase("classic-bottom").config,
       frameParams: getTemplateBase("classic-bottom").frameParams,
-      fieldOverrides: {},
       setKind: (kind) => {
         const base = getTemplateBase(kind);
         clearSelectedPreset();
@@ -236,18 +222,12 @@ export const useTemplateStore = create<TemplateState>()(
           const base = getTemplateBase(s.currentKind);
           return { config: base.config, frameParams: base.frameParams };
         }),
-      setFieldOverride: (field, value) =>
-        set((s) => {
-          clearSelectedPreset();
-          return { fieldOverrides: { ...s.fieldOverrides, [field]: value } };
-        }),
     }),
     {
       name: "painting-box-template-config",
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
-        // v2 → v3: "classic-white" removed, fall back to "classic-bottom".
         if (version < 3 && s.currentKind === "classic-white") {
           s.currentKind = "classic-bottom";
         }
@@ -268,14 +248,12 @@ export const useTemplateStore = create<TemplateState>()(
             ...base.frameParams,
             ...(next?.frameParams ?? {}),
           }),
-          fieldOverrides: { ...base.fieldOverrides, ...(next?.fieldOverrides ?? {}) },
         };
       },
       partialize: (state) => ({
         currentKind: state.currentKind,
         config: state.config,
         frameParams: state.frameParams,
-        fieldOverrides: state.fieldOverrides,
       }),
     },
   ),

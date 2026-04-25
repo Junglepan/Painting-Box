@@ -9,7 +9,7 @@
   "logoBaselineOffsetRatio": 0,
   "dividerHorizontalMarginPx": 24,
   "cornerPaddingPx": 18,
-  "logoOnlyLiftTemplates": ["classic-white", "minimal-corner"],
+  "logoOnlyLiftTemplates": ["minimal-corner"],
   "readabilityThresholdLuma": 150,
   "readabilityDarkTextColor": "#111827",
   "readabilityDarkDividerColor": "#9ca3af",

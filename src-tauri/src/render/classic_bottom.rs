@@ -1366,11 +1366,10 @@ mod tests {
     }
 
     #[test]
-    fn logo_only_lift_applies_to_white_and_minimal_templates() {
-        assert!(should_lift_logo_only_watermark("classic-white", true));
+    fn logo_only_lift_applies_to_minimal_corner() {
         assert!(should_lift_logo_only_watermark("minimal-corner", true));
         assert!(!should_lift_logo_only_watermark("classic-bottom", true));
-        assert!(!should_lift_logo_only_watermark("classic-white", false));
+        assert!(!should_lift_logo_only_watermark("minimal-corner", false));
     }
 
     #[test]
@@ -1640,11 +1639,7 @@ mod tests {
                     photo_border: 0,
                     background: "white".to_string(),
                     bg_color: "#ffffff".to_string(),
-                    text_color: if case.template_kind == "classic-white" {
-                        "#000000".to_string()
-                    } else {
-                        "#1f2937".to_string()
-                    },
+                    text_color: "#1f2937".to_string(),
                     logo_key: "".to_string(),
                     logo_variant: "original".to_string(),
                     logo_size: 15,
