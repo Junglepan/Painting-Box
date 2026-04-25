@@ -78,15 +78,30 @@ pub fn read_exif(path: &Path) -> ExifData {
     data
 }
 
-fn text_field(exif: &exif::Exif, tag: Tag) -> String {
-    exif.get_field(tag, In::PRIMARY)
-        .map(|field| sanitize_text(field.display_value().with_unit(exif).to_string()))
-        .unwrap_or_default()
+fn extract_ascii(value: &Value) -> String {
+    if let Value::Ascii(parts) = value {
+        return parts
+            .iter()
+            .find_map(|p| {
+                let s: Vec<u8> = p.iter().copied().take_while(|&b| b != 0).collect();
+                let text = String::from_utf8_lossy(&s).trim().to_string();
+                if text.is_empty() { None } else { Some(text) }
+            })
+            .unwrap_or_default();
+    }
+    String::new()
 }
 
-fn sanitize_text(value: String) -> String {
-    value.trim().trim_matches('"').to_string()
+fn text_field(exif: &exif::Exif, tag: Tag) -> String {
+    let Some(field) = exif.get_field(tag, In::PRIMARY) else {
+        return String::new();
+    };
+    if let Value::Ascii(_) = &field.value {
+        return extract_ascii(&field.value);
+    }
+    field.display_value().with_unit(exif).to_string().trim().trim_matches('"').to_string()
 }
+
 
 fn rational_f64(exif: &exif::Exif, tag: Tag) -> Option<f64> {
     let field = exif.get_field(tag, In::PRIMARY)?;
@@ -141,11 +156,25 @@ fn gps_coord(exif: &exif::Exif, tag: Tag, ref_tag: Tag) -> Option<f64> {
 
 #[cfg(test)]
 mod tests {
-    use super::sanitize_text;
+    use exif::Value;
+
+    use super::extract_ascii;
 
     #[test]
-    fn strips_wrapping_quotes_from_exif_text() {
-        assert_eq!(sanitize_text("\"NIKON CORPORATION\"".to_string()), "NIKON CORPORATION");
-        assert_eq!(sanitize_text("\"NIKKOR Z 70-200mm f/2.8 VR S\"".to_string()), "NIKKOR Z 70-200mm f/2.8 VR S");
+    fn nikon_null_padded_lens_model() {
+        // Nikon stores lens name as null-padded ASCII — many trailing empty components.
+        let parts: Vec<Vec<u8>> = vec![
+            b"NIKKOR Z DX 50-250mm f/4.5-6.3 VR".to_vec(),
+            vec![],
+            vec![],
+            vec![],
+        ];
+        assert_eq!(extract_ascii(&Value::Ascii(parts)), "NIKKOR Z DX 50-250mm f/4.5-6.3 VR");
+    }
+
+    #[test]
+    fn null_bytes_within_component_are_stripped() {
+        let parts: Vec<Vec<u8>> = vec![b"NIKON Z fc\0\0\0\0".to_vec()];
+        assert_eq!(extract_ascii(&Value::Ascii(parts)), "NIKON Z fc");
     }
 }

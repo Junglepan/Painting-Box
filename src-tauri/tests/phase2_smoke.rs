@@ -75,6 +75,7 @@ fn jpg_import_and_export_pipeline_works() {
             },
             exif: None,
             config: ExportTemplateConfig {
+                show_watermark: true,
                 show_logo: true,
                 show_camera: true,
                 show_lens: true,
