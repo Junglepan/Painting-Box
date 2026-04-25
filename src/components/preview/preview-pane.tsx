@@ -69,11 +69,10 @@ export function PreviewPane() {
 
     // ── Mock preview (no photo selected) ──────────────────────────────
     if (!selected) {
-      // Always show watermark with app branding; override logo to painting-box icon;
-      // show lens line (GitHub URL) but skip numeric params (they'd be zeros).
+      // Respect global showWatermark; override content fields for app branding.
+      // showParams=false because all numeric fields are zero in mock data.
       const mockConfig = {
         ...config,
-        showWatermark: true,
         showCamera: true,
         showLens: true,
         showParams: false,
