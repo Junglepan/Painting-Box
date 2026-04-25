@@ -423,7 +423,7 @@ export function PhotoList() {
             </div>
           ) : null}
           {photos.length === 0 ? (
-            <EmptyState />
+            <EmptyState onPick={onPick} />
           ) : (
             <ul className="space-y-1.5">
               {photos.map((p) => {
@@ -655,12 +655,16 @@ function getExportState(jobs: ExportJob[]) {
   return { label: "排队中", tone: "info" as const };
 }
 
-function EmptyState() {
+function EmptyState({ onPick }: { onPick: () => void }) {
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
+    <button
+      type="button"
+      onClick={() => void onPick()}
+      className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+    >
       <Plus className="h-5 w-5" />
-      <p className="text-[11px]">拖入照片</p>
-    </div>
+      <p className="text-[11px]">拖入或点击添加照片</p>
+    </button>
   );
 }
 
