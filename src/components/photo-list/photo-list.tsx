@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { usePhotoStore } from "@/stores/photo-store";
 import { exportBatchPhotos, exportSinglePhoto, onExportProgress } from "@/lib/tauri/photos";
 import {
@@ -574,15 +575,20 @@ function ExportDirBar({
   return (
     <div className="mx-2 mb-1.5 flex items-center gap-1.5 rounded-md border border-border/40 bg-card px-2 py-1">
       <Folder className="h-3 w-3 shrink-0 text-muted-foreground/60" />
-      <span
+      <button
+        type="button"
+        disabled={!defaultOutputDir}
+        onClick={() => defaultOutputDir && void openPath(defaultOutputDir)}
         className={cn(
-          "min-w-0 flex-1 truncate text-[10px]",
-          dirName ? "text-foreground/70" : "text-muted-foreground/50",
+          "min-w-0 flex-1 truncate text-left text-[10px]",
+          dirName
+            ? "cursor-pointer text-foreground/70 hover:text-primary"
+            : "cursor-default text-muted-foreground/50",
         )}
-        title={defaultOutputDir ?? undefined}
+        title={defaultOutputDir ? `在访达中显示：${defaultOutputDir}` : undefined}
       >
         {dirName ?? "导出目录未设置"}
-      </span>
+      </button>
       <button
         type="button"
         onClick={() => void onBrowse()}
