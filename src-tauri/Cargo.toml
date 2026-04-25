@@ -31,6 +31,7 @@ ab_glyph = "0.2"
 resvg = "0.45"
 rayon = "1"
 fast_image_resize = "4"
+turbojpeg = { version = "1", features = ["image"] }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ["cfg(bundled_inter)"] }

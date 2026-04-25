@@ -7,7 +7,6 @@ use std::{
 };
 
 use image::{
-    codecs::jpeg::JpegEncoder,
     imageops::{overlay, resize, FilterType},
     DynamicImage, ImageFormat, Rgba, RgbaImage,
 };
@@ -1073,9 +1072,10 @@ fn save_image(image: &RgbaImage, path: &Path, quality: u8) -> Result<(), String>
 
     match ext.as_str() {
         "jpg" | "jpeg" => {
-            JpegEncoder::new_with_quality(&mut w, q)
-                .encode_image(&dynamic)
+            let jpeg = turbojpeg::compress_image(image, q as i32, turbojpeg::Subsamp::Sub2x2)
                 .map_err(|e| format!("JPEG 导出失败：{e}"))?;
+            std::io::Write::write_all(&mut w, &jpeg)
+                .map_err(|e| format!("JPEG 写入失败：{e}"))?;
         }
         "webp" => {
             dynamic

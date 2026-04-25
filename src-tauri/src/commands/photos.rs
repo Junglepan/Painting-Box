@@ -1,11 +1,9 @@
 use std::{
-    io::Cursor,
     path::{Path, PathBuf},
     sync::atomic::{AtomicUsize, Ordering},
 };
 
 use base64::{engine::general_purpose::STANDARD, Engine};
-use image::codecs::jpeg::JpegEncoder;
 use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
@@ -214,15 +212,13 @@ fn build_preview(path: &Path) -> Result<PhotoPreviewRecord, String> {
     let thumb = image::RgbaImage::from_raw(thumb_w, thumb_h, dst.into_vec())
         .ok_or_else(|| "缩略图转换失败".to_string())?;
 
-    let mut jpeg = Cursor::new(Vec::new());
-    JpegEncoder::new_with_quality(&mut jpeg, 78)
-        .encode_image(&image::DynamicImage::ImageRgba8(thumb))
+    let jpeg = turbojpeg::compress_image(&thumb, 78, turbojpeg::Subsamp::Sub2x2)
         .map_err(|err| format!("缩略图编码失败：{err}"))?;
 
     Ok(PhotoPreviewRecord {
         thumbnail_data_url: format!(
             "data:image/jpeg;base64,{}",
-            STANDARD.encode(jpeg.into_inner())
+            STANDARD.encode(&jpeg)
         ),
         width,
         height,

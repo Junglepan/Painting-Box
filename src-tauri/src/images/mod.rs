@@ -12,13 +12,30 @@ pub fn decode_image(path: &Path) -> Result<DynamicImage, String> {
     if is_heic(path) {
         return decode_heic(path);
     }
-
+    // Use libjpeg-turbo for JPEG — 4-6x faster than the pure-Rust decoder.
+    if is_jpeg(path) {
+        return decode_jpeg_turbo(path);
+    }
     ImageReader::open(path)
         .map_err(|err| format!("无法打开图片：{err}"))?
         .with_guessed_format()
         .map_err(|err| format!("无法识别图片格式：{err}"))?
         .decode()
         .map_err(|err| format!("暂不支持该图片编码：{err}"))
+}
+
+fn decode_jpeg_turbo(path: &Path) -> Result<DynamicImage, String> {
+    let bytes = fs::read(path).map_err(|e| format!("无法读取图片：{e}"))?;
+    let image = turbojpeg::decompress_image::<image::Rgb<u8>>(&bytes)
+        .map_err(|e| format!("JPEG 解码失败：{e}"))?;
+    Ok(DynamicImage::ImageRgb8(image))
+}
+
+fn is_jpeg(path: &Path) -> bool {
+    matches!(
+        supported_extension(path).ok().as_deref(),
+        Some("jpg") | Some("jpeg")
+    )
 }
 
 pub fn supported_extension(path: &Path) -> Result<String, String> {
