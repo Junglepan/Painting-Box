@@ -14,7 +14,7 @@ import { createImportedPhotos } from "@/lib/import/records";
 import { useExportStore } from "@/stores/export-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { effectiveShowWatermark, exifHasContent } from "@/stores/types";
-import type { ExifData, ExportJob, Photo } from "@/stores/types";
+import type { ExifData, ExportJob, FrameParams, Photo, TemplateConfig, TemplateKind } from "@/stores/types";
 import {
   AlertCircle,
   CheckCircle2,
@@ -59,9 +59,17 @@ export function PhotoList() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
 
-  const pendingRef = useRef<Map<string, { jobId: string; photo: Photo; outputPath: string }>>(
-    new Map(),
-  );
+  type PendingItem = {
+    jobId: string;
+    photo: Photo;
+    outputPath: string;
+    // Config snapshot taken at click time, not at flush time.
+    snapshotConfig: TemplateConfig;
+    snapshotFrameParams: FrameParams;
+    snapshotKind: TemplateKind;
+    snapshotQuality: number;
+  };
+  const pendingRef = useRef<Map<string, PendingItem>>(new Map());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flushRef = useRef<(() => Promise<void>) | undefined>(undefined);
   const runningCountRef = useRef(0);
@@ -188,11 +196,11 @@ export function PhotoList() {
         request: {
           photoPath: item.photo.path,
           outputPath: item.outputPath,
-          templateKind: currentKind,
-          frameParams: globalFrameParams,
+          templateKind: item.snapshotKind,
+          frameParams: item.snapshotFrameParams,
           exif: item.photo.exif,
-          config: { ...globalConfig, showWatermark: effectiveShowWatermark(item.photo, globalConfig.showWatermark) },
-          exportQuality: quality,
+          config: item.snapshotConfig,
+          exportQuality: item.snapshotQuality,
         },
       })),
     )
@@ -210,7 +218,19 @@ export function PhotoList() {
       if (pendingRef.current.has(photo.id)) return;
       const outputPath = buildBatchExportPath(defaultOutputDir, photo.path, format);
       const jobId = crypto.randomUUID();
-      pendingRef.current.set(photo.id, { jobId, photo, outputPath });
+      // Snapshot config at click time so mid-export param changes don't affect this job.
+      pendingRef.current.set(photo.id, {
+        jobId,
+        photo,
+        outputPath,
+        snapshotConfig: {
+          ...globalConfig,
+          showWatermark: effectiveShowWatermark(photo, globalConfig.showWatermark),
+        },
+        snapshotFrameParams: { ...globalFrameParams },
+        snapshotKind: currentKind,
+        snapshotQuality: quality,
+      });
       enqueue([{ id: jobId, photoId: photo.id, status: "queued", progress: 0, outputPath }]);
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
       flushTimerRef.current = setTimeout(() => void flushRef.current?.(), 500);
