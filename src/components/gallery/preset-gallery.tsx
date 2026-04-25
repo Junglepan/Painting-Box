@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { usePresetStore } from "@/stores/preset-store";
 import { useTemplateStore } from "@/stores/template-store";
+import { useActiveTemplate } from "@/hooks/use-active-template";
 import { usePhotoStore } from "@/stores/photo-store";
 import { PRESET_NAME_MAX, type Preset } from "@/stores/types";
 import { cn } from "@/lib/utils";
@@ -9,8 +10,8 @@ import { Bookmark, BookmarkPlus, Trash2, Check, X } from "lucide-react";
 export function PresetGallery() {
   const { presets, selectedId, add, remove, rename, select } =
     usePresetStore();
-  const { currentKind, frameParams, config, applyPreset } =
-    useTemplateStore();
+  const { currentKind, frameParams, config } = useTemplateStore();
+  const { applyPreset } = useActiveTemplate();
   const selectedPhoto = usePhotoStore((s) =>
     s.photos.find((p) => p.id === s.selectedId),
   );

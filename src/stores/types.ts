@@ -33,6 +33,9 @@ export type Photo = {
   exif?: ExifData;
   exifStatus: PhotoExifStatus;
   exifError?: string;
+  // Per-photo overrides; null/undefined = inherit from template store.
+  config?: TemplateConfig | null;
+  frameParams?: FrameParams | null;
 };
 
 export type ImportedPhoto = {

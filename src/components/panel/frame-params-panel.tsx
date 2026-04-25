@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useTemplateStore } from "@/stores/template-store";
 import { usePhotoStore } from "@/stores/photo-store";
+import { useActiveTemplate } from "@/hooks/use-active-template";
 import type {
   CanvasOrientation,
   CanvasRatio,
@@ -91,14 +91,8 @@ type SectionId =
   | "display";
 
 export function FrameParamsPanel() {
-  const {
-    currentKind,
-    frameParams,
-    setFrameParams,
-    resetFrameParams,
-    config,
-    setConfig,
-  } = useTemplateStore();
+  const { currentKind, frameParams, setFrameParams, resetFrameParams, config, setConfig } =
+    useActiveTemplate();
   const selectedPhoto = usePhotoStore((s) =>
     s.photos.find((p) => p.id === s.selectedId),
   );

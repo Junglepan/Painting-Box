@@ -2,10 +2,12 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
   ExifData,
+  FrameParams,
   ImportedPhoto,
   Photo,
   PhotoImportError,
   PhotoPreviewData,
+  TemplateConfig,
 } from "./types";
 
 type PhotoState = {
@@ -25,6 +27,8 @@ type PhotoState = {
   enqueueParse: (ids: string[], front?: boolean) => void;
   dequeueParse: (id: string) => void;
   setImportErrors: (next: PhotoImportError[]) => void;
+  setPhotoConfig: (id: string, config: TemplateConfig | null) => void;
+  setPhotoFrameParams: (id: string, frameParams: FrameParams | null) => void;
   removePhoto: (id: string) => void;
   select: (id: string | null) => void;
   clear: () => void;
@@ -113,6 +117,14 @@ export const usePhotoStore = create<PhotoState>()(
           parseQueue: s.parseQueue.filter((queuedId) => queuedId !== id),
         })),
       setImportErrors: (next) => set({ importErrors: next }),
+      setPhotoConfig: (id, config) =>
+        set((s) => ({
+          photos: s.photos.map((p) => (p.id === id ? { ...p, config } : p)),
+        })),
+      setPhotoFrameParams: (id, frameParams) =>
+        set((s) => ({
+          photos: s.photos.map((p) => (p.id === id ? { ...p, frameParams } : p)),
+        })),
       removePhoto: (id) =>
         set((s) => ({
           photos: s.photos.filter((p) => p.id !== id),

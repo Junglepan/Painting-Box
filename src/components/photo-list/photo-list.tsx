@@ -12,6 +12,7 @@ import {
 import { IMPORT_EXTENSIONS } from "@/lib/import/accept";
 import { createImportedPhotos } from "@/lib/import/records";
 import { useExportStore } from "@/stores/export-store";
+import { useTemplateStore } from "@/stores/template-store";
 import type { ExifData, ExportJob, Photo } from "@/stores/types";
 import {
   AlertCircle,
@@ -21,6 +22,7 @@ import {
   Download,
   Eye,
   EyeOff,
+  Folder,
   Images,
   LoaderCircle,
   Plus,
@@ -29,7 +31,6 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useTemplateStore } from "@/stores/template-store";
 
 export function PhotoList() {
   const { photos, selectedId, select, removePhoto, addPhotos, importErrors, setImportErrors } =
@@ -43,7 +44,12 @@ export function PhotoList() {
   const setRunning = useExportStore((s) => s.setRunning);
   const defaultOutputDir = useExportStore((s) => s.defaultOutputDir);
   const setDefaultOutputDir = useExportStore((s) => s.setDefaultOutputDir);
-  const { currentKind, frameParams, config } = useTemplateStore();
+
+  // Global template defaults used as fallback when a photo has no per-photo config.
+  const globalConfig = useTemplateStore((s) => s.config);
+  const globalFrameParams = useTemplateStore((s) => s.frameParams);
+  const currentKind = useTemplateStore((s) => s.currentKind);
+
   const [exportOpen, setExportOpen] = useState(false);
   const [format, setFormat] = useState<ExportFormat>("jpg");
   const [conflictStrategy, setConflictStrategy] =
@@ -53,14 +59,11 @@ export function PhotoList() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
 
-  // Queue for debounced batch dispatch when defaultOutputDir is set.
   const pendingRef = useRef<Map<string, { jobId: string; photo: Photo; outputPath: string }>>(
     new Map(),
   );
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Ref to always call the latest flush closure from the timer.
   const flushRef = useRef<(() => Promise<void>) | undefined>(undefined);
-  // Track concurrent running batches to correctly manage the running flag.
   const runningCountRef = useRef(0);
 
   useEffect(() => {
@@ -143,9 +146,9 @@ export function PhotoList() {
         photoPath: photo.path,
         outputPath,
         templateKind: currentKind,
-        frameParams,
+        frameParams: photo.frameParams ?? globalFrameParams,
         exif: photo.exif,
-        config,
+        config: photo.config ?? globalConfig,
         exportQuality: quality,
       });
       updateJob(jobId, { status: "done", progress: 100, outputPath });
@@ -186,9 +189,9 @@ export function PhotoList() {
           photoPath: item.photo.path,
           outputPath: item.outputPath,
           templateKind: currentKind,
-          frameParams,
+          frameParams: item.photo.frameParams ?? globalFrameParams,
           exif: item.photo.exif,
-          config,
+          config: item.photo.config ?? globalConfig,
           exportQuality: quality,
         },
       })),
@@ -200,26 +203,19 @@ export function PhotoList() {
       });
   };
 
-  // Keep flushRef pointed at the latest closure so the timer always uses fresh deps.
   flushRef.current = flushPendingExports;
 
   const onExportPhoto = async (photo: Photo) => {
     if (defaultOutputDir) {
-      // Already queued — ignore duplicate click.
       if (pendingRef.current.has(photo.id)) return;
-
       const outputPath = buildBatchExportPath(defaultOutputDir, photo.path, format);
       const jobId = crypto.randomUUID();
       pendingRef.current.set(photo.id, { jobId, photo, outputPath });
       enqueue([{ id: jobId, photoId: photo.id, status: "queued", progress: 0, outputPath }]);
-
-      // Debounce: wait 500ms for more clicks before dispatching the batch.
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
       flushTimerRef.current = setTimeout(() => void flushRef.current?.(), 500);
       return;
     }
-
-    // No default dir: show save dialog.
     const ext = format === "jpg" ? "jpg" : format;
     const outputPath = await save({
       title: "导出照片",
@@ -242,6 +238,8 @@ export function PhotoList() {
       });
       if (!picked || Array.isArray(picked)) return;
       outputDir = picked;
+      // Save as default for future use.
+      setDefaultOutputDir(outputDir);
     }
 
     const plan = buildBatchExportPlan({
@@ -292,9 +290,9 @@ export function PhotoList() {
           photoPath: item.photo.path,
           outputPath: item.outputPath,
           templateKind: currentKind,
-          frameParams,
+          frameParams: item.photo.frameParams ?? globalFrameParams,
           exif: item.photo.exif,
-          config,
+          config: item.photo.config ?? globalConfig,
           exportQuality: quality,
         },
       })),
@@ -335,6 +333,7 @@ export function PhotoList() {
 
   return (
     <div className="flex h-full w-full flex-col">
+      {/* Toolbar */}
       <div className="flex h-10 shrink-0 items-center justify-between px-3">
         <div className="flex items-center gap-1.5">
           <Images className="h-3.5 w-3.5 text-muted-foreground" />
@@ -380,8 +379,8 @@ export function PhotoList() {
           </button>
           <button
             type="button"
-            aria-label="导出整个列表"
-            title={canExport ? "导出整个列表" : "先导入照片"}
+            aria-label="批量导出"
+            title={canExport ? "批量导出" : "先导入照片"}
             disabled={!canExport}
             onClick={() => setExportOpen((v) => !v)}
             className={cn(
@@ -404,13 +403,19 @@ export function PhotoList() {
               anyJobActive={anyJobActive}
               canExport={photos.length > 0}
               onExport={onExportAll}
-              defaultOutputDir={defaultOutputDir}
-              onBrowseDefaultDir={onBrowseDefaultDir}
-              onClearDefaultDir={() => setDefaultOutputDir(null)}
             />
           ) : null}
         </div>
       </div>
+
+      {/* Export directory bar */}
+      <ExportDirBar
+        defaultOutputDir={defaultOutputDir}
+        onBrowse={onBrowseDefaultDir}
+        onClear={() => setDefaultOutputDir(null)}
+      />
+
+      {/* Photo list */}
       <div className="surface-inset mx-2 mb-2 flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto p-2">
           {importErrors.length > 0 ? (
@@ -430,8 +435,11 @@ export function PhotoList() {
                 );
                 const photoActive = isPhotoActive(p.id);
                 const hasExifInfo = hasExifContent(p.exif);
-                const exifUnavailable = p.exifStatus === "error" || (p.exifStatus === "ready" && !hasExifInfo);
-                const copyDisabled = copyingId === p.id || p.exifStatus !== "ready" || !hasExifInfo;
+                const exifUnavailable =
+                  p.exifStatus === "error" ||
+                  (p.exifStatus === "ready" && !hasExifInfo);
+                const copyDisabled =
+                  copyingId === p.id || p.exifStatus !== "ready" || !hasExifInfo;
                 return (
                   <li key={p.id}>
                     <div
@@ -471,6 +479,11 @@ export function PhotoList() {
                               无信息
                             </span>
                           ) : null}
+                          {p.config || p.frameParams ? (
+                            <span className="inline-flex rounded-full border border-primary/25 bg-primary/8 px-1.5 py-0.5 text-[9px] font-medium text-primary/80">
+                              独立配置
+                            </span>
+                          ) : null}
                         </div>
                       </button>
                       <button
@@ -481,11 +494,7 @@ export function PhotoList() {
                         className="btn-neu h-6 w-6 shrink-0 px-0"
                         disabled={photoActive}
                       >
-                        {photoActive ? (
-                          <LoaderCircle className="h-3 w-3 animate-spin text-muted-foreground" />
-                        ) : (
-                          <Download className="h-3 w-3 text-muted-foreground" />
-                        )}
+                        <Download className="h-3 w-3 text-muted-foreground" />
                       </button>
                       <button
                         type="button"
@@ -525,6 +534,49 @@ export function PhotoList() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ExportDirBar({
+  defaultOutputDir,
+  onBrowse,
+  onClear,
+}: {
+  defaultOutputDir: string | null;
+  onBrowse: () => void;
+  onClear: () => void;
+}) {
+  const dirName = defaultOutputDir?.split(/[\\/]/).pop() ?? null;
+  return (
+    <div className="mx-2 mb-1.5 flex items-center gap-1.5 rounded-md border border-border/40 bg-card px-2 py-1">
+      <Folder className="h-3 w-3 shrink-0 text-muted-foreground/60" />
+      <span
+        className={cn(
+          "min-w-0 flex-1 truncate text-[10px]",
+          dirName ? "text-foreground/70" : "text-muted-foreground/50",
+        )}
+        title={defaultOutputDir ?? undefined}
+      >
+        {dirName ?? "导出目录未设置"}
+      </span>
+      {defaultOutputDir ? (
+        <button
+          type="button"
+          onClick={onClear}
+          className="btn-neu h-5 w-5 shrink-0 px-0"
+          title="清除导出目录"
+        >
+          <X className="h-2.5 w-2.5 text-muted-foreground" />
+        </button>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => void onBrowse()}
+        className="btn-neu h-5 shrink-0 px-2 text-[9px]"
+      >
+        {defaultOutputDir ? "更改" : "选择"}
+      </button>
     </div>
   );
 }
@@ -656,9 +708,6 @@ function ExportPopover({
   anyJobActive,
   canExport,
   onExport,
-  defaultOutputDir,
-  onBrowseDefaultDir,
-  onClearDefaultDir,
 }: {
   format: ExportFormat;
   quality: number;
@@ -671,20 +720,15 @@ function ExportPopover({
   anyJobActive: boolean;
   canExport: boolean;
   onExport: () => void;
-  defaultOutputDir: string | null;
-  onBrowseDefaultDir: () => void;
-  onClearDefaultDir: () => void;
 }) {
-  const dirName = defaultOutputDir ? defaultOutputDir.split(/[\\/]/).pop() : null;
-
   return (
     <div
-      className="absolute right-0 top-9 z-[9999] w-64 rounded-lg border border-border/60 bg-card p-3 shadow-[var(--shadow-apple-popover)]"
+      className="absolute right-0 top-9 z-[9999] w-60 rounded-lg border border-border/60 bg-card p-3 shadow-[var(--shadow-apple-popover)]"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="mb-2.5 flex items-center justify-between">
         <span className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground">
-          导出整个列表
+          批量导出
         </span>
         <span className="text-[10px] tabular-nums text-muted-foreground/70">
           {count} 张
@@ -754,44 +798,6 @@ function ExportPopover({
         </div>
       ) : null}
 
-      <div className="mb-2.5">
-        <span className="label-plain mb-1.5 block">默认导出目录</span>
-        <div className="flex items-center gap-1">
-          <span
-            className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground/70"
-            title={defaultOutputDir ?? undefined}
-          >
-            {dirName ?? "未设置"}
-          </span>
-          {defaultOutputDir ? (
-            <button
-              type="button"
-              onClick={onClearDefaultDir}
-              className="btn-neu h-6 w-6 shrink-0 px-0"
-              title="清除默认目录"
-            >
-              <X className="h-3 w-3 text-muted-foreground" />
-            </button>
-          ) : null}
-          <button
-            type="button"
-            onClick={() => void onBrowseDefaultDir()}
-            className="btn-neu h-6 shrink-0 px-2 text-[10px]"
-          >
-            {defaultOutputDir ? "更改" : "选择"}
-          </button>
-        </div>
-        {defaultOutputDir ? (
-          <p className="mt-1 text-[9px] text-muted-foreground/50">
-            单击导出按钮直接排队，无需弹窗
-          </p>
-        ) : (
-          <p className="mt-1 text-[9px] text-muted-foreground/50">
-            设置后单击导出按钮自动排队
-          </p>
-        )}
-      </div>
-
       <button
         type="button"
         onClick={() => void onExport()}
@@ -799,7 +805,7 @@ function ExportPopover({
         className="btn-primary h-8 w-full gap-1.5 text-[11px]"
       >
         <Download className="h-3 w-3" />
-        {anyJobActive ? "导出中…" : defaultOutputDir ? "批量导出到默认目录" : "选择目录并导出"}
+        {anyJobActive ? "导出中…" : "开始导出"}
       </button>
     </div>
   );

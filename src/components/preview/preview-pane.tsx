@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 import { usePhotoStore } from "@/stores/photo-store";
-import { useTemplateStore } from "@/stores/template-store";
+import { useActiveTemplate } from "@/hooks/use-active-template";
 import { EMPTY_EXIF } from "@/stores/types";
 import { ImageOff } from "lucide-react";
 import { drawClassicBottomPreview, resolvePreviewLogo } from "@/lib/watermark/classic-bottom";
@@ -10,7 +10,7 @@ export function PreviewPane() {
   const selected = usePhotoStore((s) =>
     s.photos.find((p) => p.id === s.selectedId),
   );
-  const { currentKind, frameParams, config } = useTemplateStore();
+  const { currentKind, frameParams, config } = useActiveTemplate();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewReady =
     selected?.previewStatus === "ready" && selected.exifStatus === "ready";
