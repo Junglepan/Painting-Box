@@ -13,6 +13,7 @@ import { IMPORT_EXTENSIONS } from "@/lib/import/accept";
 import { createImportedPhotos } from "@/lib/import/records";
 import { useExportStore } from "@/stores/export-store";
 import { useTemplateStore } from "@/stores/template-store";
+import { exifHasContent } from "@/stores/types";
 import type { ExifData, ExportJob, Photo } from "@/stores/types";
 import {
   AlertCircle,
@@ -434,7 +435,7 @@ export function PhotoList() {
                   jobs.filter((job) => job.photoId === p.id),
                 );
                 const photoActive = isPhotoActive(p.id);
-                const hasExifInfo = hasExifContent(p.exif);
+                const hasExifInfo = exifHasContent(p.exif);
                 const exifUnavailable =
                   p.exifStatus === "error" ||
                   (p.exifStatus === "ready" && !hasExifInfo);
@@ -601,21 +602,6 @@ function formatExifForCopy(path: string, exif: ExifData) {
   ].join("\n");
 }
 
-function hasExifContent(exif?: ExifData) {
-  if (!exif) return false;
-  const camera = [exif.camera.make, exif.camera.model].filter(Boolean).join(" ").trim();
-  const hasGps = !!exif.gps;
-  return Boolean(
-    camera ||
-      exif.lens ||
-      exif.focalLength ||
-      exif.aperture ||
-      exif.shutterSpeed ||
-      exif.iso ||
-      exif.takenAt ||
-      hasGps,
-  );
-}
 
 type StatusTone = "neutral" | "info" | "success" | "error";
 type StatusKind = "preview" | "export";

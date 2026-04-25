@@ -9,6 +9,15 @@ export type ExifData = {
   gps?: { lat: number; lng: number };
 };
 
+export function exifHasContent(exif: ExifData | undefined): boolean {
+  if (!exif) return false;
+  const camera = [exif.camera.make, exif.camera.model].filter(Boolean).join(" ").trim();
+  return Boolean(
+    camera || exif.lens || exif.focalLength || exif.aperture ||
+    exif.shutterSpeed || exif.iso || exif.takenAt || exif.gps,
+  );
+}
+
 export const EMPTY_EXIF: ExifData = {
   camera: { make: "", model: "" },
   lens: "",

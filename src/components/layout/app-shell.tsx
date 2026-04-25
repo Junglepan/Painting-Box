@@ -11,6 +11,8 @@ import { isImportablePath } from "@/lib/import/accept";
 import { createImportedPhotos } from "@/lib/import/records";
 import { loadPhotoExif, loadPhotoPreview } from "@/lib/tauri/photos";
 import { usePhotoStore } from "@/stores/photo-store";
+import { useTemplateStore } from "@/stores/template-store";
+import { exifHasContent } from "@/stores/types";
 
 const STORAGE_KEY = "painting-box-layout";
 const DEFAULT_LIST_WIDTH = 240;
@@ -45,6 +47,7 @@ export function AppShell() {
   const setExifLoading = usePhotoStore((s) => s.setExifLoading);
   const setExifData = usePhotoStore((s) => s.setExifData);
   const setExifError = usePhotoStore((s) => s.setExifError);
+  const setPhotoConfig = usePhotoStore((s) => s.setPhotoConfig);
   const setPreviewLoading = usePhotoStore((s) => s.setPreviewLoading);
   const setPreviewData = usePhotoStore((s) => s.setPreviewData);
   const setPreviewError = usePhotoStore((s) => s.setPreviewError);
@@ -142,6 +145,15 @@ export function AppShell() {
         ? loadPhotoExif(photo.path)
             .then((exif) => {
               setExifData(nextId, exif);
+              // Auto-disable watermark for photos with no EXIF content,
+              // unless the user has already set a per-photo config.
+              if (!exifHasContent(exif)) {
+                const p = usePhotoStore.getState().photos.find((x) => x.id === nextId);
+                if (p && !p.config) {
+                  const globalConfig = useTemplateStore.getState().config;
+                  setPhotoConfig(nextId, { ...globalConfig, showWatermark: false });
+                }
+              }
             })
             .catch((error) => {
               const message =
@@ -161,6 +173,7 @@ export function AppShell() {
     setExifData,
     setExifError,
     setExifLoading,
+    setPhotoConfig,
     setPreviewData,
     setPreviewError,
     setPreviewLoading,
