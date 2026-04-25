@@ -452,9 +452,9 @@ export function PhotoList() {
                     >
                       <button
                         type="button"
-                        onClick={() => select(p.id)}
+                        onClick={() => select(selectedId === p.id ? null : p.id)}
                         aria-label={name}
-                        title={name}
+                        title={selectedId === p.id ? "点击取消选择" : name}
                         className="min-w-0 flex-1 text-left"
                       >
                         <p className="truncate text-[11px] font-medium text-foreground/90">

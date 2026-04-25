@@ -25,7 +25,6 @@ type PhotoState = {
   enqueueParse: (ids: string[], front?: boolean) => void;
   dequeueParse: (id: string) => void;
   setImportErrors: (next: PhotoImportError[]) => void;
-  setPhotoWatermark: (id: string, show: boolean | undefined) => void;
   removePhoto: (id: string) => void;
   select: (id: string | null) => void;
   clear: () => void;
@@ -114,10 +113,6 @@ export const usePhotoStore = create<PhotoState>()(
           parseQueue: s.parseQueue.filter((queuedId) => queuedId !== id),
         })),
       setImportErrors: (next) => set({ importErrors: next }),
-      setPhotoWatermark: (id, show) =>
-        set((s) => ({
-          photos: s.photos.map((p) => (p.id === id ? { ...p, showWatermark: show } : p)),
-        })),
       removePhoto: (id) =>
         set((s) => ({
           photos: s.photos.filter((p) => p.id !== id),

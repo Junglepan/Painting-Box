@@ -42,23 +42,17 @@ export type Photo = {
   exif?: ExifData;
   exifStatus: PhotoExifStatus;
   exifError?: string;
-  // Only watermark visibility is per-photo; undefined = auto-derive from exif.
-  showWatermark?: boolean;
 };
 
 /**
- * Effective watermark visibility for a single photo:
- * - Explicit user override wins.
- * - No override + no exif content → off by default.
- * - No override + has exif content → follow the global setting.
+ * Effective watermark visibility: global switch AND photo has EXIF content.
+ * No EXIF → no watermark bar regardless of the global toggle (nothing to show).
  */
 export function effectiveShowWatermark(
-  photo: Pick<Photo, "showWatermark" | "exif">,
+  photo: Pick<Photo, "exif">,
   globalShowWatermark: boolean,
 ): boolean {
-  if (photo.showWatermark !== undefined) return photo.showWatermark;
-  if (!exifHasContent(photo.exif)) return false;
-  return globalShowWatermark;
+  return globalShowWatermark && exifHasContent(photo.exif);
 }
 
 export type ImportedPhoto = {
