@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { usePhotoStore } from "@/stores/photo-store";
-import { useActiveTemplate } from "@/hooks/use-active-template";
+import { useTemplateStore } from "@/stores/template-store";
+import { effectiveShowWatermark } from "@/stores/types";
 import type {
   CanvasOrientation,
   CanvasRatio,
@@ -92,10 +93,12 @@ type SectionId =
 
 export function FrameParamsPanel() {
   const { currentKind, frameParams, setFrameParams, resetFrameParams, config, setConfig } =
-    useActiveTemplate();
+    useTemplateStore();
   const selectedPhoto = usePhotoStore((s) =>
     s.photos.find((p) => p.id === s.selectedId),
   );
+  const selectedId = usePhotoStore((s) => s.selectedId);
+  const setPhotoWatermark = usePhotoStore((s) => s.setPhotoWatermark);
   const panelLocked =
     !!selectedPhoto &&
     (selectedPhoto.previewStatus !== "ready" ||
@@ -451,15 +454,28 @@ export function FrameParamsPanel() {
           open={open.display}
           onToggle={toggle}
         >
-          {/* Watermark master toggle */}
+          {/* Watermark master toggle — per-photo when a photo is selected */}
           <div className="param-row mb-2">
             <span className="label-plain">水印</span>
             <Toggle
-              active={config.showWatermark ?? true}
-              onClick={() => setConfig({ showWatermark: !(config.showWatermark ?? true) })}
+              active={
+                selectedPhoto
+                  ? effectiveShowWatermark(selectedPhoto, config.showWatermark)
+                  : config.showWatermark
+              }
+              onClick={() => {
+                if (selectedId && selectedPhoto) {
+                  const current = effectiveShowWatermark(selectedPhoto, config.showWatermark);
+                  setPhotoWatermark(selectedId, !current);
+                } else {
+                  setConfig({ showWatermark: !config.showWatermark });
+                }
+              }}
             />
           </div>
-          {(config.showWatermark ?? true) ? (
+          {(selectedPhoto
+            ? effectiveShowWatermark(selectedPhoto, config.showWatermark)
+            : config.showWatermark) ? (
             <div className="grid grid-cols-3 gap-1.5">
               {FIELDS.filter((f) => displayFields.includes(f.key)).map((f) => {
                 const Icon = f.icon;

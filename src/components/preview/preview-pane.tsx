@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { usePhotoStore } from "@/stores/photo-store";
-import { useActiveTemplate } from "@/hooks/use-active-template";
-import { EMPTY_EXIF } from "@/stores/types";
+import { useTemplateStore } from "@/stores/template-store";
+import { EMPTY_EXIF, effectiveShowWatermark } from "@/stores/types";
 import { ImageOff } from "lucide-react";
 import { drawClassicBottomPreview, resolvePreviewLogo } from "@/lib/watermark/classic-bottom";
 import { loadImage } from "@/lib/watermark/load-image";
@@ -10,7 +10,7 @@ export function PreviewPane() {
   const selected = usePhotoStore((s) =>
     s.photos.find((p) => p.id === s.selectedId),
   );
-  const { currentKind, frameParams, config } = useActiveTemplate();
+  const { currentKind, frameParams, config } = useTemplateStore();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewReady =
     selected?.previewStatus === "ready" && selected.exifStatus === "ready";
@@ -30,7 +30,11 @@ export function PreviewPane() {
     const thumbnailDataUrl = selected.thumbnailDataUrl;
     const width = selected.width;
     const height = selected.height;
-    const logoSrc = resolvePreviewLogo(selected.exif ?? EMPTY_EXIF, frameParams, config);
+    const effectiveConfig = {
+      ...config,
+      showWatermark: effectiveShowWatermark(selected, config.showWatermark),
+    };
+    const logoSrc = resolvePreviewLogo(selected.exif ?? EMPTY_EXIF, frameParams, effectiveConfig);
 
     let cancelled = false;
     void Promise.all([
@@ -49,7 +53,7 @@ export function PreviewPane() {
           exif: selected.exif ?? EMPTY_EXIF,
         },
         frameParams,
-        config,
+        effectiveConfig,
         currentKind,
       );
     });

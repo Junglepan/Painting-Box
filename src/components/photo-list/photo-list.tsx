@@ -13,7 +13,7 @@ import { IMPORT_EXTENSIONS } from "@/lib/import/accept";
 import { createImportedPhotos } from "@/lib/import/records";
 import { useExportStore } from "@/stores/export-store";
 import { useTemplateStore } from "@/stores/template-store";
-import { exifHasContent } from "@/stores/types";
+import { effectiveShowWatermark, exifHasContent } from "@/stores/types";
 import type { ExifData, ExportJob, Photo } from "@/stores/types";
 import {
   AlertCircle,
@@ -46,7 +46,6 @@ export function PhotoList() {
   const defaultOutputDir = useExportStore((s) => s.defaultOutputDir);
   const setDefaultOutputDir = useExportStore((s) => s.setDefaultOutputDir);
 
-  // Global template defaults used as fallback when a photo has no per-photo config.
   const globalConfig = useTemplateStore((s) => s.config);
   const globalFrameParams = useTemplateStore((s) => s.frameParams);
   const currentKind = useTemplateStore((s) => s.currentKind);
@@ -147,9 +146,9 @@ export function PhotoList() {
         photoPath: photo.path,
         outputPath,
         templateKind: currentKind,
-        frameParams: photo.frameParams ?? globalFrameParams,
+        frameParams: globalFrameParams,
         exif: photo.exif,
-        config: photo.config ?? globalConfig,
+        config: { ...globalConfig, showWatermark: effectiveShowWatermark(photo, globalConfig.showWatermark) },
         exportQuality: quality,
       });
       updateJob(jobId, { status: "done", progress: 100, outputPath });
@@ -190,9 +189,9 @@ export function PhotoList() {
           photoPath: item.photo.path,
           outputPath: item.outputPath,
           templateKind: currentKind,
-          frameParams: item.photo.frameParams ?? globalFrameParams,
+          frameParams: globalFrameParams,
           exif: item.photo.exif,
-          config: item.photo.config ?? globalConfig,
+          config: { ...globalConfig, showWatermark: effectiveShowWatermark(item.photo, globalConfig.showWatermark) },
           exportQuality: quality,
         },
       })),
@@ -291,9 +290,9 @@ export function PhotoList() {
           photoPath: item.photo.path,
           outputPath: item.outputPath,
           templateKind: currentKind,
-          frameParams: item.photo.frameParams ?? globalFrameParams,
+          frameParams: globalFrameParams,
           exif: item.photo.exif,
-          config: item.photo.config ?? globalConfig,
+          config: { ...globalConfig, showWatermark: effectiveShowWatermark(item.photo, globalConfig.showWatermark) },
           exportQuality: quality,
         },
       })),
@@ -478,11 +477,6 @@ export function PhotoList() {
                           {exifUnavailable ? (
                             <span className="inline-flex rounded-full border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-700">
                               无信息
-                            </span>
-                          ) : null}
-                          {p.config || p.frameParams ? (
-                            <span className="inline-flex rounded-full border border-primary/25 bg-primary/8 px-1.5 py-0.5 text-[9px] font-medium text-primary/80">
-                              独立配置
                             </span>
                           ) : null}
                         </div>
