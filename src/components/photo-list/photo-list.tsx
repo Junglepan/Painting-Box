@@ -28,8 +28,8 @@ import {
   LoaderCircle,
   Plus,
   ScanSearch,
+  Settings2,
   Trash2,
-  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -412,7 +412,6 @@ export function PhotoList() {
       <ExportDirBar
         defaultOutputDir={defaultOutputDir}
         onBrowse={onBrowseDefaultDir}
-        onClear={() => setDefaultOutputDir(null)}
       />
 
       {/* Photo list */}
@@ -536,11 +535,9 @@ export function PhotoList() {
 function ExportDirBar({
   defaultOutputDir,
   onBrowse,
-  onClear,
 }: {
   defaultOutputDir: string | null;
   onBrowse: () => void;
-  onClear: () => void;
 }) {
   const dirName = defaultOutputDir?.split(/[\\/]/).pop() ?? null;
   return (
@@ -555,22 +552,13 @@ function ExportDirBar({
       >
         {dirName ?? "导出目录未设置"}
       </span>
-      {defaultOutputDir ? (
-        <button
-          type="button"
-          onClick={onClear}
-          className="btn-neu h-5 w-5 shrink-0 px-0"
-          title="清除导出目录"
-        >
-          <X className="h-2.5 w-2.5 text-muted-foreground" />
-        </button>
-      ) : null}
       <button
         type="button"
         onClick={() => void onBrowse()}
-        className="btn-neu h-5 shrink-0 px-2 text-[9px]"
+        className="btn-neu h-5 w-5 shrink-0 px-0"
+        title={defaultOutputDir ? "更改导出目录" : "选择导出目录"}
       >
-        {defaultOutputDir ? "更改" : "选择"}
+        <Settings2 className="h-2.5 w-2.5 text-muted-foreground" />
       </button>
     </div>
   );

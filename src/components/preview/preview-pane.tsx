@@ -6,15 +6,15 @@ import type { ExifData } from "@/stores/types";
 import { drawClassicBottomPreview, resolvePreviewLogo } from "@/lib/watermark/classic-bottom";
 import { loadImage } from "@/lib/watermark/load-image";
 
-// Sample data used when no photo is selected.
+// Branding data used when no photo is selected.
 const MOCK_EXIF: ExifData = {
-  camera: { make: "FUJIFILM", model: "X-T5" },
-  lens: "XF 35mm F1.4 R",
-  focalLength: 35,
-  aperture: 1.4,
-  shutterSpeed: "1/250",
-  iso: 400,
-  takenAt: "2024-10-01 10:30:00",
+  camera: { make: "Painting Box", model: "@panbokui" },
+  lens: "github.com/panbokui/painting-box",
+  focalLength: 0,
+  aperture: 0,
+  shutterSpeed: "",
+  iso: 0,
+  takenAt: "",
 };
 
 const MOCK_W = 1800;
@@ -69,8 +69,18 @@ export function PreviewPane() {
 
     // ── Mock preview (no photo selected) ──────────────────────────────
     if (!selected) {
-      const mockConfig = { ...config, showWatermark: config.showWatermark };
-      const logoSrc = resolvePreviewLogo(MOCK_EXIF, frameParams, mockConfig);
+      // Always show watermark with app branding; override logo to painting-box icon;
+      // show lens line (GitHub URL) but skip numeric params (they'd be zeros).
+      const mockConfig = {
+        ...config,
+        showWatermark: true,
+        showCamera: true,
+        showLens: true,
+        showParams: false,
+        showLogo: true,
+      };
+      const mockFrameParams = { ...frameParams, logoKey: "painting-box", logoVariant: "original" };
+      const logoSrc = resolvePreviewLogo(MOCK_EXIF, mockFrameParams, mockConfig);
       let cancelled = false;
 
       void Promise.all([
@@ -83,7 +93,7 @@ export function PreviewPane() {
           image,
           logoImage,
           { width: MOCK_W, height: MOCK_H, src: "", exif: MOCK_EXIF },
-          frameParams,
+          mockFrameParams,
           mockConfig,
           currentKind,
         );

@@ -1,4 +1,9 @@
 {
+  "painting-box": {
+    "black": "/brand-logos/painting-box-black.svg",
+    "original": "/brand-logos/painting-box-original.svg",
+    "white": "/brand-logos/painting-box-white.svg"
+  },
   "老蛙": {
     "black": "/brand-logos/老蛙-black.svg",
     "original": "/brand-logos/老蛙-original.svg",
