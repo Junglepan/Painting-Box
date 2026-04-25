@@ -36,3 +36,4 @@ yarn-error.log*
 
 # 本地 Claude 设置（共享 agents 但不共享用户本地偏好）
 .claude/settings.local.json
+icon/
