@@ -16,7 +16,7 @@ const STORAGE_KEY = "painting-box-layout";
 const DEFAULT_LIST_WIDTH = 240;
 const MIN_LIST_WIDTH = 200;
 const MAX_LIST_WIDTH = 400;
-const PARSE_CONCURRENCY = 1;
+const PARSE_CONCURRENCY = 4;
 
 function loadListWidth(): number {
   if (typeof window === "undefined") return DEFAULT_LIST_WIDTH;
