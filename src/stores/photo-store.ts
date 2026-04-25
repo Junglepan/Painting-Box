@@ -26,6 +26,7 @@ type PhotoState = {
   dequeueParse: (id: string) => void;
   setImportErrors: (next: PhotoImportError[]) => void;
   removePhoto: (id: string) => void;
+  clearAll: () => void;
   select: (id: string | null) => void;
 };
 
@@ -118,6 +119,7 @@ export const usePhotoStore = create<PhotoState>()(
           parseQueue: s.parseQueue.filter((queuedId) => queuedId !== id),
           selectedId: s.selectedId === id ? null : s.selectedId,
         })),
+      clearAll: () => set({ photos: [], parseQueue: [], selectedId: null, importErrors: [] }),
       select: (id) => set({ selectedId: id }),
     }),
     {

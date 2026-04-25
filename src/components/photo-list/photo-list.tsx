@@ -34,7 +34,7 @@ import {
 import { cn } from "@/lib/utils";
 
 export function PhotoList() {
-  const { photos, selectedId, select, removePhoto, addPhotos, importErrors, setImportErrors } =
+  const { photos, selectedId, select, removePhoto, clearAll, addPhotos, importErrors, setImportErrors } =
     usePhotoStore();
   const autoPreviewEnabled = usePhotoStore((s) => s.autoPreviewEnabled);
   const setAutoPreviewEnabled = usePhotoStore((s) => s.setAutoPreviewEnabled);
@@ -397,6 +397,17 @@ export function PhotoList() {
           >
             <Plus className="h-3.5 w-3.5 text-muted-foreground" />
           </button>
+          {photos.length > 0 && (
+            <button
+              type="button"
+              aria-label="清空列表"
+              title="清空列表"
+              onClick={clearAll}
+              className="btn-neu h-7 w-7 px-0"
+            >
+              <Trash2 className="h-3.5 w-3.5 text-muted-foreground" />
+            </button>
+          )}
           <button
             type="button"
             aria-label="批量导出"

@@ -45,7 +45,7 @@ const defaultFrameParams: FrameParams = {
   bgColor: "#ffffff",
   blurRadius: 40,
 
-  shadow: true,
+  shadow: false,
   shadowBlur: 20,
   shadowOffsetY: 0.06,
   shadowOpacity: 100,
