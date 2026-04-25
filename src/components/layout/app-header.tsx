@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Camera, CheckCheck, Loader2, Settings2 } from "lucide-react";
+import { Camera, CheckCheck, Loader2 } from "lucide-react";
 import { useExportStore } from "@/stores/export-store";
 import { cn } from "@/lib/utils";
 
@@ -64,13 +64,6 @@ export function AppHeader() {
 
       <div className="flex items-center gap-2">
         <ExportBadge />
-        <button
-          type="button"
-          aria-label="设置"
-          className="btn-neu h-8 w-8 px-0"
-        >
-          <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-        </button>
       </div>
     </header>
   );
