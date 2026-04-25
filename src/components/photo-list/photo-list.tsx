@@ -4,6 +4,7 @@ import { usePhotoStore } from "@/stores/photo-store";
 import { exportBatchPhotos, exportSinglePhoto, onExportProgress } from "@/lib/tauri/photos";
 import {
   buildBatchExportPlan,
+  buildBatchExportPath,
   defaultSingleExportPath,
   type ExportConflictStrategy,
   type ExportFormat,
@@ -25,6 +26,7 @@ import {
   Plus,
   ScanSearch,
   Trash2,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useTemplateStore } from "@/stores/template-store";
@@ -39,16 +41,27 @@ export function PhotoList() {
   const enqueue = useExportStore((s) => s.enqueue);
   const updateJob = useExportStore((s) => s.updateJob);
   const setRunning = useExportStore((s) => s.setRunning);
+  const defaultOutputDir = useExportStore((s) => s.defaultOutputDir);
+  const setDefaultOutputDir = useExportStore((s) => s.setDefaultOutputDir);
   const { currentKind, frameParams, config } = useTemplateStore();
   const [exportOpen, setExportOpen] = useState(false);
   const [format, setFormat] = useState<ExportFormat>("jpg");
   const [conflictStrategy, setConflictStrategy] =
     useState<ExportConflictStrategy>("skip");
   const [quality, setQuality] = useState(92);
-  const [exporting, setExporting] = useState(false);
   const [copyingId, setCopyingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
+
+  // Queue for debounced batch dispatch when defaultOutputDir is set.
+  const pendingRef = useRef<Map<string, { jobId: string; photo: Photo; outputPath: string }>>(
+    new Map(),
+  );
+  const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Ref to always call the latest flush closure from the timer.
+  const flushRef = useRef<(() => Promise<void>) | undefined>(undefined);
+  // Track concurrent running batches to correctly manage the running flag.
+  const runningCountRef = useRef(0);
 
   useEffect(() => {
     if (!exportOpen) return;
@@ -61,11 +74,18 @@ export function PhotoList() {
     return () => document.removeEventListener("mousedown", onDown);
   }, [exportOpen]);
 
+  useEffect(() => {
+    return () => {
+      if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+    };
+  }, []);
+
   const canExport = photos.length > 0;
   const exportedRecords = jobs
     .filter((job) => job.status === "done")
     .map((job) => ({ photoId: job.photoId, outputPath: job.outputPath }));
   const exportedPhotoIds = new Set(exportedRecords.map((record) => record.photoId));
+  const anyJobActive = jobs.some((j) => j.status === "queued" || j.status === "running");
   const queuedIds = usePhotoStore((s) => s.parseQueue);
   const parseableIds = photos
     .filter(
@@ -74,6 +94,19 @@ export function PhotoList() {
         !queuedIds.includes(photo.id),
     )
     .map((photo) => photo.id);
+
+  const isPhotoActive = (photoId: string) =>
+    jobs.some((j) => j.photoId === photoId && (j.status === "running" || j.status === "queued"));
+
+  const startRunning = () => {
+    runningCountRef.current += 1;
+    setRunning(true);
+  };
+
+  const stopRunning = () => {
+    runningCountRef.current = Math.max(0, runningCountRef.current - 1);
+    if (runningCountRef.current === 0) setRunning(false);
+  };
 
   const importFromPaths = async (paths: string[]) => {
     if (paths.length === 0) return;
@@ -90,12 +123,7 @@ export function PhotoList() {
       const picked = await open({
         title: "选择照片",
         multiple: true,
-        filters: [
-          {
-            name: "Images",
-            extensions: [...IMPORT_EXTENSIONS],
-          },
-        ],
+        filters: [{ name: "Images", extensions: [...IMPORT_EXTENSIONS] }],
       });
       const paths = Array.isArray(picked) ? picked : picked ? [picked] : [];
       await importFromPaths(paths);
@@ -109,17 +137,8 @@ export function PhotoList() {
   const runSingleExport = async (photo: Photo, outputPath: string) => {
     const jobId = crypto.randomUUID();
     try {
-      setExporting(true);
-      setRunning(true);
-      enqueue([
-        {
-          id: jobId,
-          photoId: photo.id,
-          status: "running",
-          progress: 0,
-          outputPath,
-        },
-      ]);
+      startRunning();
+      enqueue([{ id: jobId, photoId: photo.id, status: "running", progress: 0, outputPath }]);
       await exportSinglePhoto({
         photoPath: photo.path,
         outputPath,
@@ -137,12 +156,70 @@ export function PhotoList() {
       updateJob(jobId, { status: "error", error: message });
       return false;
     } finally {
-      setExporting(false);
-      setRunning(false);
+      stopRunning();
     }
   };
 
+  const flushPendingExports = async () => {
+    if (flushTimerRef.current) {
+      clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = null;
+    }
+    const items = [...pendingRef.current.values()];
+    pendingRef.current.clear();
+    if (items.length === 0) return;
+
+    startRunning();
+    const unlisten = await onExportProgress((event) => {
+      updateJob(event.jobId, {
+        status: event.error ? "error" : "done",
+        progress: event.error ? 0 : 100,
+        outputPath: event.outputPath ?? undefined,
+        error: event.error ?? undefined,
+      });
+    });
+
+    exportBatchPhotos(
+      items.map((item) => ({
+        jobId: item.jobId,
+        request: {
+          photoPath: item.photo.path,
+          outputPath: item.outputPath,
+          templateKind: currentKind,
+          frameParams,
+          exif: item.photo.exif,
+          config,
+          exportQuality: quality,
+        },
+      })),
+    )
+      .catch(() => {})
+      .finally(() => {
+        unlisten();
+        stopRunning();
+      });
+  };
+
+  // Keep flushRef pointed at the latest closure so the timer always uses fresh deps.
+  flushRef.current = flushPendingExports;
+
   const onExportPhoto = async (photo: Photo) => {
+    if (defaultOutputDir) {
+      // Already queued — ignore duplicate click.
+      if (pendingRef.current.has(photo.id)) return;
+
+      const outputPath = buildBatchExportPath(defaultOutputDir, photo.path, format);
+      const jobId = crypto.randomUUID();
+      pendingRef.current.set(photo.id, { jobId, photo, outputPath });
+      enqueue([{ id: jobId, photoId: photo.id, status: "queued", progress: 0, outputPath }]);
+
+      // Debounce: wait 500ms for more clicks before dispatching the batch.
+      if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
+      flushTimerRef.current = setTimeout(() => void flushRef.current?.(), 500);
+      return;
+    }
+
+    // No default dir: show save dialog.
     const ext = format === "jpg" ? "jpg" : format;
     const outputPath = await save({
       title: "导出照片",
@@ -150,19 +227,22 @@ export function PhotoList() {
       filters: [{ name: format.toUpperCase(), extensions: [ext] }],
     });
     if (!outputPath) return;
-
-    const ok = await runSingleExport(photo, outputPath);
-    if (ok) setExportOpen(false);
+    await runSingleExport(photo, outputPath);
   };
 
   const onExportAll = async () => {
-    if (photos.length === 0 || exporting) return;
-    const outputDir = await open({
-      title: "选择导出目录",
-      directory: true,
-      multiple: false,
-    });
-    if (!outputDir || Array.isArray(outputDir)) return;
+    if (photos.length === 0) return;
+
+    let outputDir = defaultOutputDir;
+    if (!outputDir) {
+      const picked = await open({
+        title: "选择导出目录",
+        directory: true,
+        multiple: false,
+      });
+      if (!picked || Array.isArray(picked)) return;
+      outputDir = picked;
+    }
 
     const plan = buildBatchExportPlan({
       photos,
@@ -177,7 +257,6 @@ export function PhotoList() {
       return;
     }
 
-    // Assign job IDs upfront so progress events can be matched.
     const batchItems = plan.map((item) => ({
       jobId: crypto.randomUUID(),
       photo: item.photo,
@@ -194,11 +273,9 @@ export function PhotoList() {
       })),
     );
 
-    setExporting(true);
-    setRunning(true);
     setExportOpen(false);
+    startRunning();
 
-    // Subscribe to per-job progress events before firing the batch.
     const unlisten = await onExportProgress((event) => {
       updateJob(event.jobId, {
         status: event.error ? "error" : "done",
@@ -208,7 +285,6 @@ export function PhotoList() {
       });
     });
 
-    // Fire the parallel batch — non-blocking, rayon processes all photos concurrently.
     exportBatchPhotos(
       batchItems.map((item) => ({
         jobId: item.jobId,
@@ -223,12 +299,22 @@ export function PhotoList() {
         },
       })),
     )
-      .catch(() => {/* individual errors are surfaced via progress events */})
+      .catch(() => {})
       .finally(() => {
         unlisten();
-        setExporting(false);
-        setRunning(false);
+        stopRunning();
       });
+  };
+
+  const onBrowseDefaultDir = async () => {
+    const picked = await open({
+      title: "选择默认导出目录",
+      directory: true,
+      multiple: false,
+    });
+    if (picked && !Array.isArray(picked)) {
+      setDefaultOutputDir(picked);
+    }
   };
 
   const copyExif = async (photo: Photo) => {
@@ -315,9 +401,12 @@ export function PhotoList() {
               onConflictStrategy={setConflictStrategy}
               count={photos.length}
               exportedCount={exportedPhotoIds.size}
-              exporting={exporting}
+              anyJobActive={anyJobActive}
               canExport={photos.length > 0}
               onExport={onExportAll}
+              defaultOutputDir={defaultOutputDir}
+              onBrowseDefaultDir={onBrowseDefaultDir}
+              onClearDefaultDir={() => setDefaultOutputDir(null)}
             />
           ) : null}
         </div>
@@ -339,6 +428,7 @@ export function PhotoList() {
                 const exportState = getExportState(
                   jobs.filter((job) => job.photoId === p.id),
                 );
+                const photoActive = isPhotoActive(p.id);
                 const hasExifInfo = hasExifContent(p.exif);
                 const exifUnavailable = p.exifStatus === "error" || (p.exifStatus === "ready" && !hasExifInfo);
                 const copyDisabled = copyingId === p.id || p.exifStatus !== "ready" || !hasExifInfo;
@@ -387,11 +477,15 @@ export function PhotoList() {
                         type="button"
                         onClick={() => void onExportPhoto(p)}
                         aria-label={`导出 ${name}`}
-                        title="导出当前照片"
+                        title={photoActive ? "导出中…" : "导出当前照片"}
                         className="btn-neu h-6 w-6 shrink-0 px-0"
-                        disabled={exporting}
+                        disabled={photoActive}
                       >
-                        <Download className="h-3 w-3 text-muted-foreground" />
+                        {photoActive ? (
+                          <LoaderCircle className="h-3 w-3 animate-spin text-muted-foreground" />
+                        ) : (
+                          <Download className="h-3 w-3 text-muted-foreground" />
+                        )}
                       </button>
                       <button
                         type="button"
@@ -524,9 +618,7 @@ function getPreviewState(photo: Photo, queued: boolean) {
   return { label: "未生成", tone: "neutral" as const };
 }
 
-function getExportState(
-  jobs: ExportJob[],
-) {
+function getExportState(jobs: ExportJob[]) {
   const latest = jobs[jobs.length - 1];
   if (!latest) {
     return { label: "未导出", tone: "neutral" as const };
@@ -561,9 +653,12 @@ function ExportPopover({
   onConflictStrategy,
   count,
   exportedCount,
-  exporting,
+  anyJobActive,
   canExport,
   onExport,
+  defaultOutputDir,
+  onBrowseDefaultDir,
+  onClearDefaultDir,
 }: {
   format: ExportFormat;
   quality: number;
@@ -573,13 +668,18 @@ function ExportPopover({
   onConflictStrategy: (strategy: ExportConflictStrategy) => void;
   count: number;
   exportedCount: number;
-  exporting: boolean;
+  anyJobActive: boolean;
   canExport: boolean;
   onExport: () => void;
+  defaultOutputDir: string | null;
+  onBrowseDefaultDir: () => void;
+  onClearDefaultDir: () => void;
 }) {
+  const dirName = defaultOutputDir ? defaultOutputDir.split(/[\\/]/).pop() : null;
+
   return (
     <div
-      className="absolute right-0 top-9 z-[9999] w-60 rounded-lg border border-border/60 bg-card p-3 shadow-[var(--shadow-apple-popover)]"
+      className="absolute right-0 top-9 z-[9999] w-64 rounded-lg border border-border/60 bg-card p-3 shadow-[var(--shadow-apple-popover)]"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <div className="mb-2.5 flex items-center justify-between">
@@ -654,14 +754,52 @@ function ExportPopover({
         </div>
       ) : null}
 
+      <div className="mb-2.5">
+        <span className="label-plain mb-1.5 block">默认导出目录</span>
+        <div className="flex items-center gap-1">
+          <span
+            className="min-w-0 flex-1 truncate text-[10px] text-muted-foreground/70"
+            title={defaultOutputDir ?? undefined}
+          >
+            {dirName ?? "未设置"}
+          </span>
+          {defaultOutputDir ? (
+            <button
+              type="button"
+              onClick={onClearDefaultDir}
+              className="btn-neu h-6 w-6 shrink-0 px-0"
+              title="清除默认目录"
+            >
+              <X className="h-3 w-3 text-muted-foreground" />
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={() => void onBrowseDefaultDir()}
+            className="btn-neu h-6 shrink-0 px-2 text-[10px]"
+          >
+            {defaultOutputDir ? "更改" : "选择"}
+          </button>
+        </div>
+        {defaultOutputDir ? (
+          <p className="mt-1 text-[9px] text-muted-foreground/50">
+            单击导出按钮直接排队，无需弹窗
+          </p>
+        ) : (
+          <p className="mt-1 text-[9px] text-muted-foreground/50">
+            设置后单击导出按钮自动排队
+          </p>
+        )}
+      </div>
+
       <button
         type="button"
         onClick={() => void onExport()}
-        disabled={!canExport || exporting}
+        disabled={!canExport || anyJobActive}
         className="btn-primary h-8 w-full gap-1.5 text-[11px]"
       >
         <Download className="h-3 w-3" />
-        {exporting ? "导出中…" : "开始导出"}
+        {anyJobActive ? "导出中…" : defaultOutputDir ? "批量导出到默认目录" : "选择目录并导出"}
       </button>
     </div>
   );
