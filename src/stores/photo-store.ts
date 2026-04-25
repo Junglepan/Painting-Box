@@ -27,7 +27,6 @@ type PhotoState = {
   setImportErrors: (next: PhotoImportError[]) => void;
   removePhoto: (id: string) => void;
   select: (id: string | null) => void;
-  clear: () => void;
 };
 
 export const usePhotoStore = create<PhotoState>()(
@@ -120,8 +119,6 @@ export const usePhotoStore = create<PhotoState>()(
           selectedId: s.selectedId === id ? null : s.selectedId,
         })),
       select: (id) => set({ selectedId: id }),
-      clear: () =>
-        set({ photos: [], selectedId: null, importErrors: [], parseQueue: [] }),
     }),
     {
       name: "painting-box-photo-config",

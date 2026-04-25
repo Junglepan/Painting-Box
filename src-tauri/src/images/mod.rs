@@ -26,9 +26,11 @@ pub fn decode_image(path: &Path) -> Result<DynamicImage, String> {
 
 fn decode_jpeg_turbo(path: &Path) -> Result<DynamicImage, String> {
     let bytes = fs::read(path).map_err(|e| format!("无法读取图片：{e}"))?;
-    let image = turbojpeg::decompress_image::<image::Rgb<u8>>(&bytes)
+    // Decode directly to Rgba8 — avoids the Rgb→Rgba conversion that
+    // resize_photo() would otherwise trigger on every export.
+    let image = turbojpeg::decompress_image::<image::Rgba<u8>>(&bytes)
         .map_err(|e| format!("JPEG 解码失败：{e}"))?;
-    Ok(DynamicImage::ImageRgb8(image))
+    Ok(DynamicImage::ImageRgba8(image))
 }
 
 fn is_jpeg(path: &Path) -> bool {

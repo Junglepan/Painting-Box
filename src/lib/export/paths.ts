@@ -11,7 +11,7 @@ export type ExportedRecord = {
   outputPath?: string;
 };
 
-export function exportExtension(format: ExportFormat) {
+function exportExtension(format: ExportFormat) {
   return format === "jpg" ? "jpg" : format;
 }
 
