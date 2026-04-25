@@ -1,0 +1,77 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS Universal (ARM + Intel 合一)
+          - platform: macos-latest
+            args: '--target universal-apple-darwin'
+            rust-targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+          # Windows x64
+          - platform: windows-latest
+            args: ''
+            rust-targets: ''
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      # turbojpeg 需要 cmake + nasm
+      - name: Install cmake & nasm (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake nasm
+
+      - name: Install nasm (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/setup-nasm@v1
+
+      - name: Install cmake (Windows)
+        if: runner.os == 'Windows'
+        uses: jwlawson/actions-setup-cmake@v2
+
+      - name: Install frontend deps
+        run: bun install
+
+      - name: Build & release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Painting Box ${{ github.ref_name }}'
+          releaseBody: |
+            ## 下载
+
+            | 平台 | 文件 |
+            |------|------|
+            | macOS (Apple Silicon + Intel) | `Painting.Box_x.x.x_universal.dmg` |
+            | Windows | `Painting.Box_x.x.x_x64-setup.exe` |
+
+            macOS 首次打开：右键 → 打开，绕过 Gatekeeper 提示。
+          releaseDraft: true
+          prerelease: false
+          args: ${{ matrix.args }}
