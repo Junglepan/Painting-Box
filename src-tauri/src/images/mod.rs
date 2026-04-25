@@ -34,10 +34,17 @@ fn decode_jpeg_turbo(path: &Path) -> Result<DynamicImage, String> {
 }
 
 fn is_jpeg(path: &Path) -> bool {
-    matches!(
+    if !matches!(
         supported_extension(path).ok().as_deref(),
         Some("jpg") | Some("jpeg")
-    )
+    ) {
+        return false;
+    }
+    // Verify JPEG magic bytes (FF D8 FF) — some files have the wrong extension.
+    let Ok(mut f) = std::fs::File::open(path) else { return false };
+    let mut magic = [0u8; 3];
+    use std::io::Read;
+    f.read_exact(&mut magic).is_ok() && magic == [0xFF, 0xD8, 0xFF]
 }
 
 pub fn supported_extension(path: &Path) -> Result<String, String> {
