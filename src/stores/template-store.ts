@@ -248,7 +248,8 @@ export const useTemplateStore = create<TemplateState>()(
       resetFrameParams: () =>
         set((s) => {
           clearSelectedPreset();
-          return { frameParams: getTemplateBase(s.currentKind).frameParams };
+          const base = getTemplateBase(s.currentKind);
+          return { config: base.config, frameParams: base.frameParams };
         }),
       setFieldOverride: (field, value) =>
         set((s) => {
