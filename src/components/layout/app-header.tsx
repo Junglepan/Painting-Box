@@ -3,6 +3,10 @@ import { Camera, CheckCheck, Loader2 } from "lucide-react";
 import { useExportStore } from "@/stores/export-store";
 import { cn } from "@/lib/utils";
 
+const IS_MACOS = typeof navigator !== "undefined" &&
+  /mac/i.test(navigator.userAgent) &&
+  !/iphone|ipad/i.test(navigator.userAgent);
+
 function ExportBadge() {
   const jobs = useExportStore((s) => s.jobs);
   const isRunning = useExportStore((s) => s.isRunning);
@@ -52,8 +56,12 @@ function ExportBadge() {
 
 export function AppHeader() {
   return (
-    <header className="flex h-11 shrink-0 items-center justify-between border-b border-border/60 px-4">
-      <div className="flex items-center gap-2">
+    <header
+      className="flex h-11 shrink-0 items-center justify-between border-b border-border/60 px-4"
+      data-tauri-drag-region
+    >
+      {/* macOS overlay titlebar: leave space for traffic lights (~72px) */}
+      <div className={cn("flex items-center gap-2", IS_MACOS && "pl-[72px]")}>
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary text-primary-foreground shadow-[0_2px_6px_rgba(47,111,237,0.35)]">
           <Camera className="h-3.5 w-3.5" />
         </div>
