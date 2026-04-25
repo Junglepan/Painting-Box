@@ -190,15 +190,34 @@ fn load_photo(path: &Path) -> Result<PhotoRecord, String> {
 }
 
 fn build_preview(path: &Path) -> Result<PhotoPreviewRecord, String> {
+    use fast_image_resize::{
+        images::{Image, ImageRef},
+        FilterType, PixelType, ResizeAlg, ResizeOptions, Resizer,
+    };
+
     let image = decode_image(path)?;
     let width = image.width();
     let height = image.height();
-    let thumb = image.thumbnail(512, 512);
+
+    let (thumb_w, thumb_h) = thumbnail_dims(width, height, 512);
+    let src = image.into_rgba8();
+
+    let src_ref = ImageRef::new(width, height, src.as_raw(), PixelType::U8x4)
+        .map_err(|e| format!("缩略图初始化失败：{e}"))?;
+    let mut dst = Image::new(thumb_w, thumb_h, PixelType::U8x4);
+    let opts = ResizeOptions::new().resize_alg(ResizeAlg::Convolution(FilterType::Box));
+
+    Resizer::new()
+        .resize(&src_ref, &mut dst, &opts)
+        .map_err(|e| format!("缩略图缩放失败：{e}"))?;
+
+    let thumb = image::RgbaImage::from_raw(thumb_w, thumb_h, dst.into_vec())
+        .ok_or_else(|| "缩略图转换失败".to_string())?;
+
     let mut jpeg = Cursor::new(Vec::new());
-    let mut encoder = JpegEncoder::new_with_quality(&mut jpeg, 84);
-    encoder
-        .encode_image(&thumb)
-        .map_err(|err| format!("缩略图生成失败：{err}"))?;
+    JpegEncoder::new_with_quality(&mut jpeg, 78)
+        .encode_image(&image::DynamicImage::ImageRgba8(thumb))
+        .map_err(|err| format!("缩略图编码失败：{err}"))?;
 
     Ok(PhotoPreviewRecord {
         thumbnail_data_url: format!(
@@ -208,6 +227,17 @@ fn build_preview(path: &Path) -> Result<PhotoPreviewRecord, String> {
         width,
         height,
     })
+}
+
+fn thumbnail_dims(w: u32, h: u32, max: u32) -> (u32, u32) {
+    if w <= max && h <= max {
+        return (w, h);
+    }
+    if w >= h {
+        (max, ((h as f64 / w as f64) * max as f64).round().max(1.0) as u32)
+    } else {
+        (((w as f64 / h as f64) * max as f64).round().max(1.0) as u32, max)
+    }
 }
 
 fn ensure_supported(path: &Path) -> Result<(), String> {
