@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     fs::File,
     io::BufWriter,
-    path::{Path, PathBuf},
+    path::Path,
     sync::{Mutex, OnceLock},
 };
 
@@ -16,7 +16,8 @@ use serde::Deserialize;
 use crate::commands::photos::ExportSinglePhotoRequest;
 use crate::exif::{brand, read_exif, CameraInfo, ExifData, GpsInfo};
 use crate::images::decode_image;
-use crate::render::layout_spec::{logo_catalog, watermark_layout_spec};
+use crate::render::layout_spec::watermark_layout_spec;
+use crate::render::logo_assets::embedded_logos;
 use crate::render::text::TextRenderer;
 
 // ── EXIF types (deserialized from frontend) ─────────────────────────────────
@@ -824,23 +825,23 @@ fn load_logo_rgba(
     } else {
         frame.logo_variant.trim().to_ascii_lowercase()
     };
-    let path = resolve_logo_asset_path(&key, &variant)?;
-    cached_svg_logo(&path)
+    resolve_logo_svg_bytes(&key, &variant).and_then(cached_svg_logo)
 }
 
-fn cached_svg_logo(path: &Path) -> Option<RgbaImage> {
-    static LOGO_CACHE: OnceLock<Mutex<HashMap<PathBuf, RgbaImage>>> = OnceLock::new();
+fn cached_svg_logo(svg_bytes: &'static [u8]) -> Option<RgbaImage> {
+    static LOGO_CACHE: OnceLock<Mutex<HashMap<usize, RgbaImage>>> = OnceLock::new();
     let cache = LOGO_CACHE.get_or_init(|| Mutex::new(HashMap::new()));
+    let key = svg_bytes.as_ptr() as usize;
 
     if let Ok(guard) = cache.lock() {
-        if let Some(image) = guard.get(path) {
+        if let Some(image) = guard.get(&key) {
             return Some(image.clone());
         }
     }
 
-    let image = render_svg_logo(path).ok()?;
+    let image = render_svg_logo(svg_bytes).ok()?;
     if let Ok(mut guard) = cache.lock() {
-        guard.insert(path.to_path_buf(), image.clone());
+        guard.insert(key, image.clone());
     }
     Some(image)
 }
@@ -856,55 +857,35 @@ fn infer_logo_key(make: &str) -> Option<String> {
     }
 }
 
-fn resolve_logo_asset_path(key: &str, variant: &str) -> Option<PathBuf> {
-    let catalog = logo_catalog();
-    let lookup_keys = logo_lookup_keys(key);
-    let base = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()?
-        .join("public");
+fn resolve_logo_svg_bytes(key: &str, variant: &str) -> Option<&'static [u8]> {
+    static LOGOS: OnceLock<HashMap<(&'static str, &'static str), &'static [u8]>> = OnceLock::new();
+    let logos = LOGOS.get_or_init(embedded_logos);
 
-    for candidate_key in &lookup_keys {
-        let Some(entry) = catalog.get(candidate_key.as_str()) else {
-            continue;
-        };
-        if let Some(asset) = entry.get(variant) {
-            return Some(base.join(asset.trim_start_matches('/')));
+    let lookup_keys: &[&str] = match key {
+        "panasonic" => &["panasonic", "lumix"],
+        "sony" => &["sony", "sonyalpha"],
+        _ => &[key],
+    };
+    let fallbacks = ["original", "black", "white", "icon-original", "icon-black", "icon-white"];
+
+    for &k in lookup_keys {
+        if let Some(&bytes) = logos.get(&(k, variant)) {
+            return Some(bytes);
         }
     }
-
-    for candidate_key in &lookup_keys {
-        let Some(entry) = catalog.get(candidate_key.as_str()) else {
-            continue;
-        };
-        for fallback in [
-            "original",
-            "black",
-            "white",
-            "icon-original",
-            "icon-black",
-            "icon-white",
-        ] {
-            if let Some(asset) = entry.get(fallback) {
-                return Some(base.join(asset.trim_start_matches('/')));
+    for &k in lookup_keys {
+        for &fb in &fallbacks {
+            if let Some(&bytes) = logos.get(&(k, fb)) {
+                return Some(bytes);
             }
         }
     }
-
     None
 }
 
-fn logo_lookup_keys(key: &str) -> Vec<String> {
-    match key {
-        "panasonic" => vec!["panasonic".into(), "lumix".into()],
-        "sony" => vec!["sony".into(), "sonyalpha".into()],
-        _ => vec![key.to_string()],
-    }
-}
-
-fn render_svg_logo(path: &Path) -> Result<RgbaImage, String> {
-    let svg = std::fs::read(path).map_err(|e| format!("读取 Logo 失败：{e}"))?;
+fn render_svg_logo(svg_bytes: &[u8]) -> Result<RgbaImage, String> {
     let options = usvg::Options::default();
-    let tree = usvg::Tree::from_data(&svg, &options).map_err(|e| format!("解析 SVG 失败：{e}"))?;
+    let tree = usvg::Tree::from_data(svg_bytes, &options).map_err(|e| format!("解析 SVG 失败：{e}"))?;
     let size = tree.size().to_int_size();
     let mut pixmap = tiny_skia::Pixmap::new(size.width(), size.height())
         .ok_or_else(|| "创建 Logo 画布失败".to_string())?;
