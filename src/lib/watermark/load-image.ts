@@ -1,3 +1,26 @@
+import { getLogoSvg } from "@/lib/tauri/logo";
+
+/// Load a logo via the Tauri command so SVG bytes come from embedded assets
+/// rather than the asset server — bypassing the Windows WebView2 SVG MIME bug.
+export async function loadLogoImage(
+  key: string,
+  variant: string,
+): Promise<HTMLImageElement | null> {
+  try {
+    const svgText = await getLogoSvg(key, variant);
+    if (!svgText) return null;
+    const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`;
+    return await new Promise<HTMLImageElement>((resolve, reject) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error("logo 加载失败"));
+      image.src = src;
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function loadImage(src: string): Promise<HTMLImageElement> {
   // On Windows WebView2, SVG files loaded via <img src> can fail due to MIME
   // type or protocol restrictions. Fetch the SVG text and convert to a data URL

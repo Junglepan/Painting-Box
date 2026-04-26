@@ -735,6 +735,21 @@ export function resolvePreviewLogo(
   ).asset;
 }
 
+export function resolvePreviewLogoSelection(
+  exif: ExifData,
+  frameParams: FrameParams,
+  config: TemplateConfig,
+) {
+  if (!config.showLogo) return null;
+  const selection = resolveLogoSelection(
+    frameParams.logoKey,
+    frameParams.logoVariant,
+    exif.camera.make,
+  );
+  if (!selection.key) return null;
+  return selection;
+}
+
 function calcLogoInline(image: HTMLImageElement, targetHeight: number) {
   const bounds = getLogoContentBounds(image);
   const ratio = bounds.sw / Math.max(1, bounds.sh);

@@ -3,8 +3,8 @@ import { usePhotoStore } from "@/stores/photo-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { EMPTY_EXIF, effectiveShowWatermark } from "@/stores/types";
 import type { ExifData } from "@/stores/types";
-import { drawClassicBottomPreview, resolvePreviewLogo } from "@/lib/watermark/classic-bottom";
-import { loadImage } from "@/lib/watermark/load-image";
+import { drawClassicBottomPreview, resolvePreviewLogoSelection } from "@/lib/watermark/classic-bottom";
+import { loadImage, loadLogoImage } from "@/lib/watermark/load-image";
 
 // Branding data used when no photo is selected.
 const MOCK_EXIF: ExifData = {
@@ -70,12 +70,12 @@ export function PreviewPane() {
         showLogo: true,
       };
       const mockFrameParams = { ...frameParams, logoKey: "painting-box", logoVariant: "original" };
-      const logoSrc = resolvePreviewLogo(MOCK_EXIF, mockFrameParams, mockConfig);
+      const logoSelection = resolvePreviewLogoSelection(MOCK_EXIF, mockFrameParams, mockConfig);
       let cancelled = false;
 
       void Promise.all([
         loadImage(MOCK_IMAGE_SRC),
-        logoSrc ? loadImage(logoSrc).catch(() => null) : Promise.resolve(null),
+        logoSelection ? loadLogoImage(logoSelection.key, logoSelection.variant) : Promise.resolve(null),
       ]).then(([image, logoImage]) => {
         if (cancelled) return;
         drawClassicBottomPreview(
@@ -108,7 +108,7 @@ export function PreviewPane() {
       ...config,
       showWatermark: effectiveShowWatermark(selected, config.showWatermark),
     };
-    const logoSrc = resolvePreviewLogo(
+    const logoSelection = resolvePreviewLogoSelection(
       selected.exif ?? EMPTY_EXIF,
       frameParams,
       effectiveConfig,
@@ -117,7 +117,7 @@ export function PreviewPane() {
     let cancelled = false;
     void Promise.all([
       loadImage(thumbnailDataUrl),
-      logoSrc ? loadImage(logoSrc).catch(() => null) : Promise.resolve(null),
+      logoSelection ? loadLogoImage(logoSelection.key, logoSelection.variant) : Promise.resolve(null),
     ]).then(([image, logoImage]) => {
       if (cancelled) return;
       drawClassicBottomPreview(

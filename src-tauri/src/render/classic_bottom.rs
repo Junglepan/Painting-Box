@@ -857,7 +857,7 @@ fn infer_logo_key(make: &str) -> Option<String> {
     }
 }
 
-fn resolve_logo_svg_bytes(key: &str, variant: &str) -> Option<&'static [u8]> {
+pub fn resolve_logo_svg_bytes(key: &str, variant: &str) -> Option<&'static [u8]> {
     static LOGOS: OnceLock<HashMap<(&'static str, &'static str), &'static [u8]>> = OnceLock::new();
     let logos = LOGOS.get_or_init(embedded_logos);
 

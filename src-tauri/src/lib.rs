@@ -9,6 +9,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .invoke_handler(tauri::generate_handler![
+            commands::logos::get_logo_svg,
             commands::photos::load_photos,
             commands::photos::load_photo_exif,
             commands::photos::load_photo_preview,
