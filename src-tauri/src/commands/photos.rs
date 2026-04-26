@@ -197,7 +197,7 @@ fn build_preview(path: &Path) -> Result<PhotoPreviewRecord, String> {
     let width = image.width();
     let height = image.height();
 
-    let (thumb_w, thumb_h) = thumbnail_dims(width, height, 512);
+    let (thumb_w, thumb_h) = thumbnail_dims(width, height, 1200);
     let src = image.into_rgba8();
 
     let src_ref = ImageRef::new(width, height, src.as_raw(), PixelType::U8x4)
@@ -212,7 +212,7 @@ fn build_preview(path: &Path) -> Result<PhotoPreviewRecord, String> {
     let thumb = image::RgbaImage::from_raw(thumb_w, thumb_h, dst.into_vec())
         .ok_or_else(|| "缩略图转换失败".to_string())?;
 
-    let jpeg = turbojpeg::compress_image(&thumb, 78, turbojpeg::Subsamp::Sub2x2)
+    let jpeg = turbojpeg::compress_image(&thumb, 85, turbojpeg::Subsamp::Sub2x2)
         .map_err(|err| format!("缩略图编码失败：{err}"))?;
 
     Ok(PhotoPreviewRecord {
