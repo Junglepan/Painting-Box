@@ -9,7 +9,7 @@ export async function loadLogoImage(
   try {
     const svgText = await getLogoSvg(key, variant);
     if (!svgText) return null;
-    const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgText)}`;
+    const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(ensureSvgDimensions(svgText))}`;
     return await new Promise<HTMLImageElement>((resolve, reject) => {
       const image = new Image();
       image.onload = () => resolve(image);
@@ -35,6 +35,15 @@ export async function loadImage(src: string): Promise<HTMLImageElement> {
     image.onerror = () => reject(new Error("图片加载失败"));
     image.src = resolvedSrc;
   });
+}
+
+// SVGs from Adobe Illustrator often have viewBox but no width/height.
+// WebView2 on Windows renders them as 0x0 without explicit dimensions.
+function ensureSvgDimensions(svg: string): string {
+  if (/\bwidth\s*=/.test(svg)) return svg;
+  const match = svg.match(/viewBox="[^"]*\s+([0-9.]+)\s+([0-9.]+)"/);
+  if (!match) return svg;
+  return svg.replace("<svg", `<svg width="${match[1]}" height="${match[2]}"`);
 }
 
 async function svgToDataUrl(src: string): Promise<string> {
