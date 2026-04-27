@@ -1,19 +1,18 @@
 import type { TemplateKind } from "@/stores/types";
+import {
+  TEMPLATE_REGISTRY,
+  type TemplateLayoutMode,
+  type WatermarkPlacement,
+} from "./template-registry";
 
-export type WatermarkPlacement = "center" | "corner-bottom-right";
-export type TemplateLayoutMode = "bottom-bar" | "corner-overlay";
+export type { TemplateLayoutMode, WatermarkPlacement };
 
 type TemplateLayout = {
   mode: TemplateLayoutMode;
   placement: WatermarkPlacement;
 };
 
-const TEMPLATE_LAYOUTS: Record<TemplateKind, TemplateLayout> = {
-  "classic-bottom": { mode: "bottom-bar", placement: "center" },
-  polaroid: { mode: "bottom-bar", placement: "center" },
-  "minimal-corner": { mode: "bottom-bar", placement: "corner-bottom-right" },
-};
-
 export function getTemplateLayout(kind: TemplateKind): TemplateLayout {
-  return TEMPLATE_LAYOUTS[kind];
+  const entry = TEMPLATE_REGISTRY[kind];
+  return { mode: entry.mode, placement: entry.placement };
 }

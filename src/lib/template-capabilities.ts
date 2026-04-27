@@ -1,18 +1,8 @@
+import { TEMPLATE_REGISTRY } from "@/lib/watermark/template-registry";
 import type { FrameParams, TemplateConfig, TemplateKind } from "@/stores/types";
 
-const ALL_DISPLAY_FIELDS: (keyof TemplateConfig)[] = [
-  "showLogo",
-  "showCamera",
-  "showLens",
-  "showParams",
-];
-
-const TEMPLATE_DISPLAY_FIELDS: Partial<Record<TemplateKind, (keyof TemplateConfig)[]>> = {
-  "minimal-corner": ["showLogo"],
-};
-
 export function getTemplateDisplayFields(kind: TemplateKind) {
-  return TEMPLATE_DISPLAY_FIELDS[kind] ?? ALL_DISPLAY_FIELDS;
+  return TEMPLATE_REGISTRY[kind].displayFields;
 }
 
 export function isTemplateDisplayFieldFixed(
@@ -26,17 +16,9 @@ export function applyTemplateConfigConstraints(
   kind: TemplateKind,
   config: TemplateConfig,
 ): TemplateConfig {
-  if (kind === "minimal-corner") {
-    return {
-      ...config,
-      showLogo: true,
-      showCamera: false,
-      showLens: false,
-      showParams: false,
-    };
-  }
-
-  return config;
+  const locks = TEMPLATE_REGISTRY[kind].configLocks;
+  if (!locks) return config;
+  return { ...config, ...locks };
 }
 
 export function applyTemplateFrameConstraints(frameParams: FrameParams): FrameParams {

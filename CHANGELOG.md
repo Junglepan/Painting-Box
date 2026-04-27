@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+### 重构
+- **模板元数据集中到注册表**：新增 `src/lib/watermark/template-registry.ts` 作为模板配置单一真相源（包含 `mode/placement/exposedInLibrary/displayFields/configLocks/liftLogoOnly`），`TEMPLATE_LIBRARY`、`getTemplateLayout`、`getTemplateDisplayFields`、`applyTemplateConfigConstraints`、`shouldLiftLogoOnlyWatermark` 全部改为派生自 registry。新增模板的成本由"散改 4 处文件"降为"在 registry 加一条"。前端渲染算法与 Rust 导出端零改动，像素输出保持完全一致。
+
 ## [0.1.0] - 2026-04-25
 
 ### 功能

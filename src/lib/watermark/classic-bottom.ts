@@ -3,6 +3,7 @@ import { resolveLogoSelection } from "@/lib/exif/logo";
 import FONT_MAPPING from "@/shared/font-mapping.json";
 import type { ExifData, FrameParams, TemplateConfig, TemplateKind } from "@/stores/types";
 import { getTemplateLayout } from "./template-layout";
+import { TEMPLATE_REGISTRY } from "./template-registry";
 import { WATERMARK_LAYOUT_SPEC } from "./layout-spec";
 
 type PreviewData = {
@@ -455,7 +456,7 @@ export function shouldLiftLogoOnlyWatermark(
   templateKind: TemplateKind,
   logoOnlyWatermark: boolean,
 ) {
-  return logoOnlyWatermark && WATERMARK_LAYOUT_SPEC.logoOnlyLiftTemplates.includes(templateKind);
+  return logoOnlyWatermark && TEMPLATE_REGISTRY[templateKind].liftLogoOnly;
 }
 
 type WatermarkBlockTopArgs = {
