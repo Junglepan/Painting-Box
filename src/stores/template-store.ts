@@ -112,6 +112,33 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       showParams: false,
     },
   ),
+  magazine: createTemplateBase(
+    {
+      background: "white",
+      bgColor: "#ffffff",
+      textColor: "#1f2937",
+      dividerShow: false,
+      innerRadius: 0,
+      outerRadius: 0,
+      photoBorder: 0,
+      infoBarHeight: 80,
+      mainImageWidthRatio: 85,
+      minTopBottomMargin: 2,
+      fontSize: 11,
+      logoSize: 14,
+      logoGap: 8,
+      shadow: true,
+      shadowBlur: 18,
+      shadowOffsetY: 2,
+      shadowOpacity: 14,
+    },
+    {
+      showLogo: true,
+      showCamera: true,
+      showLens: true,
+      showParams: true,
+    },
+  ),
   "minimal-corner": createTemplateBase(
     {
       background: "white",

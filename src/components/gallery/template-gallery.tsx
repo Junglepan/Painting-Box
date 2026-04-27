@@ -107,6 +107,17 @@ function TemplateThumbnail({ kind }: { kind: TemplateKind }) {
           <div className="absolute bottom-1 right-1 h-1 w-3 rounded-sm bg-white/80" />
         </div>
       );
+    case "magazine":
+      return (
+        <div className="flex h-full w-full flex-col bg-muted">
+          <div className="flex-1 bg-muted-foreground/20" />
+          <div className="flex h-3 items-center gap-0.5 bg-card px-0.5">
+            <div className="h-1 flex-1 rounded-sm bg-muted-foreground/40" />
+            <div className="h-2 w-px bg-muted-foreground/40" />
+            <div className="h-1 flex-1 rounded-sm bg-muted-foreground/40" />
+          </div>
+        </div>
+      );
     default:
       return <div className="h-full w-full bg-muted" />;
   }

@@ -79,7 +79,8 @@ export type LoadPhotosResponse = {
 export type TemplateKind =
   | "classic-bottom"
   | "polaroid"
-  | "minimal-corner";
+  | "minimal-corner"
+  | "magazine";
 
 export type TemplateConfig = {
   showWatermark: boolean;

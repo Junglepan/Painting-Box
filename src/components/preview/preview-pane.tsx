@@ -4,7 +4,10 @@ import { useTemplateStore } from "@/stores/template-store";
 import { EMPTY_EXIF, effectiveShowWatermark } from "@/stores/types";
 import type { ExifData } from "@/stores/types";
 import { drawClassicBottomPreview, resolvePreviewLogoSelection } from "@/lib/watermark/classic-bottom";
+import { drawMagazinePreview } from "@/lib/watermark/magazine";
 import { loadImage, loadLogoImage } from "@/lib/watermark/load-image";
+import type { TemplateKind } from "@/stores/types";
+import type { FrameParams, TemplateConfig } from "@/stores/types";
 
 // Branding data used when no photo is selected.
 const MOCK_EXIF: ExifData = {
@@ -78,15 +81,12 @@ export function PreviewPane() {
         logoSelection ? loadLogoImage(logoSelection.key, logoSelection.variant) : Promise.resolve(null),
       ]).then(([image, logoImage]) => {
         if (cancelled) return;
-        drawClassicBottomPreview(
-          canvas,
-          image,
-          logoImage,
-          { width: MOCK_W, height: MOCK_H, src: "", exif: MOCK_EXIF },
-          mockFrameParams,
-          mockConfig,
-          currentKind,
-        );
+        dispatchPreview(currentKind, canvas, image, logoImage, {
+          width: MOCK_W,
+          height: MOCK_H,
+          src: "",
+          exif: MOCK_EXIF,
+        }, mockFrameParams, mockConfig);
         fitCanvasToContainer();
       });
 
@@ -120,15 +120,12 @@ export function PreviewPane() {
       logoSelection ? loadLogoImage(logoSelection.key, logoSelection.variant) : Promise.resolve(null),
     ]).then(([image, logoImage]) => {
       if (cancelled) return;
-      drawClassicBottomPreview(
-        canvas,
-        image,
-        logoImage,
-        { width, height, src: thumbnailDataUrl, exif: selected.exif ?? EMPTY_EXIF },
-        frameParams,
-        effectiveConfig,
-        currentKind,
-      );
+      dispatchPreview(currentKind, canvas, image, logoImage, {
+        width,
+        height,
+        src: thumbnailDataUrl,
+        exif: selected.exif ?? EMPTY_EXIF,
+      }, frameParams, effectiveConfig);
       fitCanvasToContainer();
     });
 
@@ -173,4 +170,20 @@ export function PreviewPane() {
       />
     </div>
   );
+}
+
+function dispatchPreview(
+  kind: TemplateKind,
+  canvas: HTMLCanvasElement,
+  image: HTMLImageElement,
+  logoImage: HTMLImageElement | null,
+  photo: { width: number; height: number; src: string; exif: ExifData },
+  frameParams: FrameParams,
+  config: TemplateConfig,
+) {
+  if (kind === "magazine") {
+    drawMagazinePreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  drawClassicBottomPreview(canvas, image, logoImage, photo, frameParams, config, kind);
 }

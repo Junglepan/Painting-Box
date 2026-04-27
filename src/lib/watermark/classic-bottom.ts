@@ -706,14 +706,14 @@ function roundRect(
   ctx.closePath();
 }
 
-function backgroundFill(frameParams: FrameParams) {
+export function backgroundFill(frameParams: FrameParams) {
   if (frameParams.background === "black") return "#111827";
   if (frameParams.background === "custom") return frameParams.bgColor;
   if (frameParams.background === "blur") return "#eef1f6";
   return "#ffffff";
 }
 
-function cleanDisplayText(value: string) {
+export function cleanDisplayText(value: string) {
   return value.trim().replace(/^"+|"+$/g, "").trim();
 }
 

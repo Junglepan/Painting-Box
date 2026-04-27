@@ -5,10 +5,16 @@
 ## [Unreleased]
 
 ### 功能
+- **新增「杂志双栏」模板**：底栏左侧显示 Logo + 相机型号/镜头（左对齐），右侧显示拍摄参数（焦距、光圈、快门、ISO，右对齐）；参数单行显示不下时自动换为两行；中间可选竖向分割线；超长文本自动省略号截断。模板基础参数为白底、无圆角、80px 底栏高度、轻阴影。
+- **激活「宝丽来」模板**：之前已存在但隐藏的宝丽来模板正式开放，模板库中现共 **4 款**模板可选（经典底栏 / 宝丽来 / 杂志双栏 / 极简角标）。
 - **内置字体扩展**：新增 Playfair Display（英文衬线）、Bebas Neue（英文超粗无衬线）、Noto Sans SC（中文无衬线，GB2312 subset，6884 字）三款字体，均内置于应用二进制，跨平台一致渲染，无需依赖系统字体。字体选择器改为按「英文」/「中文」分组展示，共 6 款可选字体（英文 4 款 + 中文 2 款）。
+
+### 已知限制
+- **杂志双栏模板的导出暂用经典底栏渲染**：本次更新仅在前端预览实现了双栏布局，Rust 导出端的双栏渲染将在后续版本补齐。当前 magazine 模板导出时会按 classic-bottom 的单列居中方式渲染（功能可用，但视觉与预览不一致）。
 
 ### 重构
 - **模板元数据集中到注册表**：新增 `src/lib/watermark/template-registry.ts` 作为模板配置单一真相源（包含 `mode/placement/exposedInLibrary/displayFields/configLocks/liftLogoOnly`），`TEMPLATE_LIBRARY`、`getTemplateLayout`、`getTemplateDisplayFields`、`applyTemplateConfigConstraints`、`shouldLiftLogoOnlyWatermark` 全部改为派生自 registry。新增模板的成本由"散改 4 处文件"降为"在 registry 加一条"。前端渲染算法与 Rust 导出端零改动，像素输出保持完全一致。
+- **预览渲染器分发**：`PreviewPane` 改为按 `templateKind` 分发到不同的渲染函数（`drawMagazinePreview` 走双栏、其他模板走 `drawClassicBottomPreview`），为后续模板独立渲染器架构铺路。
 
 ## [0.1.0] - 2026-04-25
 
