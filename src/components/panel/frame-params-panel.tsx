@@ -56,6 +56,7 @@ const FONT_FAMILIES: { value: WatermarkFontFamily; label: string; group?: string
   { value: "playfair-display", label: "Playfair Display",   group: "英文" },
   { value: "bebas-neue",       label: "Bebas Neue",         group: "英文" },
   { value: "arial",            label: "Arial",              group: "英文" },
+  { value: "noto-sans-sc",     label: "Noto Sans SC（内置）", group: "中文" },
   { value: "pingfang-sc",      label: "PingFang SC",        group: "中文" },
 ];
 

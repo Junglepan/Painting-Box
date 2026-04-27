@@ -54,6 +54,14 @@
       }
     }
   },
+  "noto-sans-sc": {
+    "cssFamily": "\"Noto Sans SC\", \"PingFang SC\", \"Microsoft YaHei\", sans-serif",
+    "platformPaths": {
+      "macos": { "regular": [], "bold": [] },
+      "windows": { "regular": [], "bold": [] },
+      "linux": { "regular": [], "bold": [] }
+    }
+  },
   "playfair-display": {
     "cssFamily": "\"Playfair Display\", Georgia, serif",
     "platformPaths": {

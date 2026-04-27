@@ -19,9 +19,17 @@ fn main() {
         println!("cargo:rustc-cfg=bundled_bebas_neue");
     }
 
+    if fonts_dir.join("noto-sans-sc-regular.ttf").exists()
+        && fonts_dir.join("noto-sans-sc-bold.ttf").exists()
+    {
+        println!("cargo:rustc-cfg=bundled_noto_sans_sc");
+    }
+
     println!("cargo:rerun-if-changed=fonts/inter-regular.ttf");
     println!("cargo:rerun-if-changed=fonts/inter-bold.ttf");
     println!("cargo:rerun-if-changed=fonts/playfair-display-regular.ttf");
     println!("cargo:rerun-if-changed=fonts/playfair-display-bold.ttf");
     println!("cargo:rerun-if-changed=fonts/bebas-neue-regular.ttf");
+    println!("cargo:rerun-if-changed=fonts/noto-sans-sc-regular.ttf");
+    println!("cargo:rerun-if-changed=fonts/noto-sans-sc-bold.ttf");
 }

@@ -107,6 +107,7 @@ export type LogoColor = "original" | "black" | "white";
 export type LogoVariant = string;
 export type WatermarkFontFamily =
   | "inter"
+  | "noto-sans-sc"
   | "pingfang-sc"
   | "arial"
   | "playfair-display"

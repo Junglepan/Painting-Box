@@ -42,6 +42,9 @@ impl TextRenderer {
         if family == "bebas-neue" {
             return load_bundled_bebas_neue().or_else(load_bundled_inter);
         }
+        if family == "noto-sans-sc" {
+            return load_bundled_noto_sans_sc().or_else(load_bundled_inter);
+        }
         // Other families try their system fonts first, then use bundled Inter as last resort.
         if let Some(regular) = load_font(font_paths(family, false)) {
             // If bold path fails, reload regular as a substitute for bold.
@@ -244,6 +247,20 @@ fn load_bundled_bebas_neue() -> Option<TextRenderer> {
         Some(TextRenderer { regular, bold })
     }
     #[cfg(not(bundled_bebas_neue))]
+    None
+}
+
+fn load_bundled_noto_sans_sc() -> Option<TextRenderer> {
+    #[cfg(bundled_noto_sans_sc)]
+    {
+        const REGULAR: &[u8] = include_bytes!("../../fonts/noto-sans-sc-regular.ttf");
+        const BOLD: &[u8] = include_bytes!("../../fonts/noto-sans-sc-bold.ttf");
+        let regular = load_font_from_bytes(REGULAR)?;
+        let bold = load_font_from_bytes(BOLD)
+            .or_else(|| load_font_from_bytes(REGULAR))?;
+        Some(TextRenderer { regular, bold })
+    }
+    #[cfg(not(bundled_noto_sans_sc))]
     None
 }
 
