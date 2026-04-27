@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+### 功能
+- **内置英文字体扩展**：新增 Playfair Display（衬线、海报风格）和 Bebas Neue（超粗无衬线、杂志风格）两款字体，均内置于应用二进制，无需依赖系统字体，跨平台一致渲染。字体选择器改为按「英文」/「中文」分组展示，共 5 款可选字体。
+
 ### 重构
 - **模板元数据集中到注册表**：新增 `src/lib/watermark/template-registry.ts` 作为模板配置单一真相源（包含 `mode/placement/exposedInLibrary/displayFields/configLocks/liftLogoOnly`），`TEMPLATE_LIBRARY`、`getTemplateLayout`、`getTemplateDisplayFields`、`applyTemplateConfigConstraints`、`shouldLiftLogoOnlyWatermark` 全部改为派生自 registry。新增模板的成本由"散改 4 处文件"降为"在 registry 加一条"。前端渲染算法与 Rust 导出端零改动，像素输出保持完全一致。
 

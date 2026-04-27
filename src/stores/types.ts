@@ -105,7 +105,12 @@ export type CanvasOrientation = "landscape" | "portrait";
 export type FrameBackground = "white" | "black" | "blur" | "custom";
 export type LogoColor = "original" | "black" | "white";
 export type LogoVariant = string;
-export type WatermarkFontFamily = "inter" | "pingfang-sc" | "arial";
+export type WatermarkFontFamily =
+  | "inter"
+  | "pingfang-sc"
+  | "arial"
+  | "playfair-display"
+  | "bebas-neue";
 
 export type FrameParams = {
   // Layout

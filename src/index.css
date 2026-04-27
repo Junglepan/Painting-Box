@@ -20,6 +20,27 @@
   src: url("/fonts/inter-bold.woff2") format("woff2"),
        url("/fonts/inter-bold.ttf") format("truetype");
 }
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/playfair-display-regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Playfair Display";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/playfair-display-bold.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Bebas Neue";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/bebas-neue-regular.ttf") format("truetype");
+}
 
 @custom-variant dark (&:is(.dark *));
 

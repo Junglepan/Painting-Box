@@ -32,9 +32,15 @@ impl TextRenderer {
     }
 
     pub fn load(family: &str) -> Option<Self> {
-        // "inter" always uses the bundled font — never falls through to system paths.
+        // Bundled families use compile-time embedded fonts — no system paths needed.
         if family == "inter" {
             return load_bundled_inter();
+        }
+        if family == "playfair-display" {
+            return load_bundled_playfair_display().or_else(load_bundled_inter);
+        }
+        if family == "bebas-neue" {
+            return load_bundled_bebas_neue().or_else(load_bundled_inter);
         }
         // Other families try their system fonts first, then use bundled Inter as last resort.
         if let Some(regular) = load_font(font_paths(family, false)) {
@@ -200,19 +206,44 @@ fn font_paths(family: &str, bold: bool) -> Vec<&'static str> {
     paths
 }
 
-/// Returns a TextRenderer using the bundled Inter font, or None if not compiled in.
 fn load_bundled_inter() -> Option<TextRenderer> {
     #[cfg(bundled_inter)]
     {
         const INTER_REGULAR: &[u8] = include_bytes!("../../fonts/inter-regular.ttf");
         const INTER_BOLD: &[u8] = include_bytes!("../../fonts/inter-bold.ttf");
         let regular = load_font_from_bytes(INTER_REGULAR)?;
-        // INTER_REGULAR is compile-time embedded, so reloading it is safe.
         let bold = load_font_from_bytes(INTER_BOLD)
             .or_else(|| load_font_from_bytes(INTER_REGULAR))?;
         Some(TextRenderer { regular, bold })
     }
     #[cfg(not(bundled_inter))]
+    None
+}
+
+fn load_bundled_playfair_display() -> Option<TextRenderer> {
+    #[cfg(bundled_playfair_display)]
+    {
+        const REGULAR: &[u8] = include_bytes!("../../fonts/playfair-display-regular.ttf");
+        const BOLD: &[u8] = include_bytes!("../../fonts/playfair-display-bold.ttf");
+        let regular = load_font_from_bytes(REGULAR)?;
+        let bold = load_font_from_bytes(BOLD)
+            .or_else(|| load_font_from_bytes(REGULAR))?;
+        Some(TextRenderer { regular, bold })
+    }
+    #[cfg(not(bundled_playfair_display))]
+    None
+}
+
+fn load_bundled_bebas_neue() -> Option<TextRenderer> {
+    #[cfg(bundled_bebas_neue)]
+    {
+        // Bebas Neue is display-only with a single weight; use it for both regular and bold.
+        const REGULAR: &[u8] = include_bytes!("../../fonts/bebas-neue-regular.ttf");
+        let regular = load_font_from_bytes(REGULAR)?;
+        let bold = load_font_from_bytes(REGULAR)?;
+        Some(TextRenderer { regular, bold })
+    }
+    #[cfg(not(bundled_bebas_neue))]
     None
 }
 

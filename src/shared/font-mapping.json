@@ -54,6 +54,22 @@
       }
     }
   },
+  "playfair-display": {
+    "cssFamily": "\"Playfair Display\", Georgia, serif",
+    "platformPaths": {
+      "macos": { "regular": [], "bold": [] },
+      "windows": { "regular": [], "bold": [] },
+      "linux": { "regular": [], "bold": [] }
+    }
+  },
+  "bebas-neue": {
+    "cssFamily": "\"Bebas Neue\", \"Arial Narrow\", sans-serif",
+    "platformPaths": {
+      "macos": { "regular": [], "bold": [] },
+      "windows": { "regular": [], "bold": [] },
+      "linux": { "regular": [], "bold": [] }
+    }
+  },
   "arial": {
     "cssFamily": "Arial, \"Helvetica Neue\", sans-serif",
     "platformPaths": {

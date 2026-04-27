@@ -51,10 +51,12 @@ const BG_OPTIONS: { value: FrameBackground; label: string; swatch: string }[] =
     { value: "custom", label: "自定", swatch: "repeating-conic-gradient(#d7dce6 0 25%,#fff 0 50%) 0 0/8px 8px" },
   ];
 
-const FONT_FAMILIES: { value: WatermarkFontFamily; label: string }[] = [
-  { value: "inter", label: "Inter（内置）" },
-  { value: "pingfang-sc", label: "PingFang SC" },
-  { value: "arial", label: "Arial" },
+const FONT_FAMILIES: { value: WatermarkFontFamily; label: string; group?: string }[] = [
+  { value: "inter",            label: "Inter（内置）",      group: "英文" },
+  { value: "playfair-display", label: "Playfair Display",   group: "英文" },
+  { value: "bebas-neue",       label: "Bebas Neue",         group: "英文" },
+  { value: "arial",            label: "Arial",              group: "英文" },
+  { value: "pingfang-sc",      label: "PingFang SC",        group: "中文" },
 ];
 
 // All entries are landscape-first (w >= h); portrait toggle flips them.
@@ -657,10 +659,36 @@ function SelectRow({
 }: {
   label: string;
   value: string;
-  options: { value: string; label: string }[];
+  options: { value: string; label: string; group?: string }[];
   onChange: (value: string) => void;
   disabled?: boolean;
 }) {
+  const hasGroups = options.some((o) => o.group);
+
+  const renderOptions = () => {
+    if (!hasGroups) {
+      return options.map((option) => (
+        <option key={option.value || "auto"} value={option.value}>
+          {option.label}
+        </option>
+      ));
+    }
+    const groupOrder: string[] = [];
+    const grouped: Record<string, typeof options> = {};
+    for (const opt of options) {
+      const g = opt.group ?? "";
+      if (!grouped[g]) { grouped[g] = []; groupOrder.push(g); }
+      grouped[g].push(opt);
+    }
+    return groupOrder.map((g) => (
+      <optgroup key={g} label={g}>
+        {grouped[g].map((opt) => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </optgroup>
+    ));
+  };
+
   return (
     <div className="param-row">
       <span className="label-plain">{label}</span>
@@ -670,11 +698,7 @@ function SelectRow({
         onChange={(e) => onChange(e.target.value)}
         className="param-select"
       >
-        {options.map((option) => (
-          <option key={option.value || "auto"} value={option.value}>
-            {option.label}
-          </option>
-        ))}
+        {renderOptions()}
       </select>
     </div>
   );
