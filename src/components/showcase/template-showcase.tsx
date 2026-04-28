@@ -5,6 +5,11 @@ import { drawClassicBottomPreview, resolvePreviewLogoSelection } from "@/lib/wat
 import { drawMagazinePreview } from "@/lib/watermark/magazine";
 import { drawCinematicPreview } from "@/lib/watermark/cinematic";
 import { drawFilmStripPreview } from "@/lib/watermark/film-strip";
+import { drawXiaomiLeicaPreview } from "@/lib/watermark/xiaomi-leica";
+import { drawPhotoAlbumPreview } from "@/lib/watermark/photo-album";
+import { drawDateStampPreview } from "@/lib/watermark/date-stamp";
+import { drawSwissGridPreview } from "@/lib/watermark/swiss-grid";
+import { drawCropMarksPreview } from "@/lib/watermark/crop-marks";
 import { loadImage, loadLogoImage } from "@/lib/watermark/load-image";
 import { getTemplateDefaults } from "@/stores/template-store";
 import type {
@@ -149,6 +154,26 @@ function dispatch(
   }
   if (kind === "film-strip") {
     drawFilmStripPreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "xiaomi-leica") {
+    drawXiaomiLeicaPreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "photo-album") {
+    drawPhotoAlbumPreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "date-stamp") {
+    drawDateStampPreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "swiss-grid") {
+    drawSwissGridPreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "crop-marks") {
+    drawCropMarksPreview(canvas, image, logoImage, photo, frameParams, config);
     return;
   }
   drawClassicBottomPreview(canvas, image, logoImage, photo, frameParams, config, kind);

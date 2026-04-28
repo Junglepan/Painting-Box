@@ -83,7 +83,12 @@ export type TemplateKind =
   | "magazine"
   | "minimal-fullbleed"
   | "cinematic"
-  | "film-strip";
+  | "film-strip"
+  | "xiaomi-leica"
+  | "photo-album"
+  | "date-stamp"
+  | "swiss-grid"
+  | "crop-marks";
 
 export type DateFormat =
   | "YYYY-MM-DD"

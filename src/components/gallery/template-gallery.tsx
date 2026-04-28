@@ -157,6 +157,65 @@ function TemplateThumbnail({ kind }: { kind: TemplateKind }) {
           </div>
         </div>
       );
+    case "xiaomi-leica":
+      return (
+        <div className="flex h-full w-full flex-col">
+          <div className="flex-1 bg-muted-foreground/20" />
+          <div className="flex h-4 items-center gap-0 bg-white">
+            <div className="h-2.5 flex-1 px-1">
+              <div className="h-1 w-4/5 rounded-sm bg-muted-foreground/50" />
+            </div>
+            <div className="h-3 w-px bg-red-500" />
+            <div className="h-2.5 flex-1 px-1 flex justify-end">
+              <div className="h-1 w-3/5 rounded-sm bg-muted-foreground/40" />
+            </div>
+          </div>
+        </div>
+      );
+    case "photo-album":
+      return (
+        <div className="flex h-full w-full flex-col bg-[#ede2cc] p-1.5 pb-2">
+          <div className="relative flex-1 bg-[#fdfaf2] shadow-sm">
+            <div className="absolute inset-0 bg-muted-foreground/20" />
+            <div className="absolute left-0 top-0 h-1.5 w-1.5 border-l border-t border-[#241c14]" />
+            <div className="absolute right-0 top-0 h-1.5 w-1.5 border-r border-t border-[#241c14]" />
+            <div className="absolute bottom-0 left-0 h-1.5 w-1.5 border-b border-l border-[#241c14]" />
+            <div className="absolute bottom-0 right-0 h-1.5 w-1.5 border-b border-r border-[#241c14]" />
+          </div>
+          <div className="mt-1 h-1 w-2/5 rounded-sm bg-[#3b3024]/50" />
+        </div>
+      );
+    case "date-stamp":
+      return (
+        <div className="relative flex h-full w-full items-end justify-end bg-muted-foreground/20 p-1">
+          <span className="font-mono text-[6px] font-bold text-orange-500 opacity-90">'26  4  28</span>
+        </div>
+      );
+    case "swiss-grid":
+      return (
+        <div className="flex h-full w-full flex-col bg-white p-1.5">
+          <div className="flex-1 bg-muted-foreground/20" />
+          <div className="my-1 h-px bg-muted-foreground/60" />
+          <div className="flex items-end justify-between">
+            <div className="h-1.5 w-2/5 rounded-sm bg-muted-foreground/60" />
+            <div className="h-1 w-1/4 rounded-sm bg-muted-foreground/30" />
+          </div>
+        </div>
+      );
+    case "crop-marks":
+      return (
+        <div className="relative flex h-full w-full items-center justify-center bg-white">
+          <div className="absolute left-1 top-1 h-1.5 w-px bg-muted-foreground/60" />
+          <div className="absolute left-1 top-1 h-px w-1.5 bg-muted-foreground/60" />
+          <div className="absolute right-1 top-1 h-1.5 w-px bg-muted-foreground/60" />
+          <div className="absolute right-1 top-1 h-px w-1.5 bg-muted-foreground/60" />
+          <div className="absolute bottom-1 left-1 h-1.5 w-px bg-muted-foreground/60" />
+          <div className="absolute bottom-1 left-1 h-px w-1.5 bg-muted-foreground/60" />
+          <div className="absolute bottom-1 right-1 h-1.5 w-px bg-muted-foreground/60" />
+          <div className="absolute bottom-1 right-1 h-px w-1.5 bg-muted-foreground/60" />
+          <div className="h-3/5 w-3/5 bg-muted-foreground/20" />
+        </div>
+      );
     default:
       return <div className="h-full w-full bg-muted" />;
   }
