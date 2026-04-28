@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Camera, CheckCheck, Loader2 } from "lucide-react";
+import { Camera, CheckCheck, Globe, Loader2 } from "lucide-react";
 import { useExportStore } from "@/stores/export-store";
+import { isTauri } from "@/lib/env";
 import { cn } from "@/lib/utils";
 
 function ExportBadge() {
@@ -63,6 +64,12 @@ export function AppHeader() {
       </div>
 
       <div className="flex items-center gap-2">
+        {!isTauri() ? (
+          <span className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700 ring-1 ring-amber-200">
+            <Globe className="h-3 w-3" />
+            演示模式 · 仅预览
+          </span>
+        ) : null}
         <ExportBadge />
       </div>
     </header>

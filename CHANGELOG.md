@@ -5,6 +5,7 @@
 ## [Unreleased]
 
 ### 功能
+- **Web 演示模式**：通过 `bun run dev` / `bun run build` 产出的静态包可直接部署到任何静态站（Vercel / Cloudflare Pages / GitHub Pages）。Web 端检测到非 Tauri 环境后自动启用「演示模式」：以默认样图 + Painting Box 品牌 EXIF 渲染所有 7 款模板，可切换模板与参数实时查看效果；导入照片 / 导出图片 / 拖拽 / 打开目录等桌面专属功能在 web 下被守卫，header 右上角显示「演示模式 · 仅预览」标识。Logo SVG 在 web 下走 `public/brand-logos/` fetch 加载，无需 Rust 命令。
 - **三款新模板上线**：模板库新增「极简白底」（minimal-fullbleed，照片四周等宽白边 + 底部极小信息）、「电影黑边」（cinematic，上下黑边 letterbox + 下黑栏白色文字）、「胶片齿孔」（film-strip，上下窄黑带 + 左右程序绘制的齿孔图案 + 右下脚参数与日期），模板库现共 **7 款**模板可选。
 - **自定义文字行**：水印支持最多 2 行用户自定义文字（每行 32 字以内），可与 EXIF 信息并存。经典/宝丽来/杂志双栏模板均可用；杂志模板下自定义文字进入左栏，其他模板追加在末尾。
 - **拍摄日期显示**：水印显示项新增「日期」开关，开启后基于 EXIF DateTimeOriginal 渲染拍摄日期；日期格式可在「内容」分组中选择（`YYYY-MM-DD` / `YYYY/MM/DD` / `YYYY.MM.DD` / `DD MMM YYYY` / `MMM DD, YYYY`）。杂志模板下日期进入右栏（与参数同列），其他模板追加为单独一行。

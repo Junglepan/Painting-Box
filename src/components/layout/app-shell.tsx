@@ -9,6 +9,7 @@ import { AppHeader } from "@/components/layout/app-header";
 import { ResizeHandle } from "@/components/layout/resize-handle";
 import { isImportablePath } from "@/lib/import/accept";
 import { createImportedPhotos } from "@/lib/import/records";
+import { isTauri } from "@/lib/env";
 import { loadPhotoExif, loadPhotoPreview } from "@/lib/tauri/photos";
 import { usePhotoStore } from "@/stores/photo-store";
 
@@ -63,6 +64,7 @@ export function AppShell() {
   }, [listWidth]);
 
   useEffect(() => {
+    if (!isTauri()) return;
     let cancelled = false;
     let unlisten: (() => void) | undefined;
 
