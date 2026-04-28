@@ -252,6 +252,10 @@ function getTemplateBase(kind: TemplateKind): TemplateBaseState {
   };
 }
 
+export function getTemplateDefaults(kind: TemplateKind): TemplateBaseState {
+  return getTemplateBase(kind);
+}
+
 function clearSelectedPreset() {
   usePresetStore.getState().select(null);
 }
