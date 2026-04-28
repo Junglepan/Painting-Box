@@ -88,7 +88,12 @@ export type TemplateKind =
   | "photo-album"
   | "date-stamp"
   | "swiss-grid"
-  | "crop-marks";
+  | "crop-marks"
+  | "fujifilm-classic"
+  | "hasselblad"
+  | "darkroom-proof"
+  | "kodak-slide"
+  | "contact-sheet";
 
 export type DateFormat =
   | "YYYY-MM-DD"

@@ -12,6 +12,11 @@ import { drawPhotoAlbumPreview } from "@/lib/watermark/photo-album";
 import { drawDateStampPreview } from "@/lib/watermark/date-stamp";
 import { drawSwissGridPreview } from "@/lib/watermark/swiss-grid";
 import { drawCropMarksPreview } from "@/lib/watermark/crop-marks";
+import { drawFujifilmClassicPreview } from "@/lib/watermark/fujifilm-classic";
+import { drawHasselbladPreview } from "@/lib/watermark/hasselblad";
+import { drawDarkroomProofPreview } from "@/lib/watermark/darkroom-proof";
+import { drawKodakSlidePreview } from "@/lib/watermark/kodak-slide";
+import { drawContactSheetPreview } from "@/lib/watermark/contact-sheet";
 import { loadImage, loadLogoImage } from "@/lib/watermark/load-image";
 import type { TemplateKind } from "@/stores/types";
 import type { FrameParams, TemplateConfig } from "@/stores/types";
@@ -218,6 +223,26 @@ function dispatchPreview(
   }
   if (kind === "crop-marks") {
     drawCropMarksPreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "fujifilm-classic") {
+    drawFujifilmClassicPreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "hasselblad") {
+    drawHasselbladPreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "darkroom-proof") {
+    drawDarkroomProofPreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "kodak-slide") {
+    drawKodakSlidePreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "contact-sheet") {
+    drawContactSheetPreview(canvas, image, logoImage, photo, frameParams, config);
     return;
   }
   drawClassicBottomPreview(canvas, image, logoImage, photo, frameParams, config, kind);

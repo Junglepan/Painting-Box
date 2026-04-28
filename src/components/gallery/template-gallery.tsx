@@ -216,6 +216,70 @@ function TemplateThumbnail({ kind }: { kind: TemplateKind }) {
           <div className="h-3/5 w-3/5 bg-muted-foreground/20" />
         </div>
       );
+    case "fujifilm-classic":
+      return (
+        <div className="flex h-full w-full flex-col bg-[#f5f1e7]">
+          <div className="flex-1 bg-muted-foreground/20" />
+          <div className="flex h-4 items-center gap-0.5 px-1">
+            <div className="h-1 w-3 rounded-sm bg-[#00643f]" />
+            <div className="h-1.5 w-2 rounded-full bg-[#00643f]" />
+            <div className="ml-auto h-1 w-3 rounded-sm bg-muted-foreground/50" />
+          </div>
+        </div>
+      );
+    case "hasselblad":
+      return (
+        <div className="flex h-full w-full flex-col bg-black p-1">
+          <div className="flex-1 bg-muted-foreground/30" />
+          <div className="mt-1 flex h-3 items-center justify-between">
+            <div className="h-1 w-4 rounded-sm bg-[#ff8a00]" />
+            <div className="h-1 w-3 rounded-sm bg-white/70" />
+          </div>
+        </div>
+      );
+    case "darkroom-proof":
+      return (
+        <div className="flex h-full w-full flex-col bg-black p-0.5">
+          <div className="relative flex flex-1 flex-col bg-[#f5efe1] p-0.5">
+            <div className="flex-1 bg-muted-foreground/30" />
+            <span className="absolute bottom-0.5 left-0.5 -rotate-12 text-[5px] font-bold text-red-700">PROOF</span>
+            <div className="absolute bottom-0.5 right-0.5 h-0.5 w-3 bg-muted-foreground/60" />
+          </div>
+        </div>
+      );
+    case "kodak-slide":
+      return (
+        <div className="flex h-full w-full flex-col bg-[#f5f3ed] p-1">
+          <div className="flex flex-1 flex-col bg-[#fafaf6] p-0.5 shadow-sm">
+            <div className="flex-1 border border-black/40 bg-muted-foreground/25" />
+            <div className="mt-0.5 flex h-2 items-center bg-[#cb1f27] px-0.5">
+              <span className="text-[5px] font-extrabold text-white">KODACHROME</span>
+            </div>
+          </div>
+        </div>
+      );
+    case "contact-sheet":
+      return (
+        <div className="flex h-full w-full flex-col bg-black">
+          <div className="flex h-1.5 items-center justify-around px-0.5">
+            <div className="h-0.5 w-1 rounded-sm bg-white" />
+            <div className="h-0.5 w-1 rounded-sm bg-white" />
+            <div className="h-0.5 w-1 rounded-sm bg-white" />
+            <div className="h-0.5 w-1 rounded-sm bg-white" />
+            <div className="h-0.5 w-1 rounded-sm bg-white" />
+          </div>
+          <div className="flex flex-1 items-center justify-center px-1">
+            <div className="h-full w-full border border-white bg-muted-foreground/30" />
+          </div>
+          <div className="flex h-1.5 items-center justify-around px-0.5">
+            <div className="h-0.5 w-1 rounded-sm bg-white" />
+            <div className="h-0.5 w-1 rounded-sm bg-white" />
+            <div className="h-0.5 w-1 rounded-sm bg-white" />
+            <div className="h-0.5 w-1 rounded-sm bg-white" />
+            <div className="h-0.5 w-1 rounded-sm bg-white" />
+          </div>
+        </div>
+      );
     default:
       return <div className="h-full w-full bg-muted" />;
   }

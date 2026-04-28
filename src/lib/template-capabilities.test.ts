@@ -22,6 +22,7 @@ describe("template capabilities", () => {
       showCamera: false,
       showLens: false,
       showParams: false,
+      showDate: false,
     });
   });
 

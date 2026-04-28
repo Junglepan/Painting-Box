@@ -5,6 +5,7 @@
 ## [Unreleased]
 
 ### 功能
+- **再添 5 款相机文化向经典模板**：模板库新增「富士经典」（fujifilm-classic，米白底 + 绿色 FUJIFILM 字标 + 胶片模拟标签 CLASSIC CHROME）、「哈苏」（hasselblad，纯黑底 + 橙色 HASSELBLAD 字标，极简到只剩型号）、「暗房样片」（darkroom-proof，黑色相纸边 + 米白照片纸 + 红色旋转 PROOF 印章 + 打字机风元数据）、「柯达幻灯片」（kodak-slide，米黄背景 + 幻灯片白色装裱框 + KODACHROME 64 红色色条 + 黄色描边）、「接触印样」（contact-sheet，黑底 + 上下白色齿孔条 + 白色 1px 边框 + Courier 字体的 FRAME 24A 编号）。模板库现共 **17 款**模板可选，覆盖品牌致敬、暗房文化、胶片美学、印刷流程四大风格谱系。
 - **五款新经典模板上线**：模板库新增「小米 × Leica」（xiaomi-leica，白底双栏 + 红色竖线分隔 + 底部红色横线）、「老相册」（photo-album，奶黄色背景 + 四角暗三角装裱 + 草书风格题注）、「日期压印」（date-stamp，全幅照片 + 橙色 LCD 风格日期水印，模拟 90 年代傻瓜相机）、「瑞士网格」（swiss-grid，白底 + 照片下方细黑线 + 超粗型号字 + 右对齐参数）、「裁切标记」（crop-marks，白底 + 宽边距 + 四角 L 形裁切标记 + CMYK 色标条）。模板库现共 **12 款**模板可选。
 - **Web 模板展示页 + GitHub Pages 自动部署**：Web 模式下默认进入纯展示页 `TemplateShowcase`，以网格（移动端 1 列 / 平板 2 列 / 桌面 3 列）渲染全部 7 款模板，每张卡片用同一张样图 + Painting Box 品牌 EXIF 渲染，便于横向对比视觉差异。新增 `.github/workflows/deploy-pages.yml` workflow：master 分支推送时自动 `bun run build` 并通过 `actions/deploy-pages@v4` 发布到 GitHub Pages（`VITE_BASE_PATH=/<repo>/` 自动注入）。需要在仓库 Settings → Pages 中将 Source 设为「GitHub Actions」即可一键启用。访问 `?app=1` 可在 web 下切回完整编辑器视图（用于 QA）。
 - **Web 演示模式**：通过 `bun run dev` / `bun run build` 产出的静态包可直接部署到任何静态站（Vercel / Cloudflare Pages / GitHub Pages）。Web 端检测到非 Tauri 环境后自动启用「演示模式」：以默认样图 + Painting Box 品牌 EXIF 渲染所有 7 款模板，可切换模板与参数实时查看效果；导入照片 / 导出图片 / 拖拽 / 打开目录等桌面专属功能在 web 下被守卫，header 右上角显示「演示模式 · 仅预览」标识。Logo SVG 在 web 下走 `public/brand-logos/` fetch 加载，无需 Rust 命令。
