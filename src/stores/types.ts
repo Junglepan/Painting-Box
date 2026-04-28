@@ -80,7 +80,10 @@ export type TemplateKind =
   | "classic-bottom"
   | "polaroid"
   | "minimal-corner"
-  | "magazine";
+  | "magazine"
+  | "minimal-fullbleed"
+  | "cinematic"
+  | "film-strip";
 
 export type DateFormat =
   | "YYYY-MM-DD"

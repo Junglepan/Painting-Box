@@ -118,6 +118,45 @@ function TemplateThumbnail({ kind }: { kind: TemplateKind }) {
           </div>
         </div>
       );
+    case "minimal-fullbleed":
+      return (
+        <div className="flex h-full w-full flex-col bg-card p-1.5 pb-2">
+          <div className="flex-1 bg-muted-foreground/20" />
+          <div className="mt-1 h-0.5 w-3/5 self-center rounded-sm bg-muted-foreground/40" />
+        </div>
+      );
+    case "cinematic":
+      return (
+        <div className="flex h-full w-full flex-col bg-black">
+          <div className="h-2 bg-black" />
+          <div className="flex-1 bg-muted-foreground/30" />
+          <div className="flex h-3 items-center justify-between bg-black px-1">
+            <div className="h-1 w-3 rounded-sm bg-white/70" />
+            <div className="h-1 w-4 rounded-sm bg-white/40" />
+          </div>
+        </div>
+      );
+    case "film-strip":
+      return (
+        <div className="flex h-full w-full bg-[#0a0a0a]">
+          <div className="flex w-1.5 flex-col items-center justify-around py-1">
+            <div className="h-0.5 w-1 rounded-sm bg-white/80" />
+            <div className="h-0.5 w-1 rounded-sm bg-white/80" />
+            <div className="h-0.5 w-1 rounded-sm bg-white/80" />
+            <div className="h-0.5 w-1 rounded-sm bg-white/80" />
+          </div>
+          <div className="flex flex-1 flex-col py-1">
+            <div className="flex-1 bg-muted-foreground/30" />
+            <div className="mt-1 h-1 rounded-sm bg-white/30" />
+          </div>
+          <div className="flex w-1.5 flex-col items-center justify-around py-1">
+            <div className="h-0.5 w-1 rounded-sm bg-white/80" />
+            <div className="h-0.5 w-1 rounded-sm bg-white/80" />
+            <div className="h-0.5 w-1 rounded-sm bg-white/80" />
+            <div className="h-0.5 w-1 rounded-sm bg-white/80" />
+          </div>
+        </div>
+      );
     default:
       return <div className="h-full w-full bg-muted" />;
   }

@@ -9,7 +9,7 @@ import type {
   TemplateKind,
 } from "@/stores/types";
 import { CUSTOM_LINES_MAX } from "@/stores/types";
-import { getTemplateLayout } from "./template-layout";
+import { getTemplateLayout, type TemplateLayoutMode, type WatermarkPlacement } from "./template-layout";
 import { TEMPLATE_REGISTRY } from "./template-registry";
 import { WATERMARK_LAYOUT_SPEC } from "./layout-spec";
 
@@ -42,8 +42,8 @@ type PreviewGeometryMetrics = {
 };
 
 type PreviewRenderPlan = {
-  templateMode: "bottom-bar" | "corner-overlay";
-  placement: "center" | "corner-bottom-right";
+  templateMode: TemplateLayoutMode;
+  placement: WatermarkPlacement;
   canvasW: number;
   canvasH: number;
   infoBarHeight: number;
@@ -584,7 +584,7 @@ function sampleWatermarkLuminance(
   ctx: CanvasRenderingContext2D,
   args: {
     templateKind: TemplateKind;
-    templateMode: "bottom-bar" | "corner-overlay";
+    templateMode: TemplateLayoutMode;
     imageX: number;
     imageY: number;
     imageWidth: number;

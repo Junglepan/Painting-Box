@@ -1,6 +1,10 @@
 import type { TemplateConfig, TemplateKind } from "@/stores/types";
 
-export type TemplateLayoutMode = "bottom-bar" | "corner-overlay";
+export type TemplateLayoutMode =
+  | "bottom-bar"
+  | "corner-overlay"
+  | "letterbox"
+  | "film-strip";
 export type WatermarkPlacement = "center" | "corner-bottom-right";
 
 type ConfigLockKey = "showLogo" | "showCamera" | "showLens" | "showParams" | "showDate";
@@ -67,6 +71,39 @@ export const TEMPLATE_REGISTRY: Record<TemplateKind, TemplateRegistryEntry> = {
       showDate: false,
     },
     liftLogoOnly: true,
+  },
+  "minimal-fullbleed": {
+    kind: "minimal-fullbleed",
+    name: "极简白底",
+    desc: "四周宽白边，底部极小信息",
+    mode: "bottom-bar",
+    placement: "center",
+    exposedInLibrary: true,
+    displayFields: ["showLogo", "showCamera", "showLens", "showParams", "showDate"],
+    configLocks: null,
+    liftLogoOnly: false,
+  },
+  cinematic: {
+    kind: "cinematic",
+    name: "电影黑边",
+    desc: "上下黑边带，下栏白色文字",
+    mode: "letterbox",
+    placement: "center",
+    exposedInLibrary: true,
+    displayFields: ["showLogo", "showCamera", "showLens", "showParams", "showDate"],
+    configLocks: null,
+    liftLogoOnly: false,
+  },
+  "film-strip": {
+    kind: "film-strip",
+    name: "胶片齿孔",
+    desc: "上下黑带 + 左右齿孔",
+    mode: "film-strip",
+    placement: "center",
+    exposedInLibrary: true,
+    displayFields: ["showLogo", "showCamera", "showLens", "showParams", "showDate"],
+    configLocks: null,
+    liftLogoOnly: false,
   },
 };
 

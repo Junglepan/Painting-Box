@@ -5,6 +5,8 @@ import { EMPTY_EXIF, effectiveShowWatermark } from "@/stores/types";
 import type { ExifData } from "@/stores/types";
 import { drawClassicBottomPreview, resolvePreviewLogoSelection } from "@/lib/watermark/classic-bottom";
 import { drawMagazinePreview } from "@/lib/watermark/magazine";
+import { drawCinematicPreview } from "@/lib/watermark/cinematic";
+import { drawFilmStripPreview } from "@/lib/watermark/film-strip";
 import { loadImage, loadLogoImage } from "@/lib/watermark/load-image";
 import type { TemplateKind } from "@/stores/types";
 import type { FrameParams, TemplateConfig } from "@/stores/types";
@@ -183,6 +185,14 @@ function dispatchPreview(
 ) {
   if (kind === "magazine") {
     drawMagazinePreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "cinematic") {
+    drawCinematicPreview(canvas, image, logoImage, photo, frameParams, config);
+    return;
+  }
+  if (kind === "film-strip") {
+    drawFilmStripPreview(canvas, image, logoImage, photo, frameParams, config);
     return;
   }
   drawClassicBottomPreview(canvas, image, logoImage, photo, frameParams, config, kind);

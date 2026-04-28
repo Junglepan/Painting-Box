@@ -5,6 +5,7 @@
 ## [Unreleased]
 
 ### 功能
+- **三款新模板上线**：模板库新增「极简白底」（minimal-fullbleed，照片四周等宽白边 + 底部极小信息）、「电影黑边」（cinematic，上下黑边 letterbox + 下黑栏白色文字）、「胶片齿孔」（film-strip，上下窄黑带 + 左右程序绘制的齿孔图案 + 右下脚参数与日期），模板库现共 **7 款**模板可选。
 - **自定义文字行**：水印支持最多 2 行用户自定义文字（每行 32 字以内），可与 EXIF 信息并存。经典/宝丽来/杂志双栏模板均可用；杂志模板下自定义文字进入左栏，其他模板追加在末尾。
 - **拍摄日期显示**：水印显示项新增「日期」开关，开启后基于 EXIF DateTimeOriginal 渲染拍摄日期；日期格式可在「内容」分组中选择（`YYYY-MM-DD` / `YYYY/MM/DD` / `YYYY.MM.DD` / `DD MMM YYYY` / `MMM DD, YYYY`）。杂志模板下日期进入右栏（与参数同列），其他模板追加为单独一行。
 - **照片边框样式**：在「照片」分组下，当边框宽度 > 0 时新增「样式」（无 / 实线 / 虚线）和「颜色」选项，原本固定白色的照片边框现在可以自定义颜色或采用虚线。
@@ -16,6 +17,7 @@
 ### 已知限制
 - **杂志双栏模板的导出暂用经典底栏渲染**：本次更新仅在前端预览实现了双栏布局，Rust 导出端的双栏渲染将在后续版本补齐。当前 magazine 模板导出时会按 classic-bottom 的单列居中方式渲染（功能可用，但视觉与预览不一致）。
 - **新参数字段（自定义文字 / 日期 / 边框样式）暂仅在预览生效**：Rust 导出端会忽略这些新字段，导出图与预览存在一定偏差，将在后续版本补齐双端一致性。
+- **新增的三款模板（极简白底 / 电影黑边 / 胶片齿孔）暂仅在前端预览实现**：minimal-fullbleed 走 classic-bottom 渲染器，导出可用；cinematic / film-strip 是独立的 Canvas 渲染器，Rust 导出端尚未实现，导出会走 classic-bottom fallback，视觉与预览不一致。
 
 ### 重构
 - **模板元数据集中到注册表**：新增 `src/lib/watermark/template-registry.ts` 作为模板配置单一真相源（包含 `mode/placement/exposedInLibrary/displayFields/configLocks/liftLogoOnly`），`TEMPLATE_LIBRARY`、`getTemplateLayout`、`getTemplateDisplayFields`、`applyTemplateConfigConstraints`、`shouldLiftLogoOnlyWatermark` 全部改为派生自 registry。新增模板的成本由"散改 4 处文件"降为"在 registry 加一条"。前端渲染算法与 Rust 导出端零改动，像素输出保持完全一致。
