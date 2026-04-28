@@ -24,6 +24,9 @@ const defaultConfig: TemplateConfig = {
   showCamera: true,
   showLens: false,
   showParams: true,
+  showDate: false,
+  dateFormat: "YYYY-MM-DD",
+  customLines: [],
 };
 
 const defaultFrameParams: FrameParams = {
@@ -52,6 +55,8 @@ const defaultFrameParams: FrameParams = {
 
   photoScale: 100,
   photoBorder: 0,
+  photoBorderStyle: "solid",
+  photoBorderColor: "#ffffff",
 
   fontFamily: "inter",
   fontSize: 10,
@@ -252,11 +257,22 @@ export const useTemplateStore = create<TemplateState>()(
     }),
     {
       name: "painting-box-template-config",
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 3 && s.currentKind === "classic-white") {
           s.currentKind = "classic-bottom";
+        }
+        if (version < 5) {
+          const cfg = (s.config ?? {}) as Record<string, unknown>;
+          if (cfg.showDate === undefined) cfg.showDate = false;
+          if (cfg.dateFormat === undefined) cfg.dateFormat = "YYYY-MM-DD";
+          if (!Array.isArray(cfg.customLines)) cfg.customLines = [];
+          s.config = cfg;
+          const fp = (s.frameParams ?? {}) as Record<string, unknown>;
+          if (fp.photoBorderStyle === undefined) fp.photoBorderStyle = "solid";
+          if (fp.photoBorderColor === undefined) fp.photoBorderColor = "#ffffff";
+          s.frameParams = fp;
         }
         return s;
       },

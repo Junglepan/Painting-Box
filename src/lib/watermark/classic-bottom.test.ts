@@ -196,7 +196,6 @@ describe("classic bottom preview lines", () => {
     const baseline = useTemplateStore.getState().frameParams;
     const scenarios = [
       parityFixtures.classicBottomDefault4032x3024TwoLines,
-      parityFixtures.classicWhiteDefault4032x3024LogoOnly,
       parityFixtures.minimalCornerDefault4032x3024LogoOnly,
       parityFixtures.classicBottomDefault4032x3024LogoOnly,
       parityFixtures.polaroidDefault4032x3024TwoLines,

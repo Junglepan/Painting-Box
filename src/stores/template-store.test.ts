@@ -20,10 +20,14 @@ describe("template defaults", () => {
     useTemplateStore.getState().setKind("minimal-corner");
 
     expect(useTemplateStore.getState().config).toEqual({
+      showWatermark: true,
       showLogo: true,
       showCamera: false,
       showLens: false,
       showParams: false,
+      showDate: false,
+      dateFormat: "YYYY-MM-DD",
+      customLines: [],
     });
 
     useTemplateStore.getState().setKind("classic-bottom");

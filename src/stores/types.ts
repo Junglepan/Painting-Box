@@ -82,12 +82,33 @@ export type TemplateKind =
   | "minimal-corner"
   | "magazine";
 
+export type DateFormat =
+  | "YYYY-MM-DD"
+  | "YYYY/MM/DD"
+  | "YYYY.MM.DD"
+  | "DD MMM YYYY"
+  | "MMM DD, YYYY";
+
+export const DATE_FORMATS: DateFormat[] = [
+  "YYYY-MM-DD",
+  "YYYY/MM/DD",
+  "YYYY.MM.DD",
+  "DD MMM YYYY",
+  "MMM DD, YYYY",
+];
+
+export const CUSTOM_LINES_MAX = 2;
+export const CUSTOM_LINE_MAX_LENGTH = 32;
+
 export type TemplateConfig = {
   showWatermark: boolean;
   showLogo: boolean;
   showCamera: boolean;
   showLens: boolean;
   showParams: boolean;
+  showDate: boolean;
+  dateFormat: DateFormat;
+  customLines: string[];
   watermarkTemplate?: string[];
 };
 
@@ -104,6 +125,7 @@ export type CanvasRatio =
   | "2.35:1";
 export type CanvasOrientation = "landscape" | "portrait";
 export type FrameBackground = "white" | "black" | "blur" | "custom";
+export type PhotoBorderStyle = "none" | "solid" | "dashed";
 export type LogoColor = "original" | "black" | "white";
 export type LogoVariant = string;
 export type WatermarkFontFamily =
@@ -144,6 +166,8 @@ export type FrameParams = {
   // Photo
   photoScale: number;
   photoBorder: number;
+  photoBorderStyle: PhotoBorderStyle;
+  photoBorderColor: string;
 
   // Typography
   fontFamily: WatermarkFontFamily;

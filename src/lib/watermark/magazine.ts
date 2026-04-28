@@ -5,9 +5,11 @@ import {
   backgroundFill,
   buildPreviewRenderPlan,
   cleanDisplayText,
+  formatTakenAt,
   getPreviewFontFamily,
   resolvePreviewGeometryMetrics,
   resolveReadableTextAndDivider,
+  sanitizeCustomLines,
 } from "./classic-bottom";
 import { WATERMARK_LAYOUT_SPEC } from "./layout-spec";
 
@@ -47,6 +49,15 @@ export function buildMagazineColumns(
     if (exif.aperture) right.push(`f/${trimNumeric(exif.aperture)}`);
     if (exif.shutterSpeed) right.push(exif.shutterSpeed);
     if (exif.iso) right.push(`ISO ${exif.iso}`);
+  }
+
+  if (config.showDate) {
+    const date = formatTakenAt(exif.takenAt, config.dateFormat);
+    if (date) right.push(date);
+  }
+
+  for (const custom of sanitizeCustomLines(config.customLines)) {
+    left.push(custom);
   }
 
   return { left, right };
@@ -122,11 +133,17 @@ export function drawMagazinePreview(
   ctx.drawImage(image, plan.imageX, plan.imageY, plan.photoW, plan.photoH);
   ctx.restore();
 
-  if (frameParams.photoBorder > 0) {
-    ctx.strokeStyle = "#ffffff";
+  if (frameParams.photoBorder > 0 && frameParams.photoBorderStyle !== "none") {
+    ctx.save();
+    ctx.strokeStyle = frameParams.photoBorderColor || "#ffffff";
     ctx.lineWidth = geometry.photoBorder;
+    if (frameParams.photoBorderStyle === "dashed") {
+      const dash = Math.max(4, geometry.photoBorder * 2.4);
+      ctx.setLineDash([dash, dash * 0.6]);
+    }
     roundRect(ctx, plan.imageX, plan.imageY, plan.photoW, plan.photoH, geometry.innerRadius);
     ctx.stroke();
+    ctx.restore();
   }
 
   if (!watermarkActive || plan.infoBarHeight <= 0) return;

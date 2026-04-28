@@ -3,7 +3,7 @@ import type { TemplateConfig, TemplateKind } from "@/stores/types";
 export type TemplateLayoutMode = "bottom-bar" | "corner-overlay";
 export type WatermarkPlacement = "center" | "corner-bottom-right";
 
-type ConfigLockKey = "showLogo" | "showCamera" | "showLens" | "showParams";
+type ConfigLockKey = "showLogo" | "showCamera" | "showLens" | "showParams" | "showDate";
 
 export type TemplateRegistryEntry = {
   kind: TemplateKind;
@@ -25,7 +25,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateKind, TemplateRegistryEntry> = {
     mode: "bottom-bar",
     placement: "center",
     exposedInLibrary: true,
-    displayFields: ["showLogo", "showCamera", "showLens", "showParams"],
+    displayFields: ["showLogo", "showCamera", "showLens", "showParams", "showDate"],
     configLocks: null,
     liftLogoOnly: false,
   },
@@ -36,7 +36,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateKind, TemplateRegistryEntry> = {
     mode: "bottom-bar",
     placement: "center",
     exposedInLibrary: true,
-    displayFields: ["showLogo", "showCamera", "showLens", "showParams"],
+    displayFields: ["showLogo", "showCamera", "showLens", "showParams", "showDate"],
     configLocks: null,
     liftLogoOnly: false,
   },
@@ -47,7 +47,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateKind, TemplateRegistryEntry> = {
     mode: "bottom-bar",
     placement: "center",
     exposedInLibrary: true,
-    displayFields: ["showLogo", "showCamera", "showLens", "showParams"],
+    displayFields: ["showLogo", "showCamera", "showLens", "showParams", "showDate"],
     configLocks: null,
     liftLogoOnly: false,
   },
@@ -64,6 +64,7 @@ export const TEMPLATE_REGISTRY: Record<TemplateKind, TemplateRegistryEntry> = {
       showCamera: false,
       showLens: false,
       showParams: false,
+      showDate: false,
     },
     liftLogoOnly: true,
   },

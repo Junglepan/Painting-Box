@@ -421,6 +421,25 @@
     @apply opacity-50;
   }
 
+  .param-text-input {
+    @apply h-7 w-full rounded-md px-2 text-[11px] text-foreground outline-none;
+    background: rgba(230, 234, 242, 0.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow:
+      inset 0 1px 2px rgba(17, 24, 39, 0.06),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.7);
+    transition: box-shadow 180ms var(--ease-apple),
+      background-color 180ms var(--ease-apple);
+  }
+  .param-text-input::placeholder {
+    @apply text-muted-foreground/55;
+  }
+  .param-text-input:focus {
+    @apply ring-2 ring-ring/50;
+    background: rgba(255, 255, 255, 0.72);
+  }
+
   /* 小 chip（toggle / 单选图标按钮）— 统一长款扁身 */
   .chip {
     @apply inline-flex h-[22px] min-w-[36px] items-center justify-center gap-1 rounded-full px-2.5 text-[10px] font-medium text-muted-foreground;

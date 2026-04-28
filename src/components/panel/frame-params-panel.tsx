@@ -4,12 +4,19 @@ import { useTemplateStore } from "@/stores/template-store";
 import type {
   CanvasOrientation,
   CanvasRatio,
+  DateFormat,
   ExifData,
   FrameBackground,
   FrameParams,
   LogoVariant,
+  PhotoBorderStyle,
   TemplateConfig,
   WatermarkFontFamily,
+} from "@/stores/types";
+import {
+  CUSTOM_LINES_MAX,
+  CUSTOM_LINE_MAX_LENGTH,
+  DATE_FORMATS,
 } from "@/stores/types";
 import { cn } from "@/lib/utils";
 import {
@@ -22,9 +29,11 @@ import { getTemplateDisplayFields } from "@/lib/template-capabilities";
 import {
   Aperture,
   Bold,
+  CalendarDays,
   Camera,
   ChevronDown,
   Eye,
+  FileText,
   Image as ImageIcon,
   Layout,
   Minus,
@@ -81,7 +90,18 @@ const FIELDS: {
   { key: "showCamera", icon: Camera, label: "机身" },
   { key: "showLens", icon: Aperture, label: "镜头" },
   { key: "showParams", icon: SquareDashed, label: "参数" },
+  { key: "showDate", icon: CalendarDays, label: "日期" },
 ];
+
+const BORDER_STYLES: { value: PhotoBorderStyle; label: string }[] = [
+  { value: "none", label: "无" },
+  { value: "solid", label: "实线" },
+  { value: "dashed", label: "虚线" },
+];
+
+const DATE_FORMAT_OPTIONS: { value: DateFormat; label: string }[] = DATE_FORMATS.map(
+  (value) => ({ value, label: value }),
+);
 
 type SectionId =
   | "layout"
@@ -91,7 +111,8 @@ type SectionId =
   | "type"
   | "logo"
   | "divider"
-  | "display";
+  | "display"
+  | "content";
 
 export function FrameParamsPanel() {
   const { currentKind, frameParams, setFrameParams, resetFrameParams, config, setConfig } =
@@ -113,7 +134,9 @@ export function FrameParamsPanel() {
     logo: false,
     divider: false,
     display: true,
+    content: false,
   });
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const toggle = (id: SectionId) =>
     setOpen((o) => ({ ...o, [id]: !o[id] }));
@@ -279,6 +302,67 @@ export function FrameParamsPanel() {
         </Section>
 
         <Section
+          id="display"
+          icon={Eye}
+          label="显示项"
+          open={open.display}
+          onToggle={toggle}
+        >
+          <div className="param-row mb-2">
+            <span className="label-plain">水印</span>
+            <Toggle
+              active={config.showWatermark}
+              onClick={() => setConfig({ showWatermark: !config.showWatermark })}
+            />
+          </div>
+          {config.showWatermark ? (
+            <div className="grid grid-cols-3 gap-1.5">
+              {FIELDS.filter((f) => displayFields.includes(f.key)).map((f) => {
+                const Icon = f.icon;
+                const active = Boolean(config[f.key]);
+                return (
+                  <button
+                    key={f.key}
+                    type="button"
+                    onClick={() => setConfig({ [f.key]: !active })}
+                    className={cn("chip", active && "chip-active")}
+                  >
+                    <Icon className="h-3 w-3" />
+                    <span>{f.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-[11px] text-muted-foreground/60">水印已关闭，导出将不含水印区域</p>
+          )}
+        </Section>
+
+        <Section
+          id="content"
+          icon={FileText}
+          label="内容"
+          open={open.content}
+          onToggle={toggle}
+        >
+          {displayFields.includes("showDate") && config.showDate ? (
+            <SelectRow
+              label="日期格式"
+              value={config.dateFormat}
+              options={DATE_FORMAT_OPTIONS}
+              onChange={(value) =>
+                setConfig({ dateFormat: value as DateFormat })
+              }
+            />
+          ) : null}
+          <CustomLinesEditor
+            lines={config.customLines}
+            onChange={(lines) => setConfig({ customLines: lines })}
+          />
+        </Section>
+
+        <AdvancedGroup open={advancedOpen} onToggle={() => setAdvancedOpen((v) => !v)}>
+        <Section
           id="shadow"
           icon={Sparkles}
           label="阴影"
@@ -330,12 +414,41 @@ export function FrameParamsPanel() {
           onToggle={toggle}
         >
           <SliderRow
-            hint="白边"
+            hint="边框"
             min={0}
             max={16}
             value={frameParams.photoBorder}
             onChange={(v) => set({ photoBorder: v })}
           />
+          {frameParams.photoBorder > 0 ? (
+            <>
+              <div className="param-row">
+                <span className="label-plain">样式</span>
+                <div className="flex gap-1">
+                  {BORDER_STYLES.map((s) => (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => set({ photoBorderStyle: s.value })}
+                      className={cn(
+                        "chip text-[10px]",
+                        frameParams.photoBorderStyle === s.value && "chip-active",
+                      )}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {frameParams.photoBorderStyle !== "none" ? (
+                <ColorRow
+                  label="颜色"
+                  value={frameParams.photoBorderColor}
+                  onChange={(v) => set({ photoBorderColor: v })}
+                />
+              ) : null}
+            </>
+          ) : null}
         </Section>
 
         <Section
@@ -446,50 +559,7 @@ export function FrameParamsPanel() {
             />
           ) : null}
         </Section>
-
-        <Section
-          id="display"
-          icon={Eye}
-          label="显示项"
-          open={open.display}
-          onToggle={toggle}
-        >
-          {/* Watermark master toggle — global, affects all photos */}
-          <div className="param-row mb-2">
-            <span className="label-plain">水印</span>
-            <Toggle
-              active={config.showWatermark}
-              onClick={() => setConfig({ showWatermark: !config.showWatermark })}
-            />
-          </div>
-          {config.showWatermark ? (
-            <div className="grid grid-cols-3 gap-1.5">
-              {FIELDS.filter((f) => displayFields.includes(f.key)).map((f) => {
-                const Icon = f.icon;
-                const active = config[f.key];
-                const fixed = false;
-                return (
-                  <button
-                    key={f.key}
-                    type="button"
-                    disabled={fixed}
-                    onClick={() => setConfig({ [f.key]: !active })}
-                    className={cn(
-                      "chip",
-                      active && "chip-active",
-                      fixed && "cursor-not-allowed opacity-80",
-                    )}
-                  >
-                    <Icon className="h-3 w-3" />
-                    <span>{f.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="text-[11px] text-muted-foreground/60">水印已关闭，导出将不含水印区域</p>
-          )}
-        </Section>
+        </AdvancedGroup>
 
         {selectedPhoto ? (
           <div className="border-t border-border/40 pt-4">
@@ -513,6 +583,72 @@ export function FrameParamsPanel() {
           </div>
         ) : null}
       </fieldset>
+    </div>
+  );
+}
+
+function AdvancedGroup({
+  open,
+  onToggle,
+  children,
+}: {
+  open: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-t border-border/40 pt-2">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between py-1.5 text-left"
+      >
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+          高级
+        </span>
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
+            open && "rotate-180 text-primary",
+          )}
+        />
+      </button>
+      {open ? <div>{children}</div> : null}
+    </div>
+  );
+}
+
+function CustomLinesEditor({
+  lines,
+  onChange,
+}: {
+  lines: string[];
+  onChange: (lines: string[]) => void;
+}) {
+  const safe = Array.isArray(lines) ? lines : [];
+  const slots = Array.from({ length: CUSTOM_LINES_MAX }, (_, i) => safe[i] ?? "");
+  const update = (index: number, value: string) => {
+    const next = slots.slice();
+    next[index] = value.slice(0, CUSTOM_LINE_MAX_LENGTH);
+    onChange(next.map((s) => s.trim()).filter(Boolean).length === 0 ? [] : next);
+  };
+  return (
+    <div className="space-y-1.5">
+      <span className="label-plain">自定义文字</span>
+      {slots.map((value, index) => (
+        <input
+          key={index}
+          type="text"
+          value={value}
+          maxLength={CUSTOM_LINE_MAX_LENGTH}
+          placeholder={index === 0 ? "例如：Shot on Leica" : "可选第二行"}
+          onChange={(e) => update(index, e.target.value)}
+          className="param-text-input"
+        />
+      ))}
+      <p className="text-[10px] text-muted-foreground/60">
+        最多 {CUSTOM_LINES_MAX} 行，每行 {CUSTOM_LINE_MAX_LENGTH} 字以内
+      </p>
     </div>
   );
 }

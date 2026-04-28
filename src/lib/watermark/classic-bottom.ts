@@ -1,7 +1,14 @@
 import { normalizeModel } from "@/lib/exif/brand";
 import { resolveLogoSelection } from "@/lib/exif/logo";
 import FONT_MAPPING from "@/shared/font-mapping.json";
-import type { ExifData, FrameParams, TemplateConfig, TemplateKind } from "@/stores/types";
+import type {
+  DateFormat,
+  ExifData,
+  FrameParams,
+  TemplateConfig,
+  TemplateKind,
+} from "@/stores/types";
+import { CUSTOM_LINES_MAX } from "@/stores/types";
 import { getTemplateLayout } from "./template-layout";
 import { TEMPLATE_REGISTRY } from "./template-registry";
 import { WATERMARK_LAYOUT_SPEC } from "./layout-spec";
@@ -277,9 +284,14 @@ export function drawClassicBottomPreview(
   ctx.drawImage(image, plan.imageX, plan.imageY, plan.photoW, plan.photoH);
   ctx.restore();
 
-  if (frameParams.photoBorder > 0) {
-    ctx.strokeStyle = "#ffffff";
+  if (frameParams.photoBorder > 0 && frameParams.photoBorderStyle !== "none") {
+    ctx.save();
+    ctx.strokeStyle = frameParams.photoBorderColor || "#ffffff";
     ctx.lineWidth = geometry.photoBorder;
+    if (frameParams.photoBorderStyle === "dashed") {
+      const dash = Math.max(4, geometry.photoBorder * 2.4);
+      ctx.setLineDash([dash, dash * 0.6]);
+    }
     roundRect(
       ctx,
       plan.imageX,
@@ -289,6 +301,7 @@ export function drawClassicBottomPreview(
       geometry.innerRadius,
     );
     ctx.stroke();
+    ctx.restore();
   }
 
   const left = plan.horizontalMargin;
@@ -444,7 +457,50 @@ export function buildPreviewLines(exif: ExifData, config: TemplateConfig) {
     if (params.length) lines.push(params.join(" "));
   }
 
+  if (config.showDate) {
+    const date = formatTakenAt(exif.takenAt, config.dateFormat);
+    if (date) lines.push(date);
+  }
+
+  for (const custom of sanitizeCustomLines(config.customLines)) {
+    lines.push(custom);
+  }
+
   return lines.filter(Boolean);
+}
+
+const MONTH_NAMES_SHORT = [
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+];
+
+export function formatTakenAt(takenAt: string, format: DateFormat): string {
+  if (!takenAt) return "";
+  // EXIF DateTimeOriginal is typically "YYYY:MM:DD HH:MM:SS"; tolerate other separators.
+  const match = takenAt.match(/^(\d{4})[-:.\/](\d{1,2})[-:.\/](\d{1,2})/);
+  if (!match) return "";
+  const year = match[1];
+  const monthNum = Number.parseInt(match[2], 10);
+  const month = String(monthNum).padStart(2, "0");
+  const day = match[3].padStart(2, "0");
+  if (monthNum < 1 || monthNum > 12) return "";
+  const monthShort = MONTH_NAMES_SHORT[monthNum - 1];
+  switch (format) {
+    case "YYYY-MM-DD":  return `${year}-${month}-${day}`;
+    case "YYYY/MM/DD":  return `${year}/${month}/${day}`;
+    case "YYYY.MM.DD":  return `${year}.${month}.${day}`;
+    case "DD MMM YYYY": return `${day} ${monthShort} ${year}`;
+    case "MMM DD, YYYY": return `${monthShort} ${day}, ${year}`;
+    default: return `${year}-${month}-${day}`;
+  }
+}
+
+export function sanitizeCustomLines(lines: string[] | undefined | null): string[] {
+  if (!Array.isArray(lines)) return [];
+  return lines
+    .slice(0, CUSTOM_LINES_MAX)
+    .map((line) => cleanDisplayText(typeof line === "string" ? line : ""))
+    .filter(Boolean);
 }
 
 export function buildRenderableLines(lines: string[], hasLogo: boolean) {
