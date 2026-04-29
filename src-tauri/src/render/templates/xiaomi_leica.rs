@@ -2,7 +2,7 @@ use image::{imageops::overlay, DynamicImage, Rgba, RgbaImage};
 
 use crate::render::classic_bottom::{
     build_params_line, clean_display_text, compute_canvas_size, fill_rect, fit_photo_in_area,
-    format_camera, format_date, parse_color, resize_photo, ExportExif, ExportFrameParams,
+    format_camera, format_date, resize_photo, ExportExif, ExportFrameParams,
     ExportTemplateConfig,
 };
 use crate::render::layout_spec::watermark_layout_spec;
@@ -45,10 +45,12 @@ pub(crate) fn compose_xiaomi_leica(
     }
 
     let bar_top = canvas_h.saturating_sub(bar_h);
-    let spec = watermark_layout_spec();
-    let primary_pt =
-        (frame.font_size as f32 * spec.primary_font_scale * 1.6).max(18.0 * rs) * rs / rs;
-    let secondary_pt = (frame.font_size as f32 * spec.secondary_font_scale).max(11.0 * rs);
+    let _ = watermark_layout_spec();
+    // Match TS: pt = max(18, fontSize * 1.6) at 900px baseline, scaled by rs.
+    let primary_pt = (frame.font_size as f32 * 1.6).max(18.0) * rs;
+    let secondary_pt = (frame.font_size as f32).max(11.0) * rs;
+    let secondary_small_pt = ((frame.font_size as f32) - 1.0).max(10.0) * rs;
+    let right_primary_pt = (frame.font_size as f32 * 1.4).max(15.0) * rs;
 
     // Red rule at very bottom
     fill_rect(&mut canvas, 0, (canvas_h - (3.0 * rs).round() as u32) as i64, canvas_w, (3.0 * rs).round() as u32, LEICA_RED);
@@ -70,14 +72,18 @@ pub(crate) fn compose_xiaomi_leica(
     let camera = if config.show_camera { format_camera(exif) } else { String::new() };
     let lens = if config.show_lens { clean_display_text(&exif.lens) } else { String::new() };
 
-    let top_y = bar_top as f32 + bar_h as f32 * 0.45 - rend.line_height(primary_pt, true);
-    let bot_y = bar_top as f32 + bar_h as f32 * 0.72 - rend.line_height(secondary_pt, false);
+    // TS uses alphabetic baseline at barTop + barH*{0.45, 0.72}; Rust y is the
+    // top of the text bbox, so subtract ascent to convert baseline → top.
+    let primary_baseline = bar_top as f32 + bar_h as f32 * 0.45;
+    let secondary_baseline = bar_top as f32 + bar_h as f32 * 0.72;
 
     if !camera.is_empty() {
-        rend.draw(&mut canvas, &camera, padding, top_y, primary_pt, true, ink);
+        let y = primary_baseline - rend.ascent(primary_pt, true);
+        rend.draw(&mut canvas, &camera, padding, y, primary_pt, true, ink);
     }
     if !lens.is_empty() {
-        rend.draw(&mut canvas, &lens, padding, bot_y, secondary_pt, false, muted);
+        let y = secondary_baseline - rend.ascent(secondary_pt, false);
+        rend.draw(&mut canvas, &lens, padding, y, secondary_pt, false, muted);
     }
 
     // Right column: params + date
@@ -85,14 +91,16 @@ pub(crate) fn compose_xiaomi_leica(
     let date = if config.show_date { format_date(&exif.taken_at, &config.date_format) } else { String::new() };
 
     if !params.is_empty() {
-        let pw = rend.measure(&params, primary_pt, true);
+        let pw = rend.measure(&params, right_primary_pt, true);
         let x = canvas_w as f32 - padding - pw;
-        rend.draw(&mut canvas, &params, x, top_y, primary_pt, true, ink);
+        let y = primary_baseline - rend.ascent(right_primary_pt, true);
+        rend.draw(&mut canvas, &params, x, y, right_primary_pt, true, ink);
     }
     if !date.is_empty() {
-        let dw = rend.measure(&date, secondary_pt, false);
+        let dw = rend.measure(&date, secondary_small_pt, false);
         let x = canvas_w as f32 - padding - dw;
-        rend.draw(&mut canvas, &date, x, bot_y, secondary_pt, false, muted);
+        let y = secondary_baseline - rend.ascent(secondary_small_pt, false);
+        rend.draw(&mut canvas, &date, x, y, secondary_small_pt, false, muted);
     }
 
     canvas

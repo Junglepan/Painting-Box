@@ -60,6 +60,14 @@ pub(crate) fn compose_kodak_slide(
         return canvas;
     }
 
+    // 1px black aperture cutout border around the photo (slide-mount feel).
+    let stroke = (1.0 * rs).round() as u32;
+    let sw = stroke.max(1);
+    fill_rect(&mut canvas, placed_x as i64, placed_y as i64 - sw as i64, pw, sw, SLIDE_INK);
+    fill_rect(&mut canvas, placed_x as i64, (placed_y + ph) as i64, pw, sw, SLIDE_INK);
+    fill_rect(&mut canvas, placed_x as i64 - sw as i64, placed_y as i64 - sw as i64, sw, ph + sw * 2, SLIDE_INK);
+    fill_rect(&mut canvas, (placed_x + pw) as i64, placed_y as i64 - sw as i64, sw, ph + sw * 2, SLIDE_INK);
+
     let Some(rend) = text else { return canvas; };
 
     let stripe_top = placed_y as f32 + ph as f32 + (canvas_h as f32 * 0.025).round();

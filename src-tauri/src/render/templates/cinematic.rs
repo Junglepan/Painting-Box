@@ -90,10 +90,6 @@ pub(crate) fn compose_cinematic(
         let lens = clean_display_text(&exif.lens);
         if !lens.is_empty() { left_parts.push(lens); }
     }
-    for line in &config.custom_lines {
-        let t = line.trim().to_string();
-        if !t.is_empty() { left_parts.push(t); }
-    }
     let left = left_parts.join("  \u{00B7}  ");
     if !left.is_empty() {
         rend.draw(&mut canvas, &left, cursor_x, text_top_y, primary_pt, true, text_color);
@@ -115,6 +111,10 @@ pub(crate) fn compose_cinematic(
     if config.show_date {
         let d = format_date(&exif.taken_at, &config.date_format);
         if !d.is_empty() { extras.push(d); }
+    }
+    for line in &config.custom_lines {
+        let t = line.trim().to_string();
+        if !t.is_empty() { extras.push(t); }
     }
     if !extras.is_empty() {
         let extra_pt = (primary_pt * 0.82).max(9.0 * rs);

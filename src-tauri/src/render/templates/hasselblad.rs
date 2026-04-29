@@ -52,39 +52,51 @@ pub(crate) fn compose_hasselblad(
 
     let Some(rend) = text else { return canvas; };
 
-    let spec = watermark_layout_spec();
-    let word_pt = ((canvas_w as f32 * 0.034).max(20.0)) * rs;
-    let detail_pt = (frame.font_size as f32 * spec.secondary_font_scale).max(11.0 * rs);
+    let _ = watermark_layout_spec();
+    // TS: wordSize = max(20, canvasW * 0.034); canvas_w is already in output coords so no extra * rs.
+    let word_pt = (canvas_w as f32 * 0.034).max(20.0 * rs);
+    let detail_pt = (frame.font_size as f32).max(11.0) * rs;
+    let params_pt = (frame.font_size as f32 * 1.2).max(13.0) * rs;
     let caption_top = placed_y as f32 + ph as f32 + (canvas_h as f32 * 0.025).round();
     let word_baseline = caption_top + word_pt * 0.9;
+    let sub_gap = (frame.font_size as f32 * 1.6).max(20.0) * rs;
+    let sub_baseline = word_baseline + sub_gap;
 
-    // HASSELBLAD with letter spacing
+    // HASSELBLAD with letter spacing — TS draws at baseline = word_baseline.
     let spacing = word_pt * 0.18;
-    draw_spaced_text(&mut canvas, rend, "HASSELBLAD", placed_x as f32, word_baseline - rend.ascent(word_pt, true) + rend.line_height(word_pt, true) * 0.1, word_pt, spacing, HASSY_ORANGE);
+    draw_spaced_text(
+        &mut canvas,
+        rend,
+        "HASSELBLAD",
+        placed_x as f32,
+        word_baseline - rend.ascent(word_pt, true),
+        word_pt,
+        spacing,
+        HASSY_ORANGE,
+    );
 
     // Camera + lens subline
     let camera = if config.show_camera { format_camera(exif) } else { String::new() };
     let lens = if config.show_lens { clean_display_text(&exif.lens) } else { String::new() };
     let subline: String = [camera, lens].into_iter().filter(|s| !s.is_empty()).collect::<Vec<_>>().join("  \u{00B7}  ");
     if !subline.is_empty() {
-        let sub_y = word_baseline + (detail_pt * 1.6).max(20.0 * rs);
-        rend.draw(&mut canvas, &subline, placed_x as f32, sub_y - rend.line_height(detail_pt, false), detail_pt, false, HASSY_MUTED);
+        let y = sub_baseline - rend.ascent(detail_pt, false);
+        rend.draw(&mut canvas, &subline, placed_x as f32, y, detail_pt, false, HASSY_MUTED);
     }
 
     // Right: params + date
     let right_x = placed_x + pw;
-    let params_pt = (frame.font_size as f32 * spec.secondary_font_scale * 1.2).max(13.0 * rs);
     let params = if config.show_params { build_params_line(exif, "  /  ") } else { String::new() };
     let date = if config.show_date { format_date(&exif.taken_at, &config.date_format) } else { String::new() };
 
     if !params.is_empty() {
         let pw_meas = rend.measure(&params, params_pt, false);
-        let py = word_baseline - rend.line_height(params_pt, false);
+        let py = word_baseline - rend.ascent(params_pt, false);
         rend.draw(&mut canvas, &params, right_x as f32 - pw_meas, py, params_pt, false, HASSY_INK);
     }
     if !date.is_empty() {
         let dw = rend.measure(&date, detail_pt, false);
-        let dy = word_baseline + (detail_pt * 1.6).max(20.0 * rs) - rend.line_height(detail_pt, false);
+        let dy = sub_baseline - rend.ascent(detail_pt, false);
         rend.draw(&mut canvas, &date, right_x as f32 - dw, dy, detail_pt, false, HASSY_MUTED);
     }
 

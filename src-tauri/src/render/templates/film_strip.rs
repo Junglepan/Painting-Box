@@ -71,16 +71,24 @@ pub(crate) fn compose_film_strip(
 
     let Some(rend) = text else { return canvas; };
 
-    // Top band: frame-number style label
-    if config.show_camera {
-        let cam = format_camera(exif);
-        if !cam.is_empty() && top_bar_h as f32 >= primary_pt * 0.8 + 4.0 {
+    // Top band: frame-number · camera/lens label
+    {
+        let frame_num = frame_number(&exif.taken_at);
+        let cam = if config.show_camera { format_camera(exif) } else { String::new() };
+        let lens = if config.show_lens { clean_display_text(&exif.lens) } else { String::new() };
+        let cam_or_lens = if !cam.is_empty() { cam } else { lens };
+        let parts: Vec<String> = [frame_num, cam_or_lens]
+            .into_iter()
+            .filter(|s| !s.is_empty())
+            .collect();
+        let top_label = parts.join("  \u{00B7}  ");
+        if !top_label.is_empty() && top_bar_h as f32 >= primary_pt * 0.8 + 4.0 {
             let label_pt = (primary_pt * 0.82).max(9.0 * rs);
             let mut muted = text_color;
             muted.0[3] = (muted.0[3] as f32 * 0.8) as u8;
             let lx = (band_w as f32 + 16.0 * rs).max(28.0 * rs);
             let ly = top_bar_h as f32 / 2.0 - rend.line_height(label_pt, true) / 2.0;
-            rend.draw(&mut canvas, &cam, lx, ly, label_pt, true, muted);
+            rend.draw(&mut canvas, &top_label, lx, ly, label_pt, true, muted);
         }
     }
 
@@ -137,6 +145,22 @@ pub(crate) fn compose_film_strip(
 
     let _ = (fill_rect, clean_display_text);
     canvas
+}
+
+/// Pseudo frame number: trailing 2 digits of the seconds field of taken_at.
+/// Mirrors the TS `frameNumber()` helper. Returns "— —" if no digits found.
+fn frame_number(taken_at: &str) -> String {
+    let trailing: String = taken_at.chars().rev().take_while(|c| c.is_ascii_digit()).collect();
+    if trailing.is_empty() {
+        return "\u{2014} \u{2014}".to_string();
+    }
+    let mut digits: String = trailing.chars().rev().collect();
+    if digits.len() > 2 {
+        digits = digits[digits.len() - 2..].to_string();
+    } else if digits.len() < 2 {
+        digits = format!("{:0>2}", digits);
+    }
+    digits
 }
 
 fn draw_sprockets(canvas: &mut RgbaImage, band_x: u32, band_w: u32, band_top: u32, band_h: u32, color: Rgba<u8>) {

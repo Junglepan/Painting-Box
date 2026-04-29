@@ -50,8 +50,9 @@ pub(crate) fn compose_swiss_grid(
     let ink = Rgba([10, 10, 10, 255]);
     let muted = Rgba([125, 125, 125, 255]);
 
-    let spec = watermark_layout_spec();
-    let base_pt = (frame.font_size as f32 * spec.secondary_font_scale).max(11.0 * rs);
+    let _ = watermark_layout_spec();
+    let base_pt = (frame.font_size as f32).max(11.0) * rs;
+    let page_pt = ((frame.font_size as f32) - 2.0).max(9.0) * rs;
 
     // Rule below photo
     let rule_y = (placed_y + ph) as i64 + (canvas_h as f32 * 0.025).round() as i64;
@@ -61,45 +62,62 @@ pub(crate) fn compose_swiss_grid(
 
     let Some(rend) = text else { return canvas; };
 
-    // Left: oversized headline (camera model or custom)
+    // Left: oversized headline — TS uses 800 weight (bold).
     let camera = if config.show_camera { format_camera(exif) } else { String::new() };
+    let lens = if config.show_lens { clean_display_text(&exif.lens) } else { String::new() };
     let headline = if !camera.is_empty() {
         camera.to_uppercase()
     } else {
         config.custom_lines.first().cloned().unwrap_or_else(|| "PAINTING BOX".to_string()).to_uppercase()
     };
-    let headline_pt = (canvas_w as f32 * 0.07 * rs / rs).min(56.0 * rs);
-    rend.draw(&mut canvas, &headline, placed_x as f32, label_top, headline_pt, true, ink);
+    let tagline = if !lens.is_empty() {
+        lens
+    } else {
+        config.custom_lines.last().cloned().unwrap_or_default().trim().to_string()
+    };
+    let headline_pt = (canvas_w as f32 * 0.07).min(56.0 * rs);
+    let headline_baseline = label_top + headline_pt * 0.85;
+    rend.draw(
+        &mut canvas,
+        &headline,
+        placed_x as f32,
+        headline_baseline - rend.ascent(headline_pt, true),
+        headline_pt,
+        true,
+        ink,
+    );
 
-    // Sub-line: lens below headline
-    let lens = if config.show_lens { clean_display_text(&exif.lens) } else { String::new() };
-    if !lens.is_empty() {
-        let sub_y = label_top + headline_pt + base_pt * 0.6;
-        rend.draw(&mut canvas, &lens, placed_x as f32, sub_y, base_pt, false, Rgba([64, 64, 64, 255]));
+    // Tagline: lens or last custom line, below headline.
+    if !tagline.is_empty() {
+        let tag_baseline = headline_baseline + base_pt * 1.6;
+        let y = tag_baseline - rend.ascent(base_pt, false);
+        rend.draw(&mut canvas, &tagline, placed_x as f32, y, base_pt, false, Rgba([64, 64, 64, 255]));
     }
 
-    // Right: params + date
+    // Right: params + date — TS metaSize == base_pt; TS baselines at labelTop + metaSize*1.2 and +metaSize*1.5
     let right_x = placed_x + pw;
     let params = if config.show_params { build_params_line(exif, "  /  ") } else { String::new() };
     let date = if config.show_date { format_date(&exif.taken_at, &config.date_format) } else { String::new() };
-    let params_y = label_top + base_pt * 1.2;
+    let params_baseline = label_top + base_pt * 1.2;
     if !params.is_empty() {
         let w = rend.measure(&params, base_pt, false);
-        rend.draw(&mut canvas, &params, right_x as f32 - w, params_y, base_pt, false, ink);
+        let y = params_baseline - rend.ascent(base_pt, false);
+        rend.draw(&mut canvas, &params, right_x as f32 - w, y, base_pt, false, ink);
     }
     if !date.is_empty() {
         let dw = rend.measure(&date, base_pt, false);
-        let dy = params_y + base_pt * 1.5;
-        rend.draw(&mut canvas, &date, right_x as f32 - dw, dy, base_pt, false, muted);
+        let date_baseline = params_baseline + base_pt * 1.5;
+        let y = date_baseline - rend.ascent(base_pt, false);
+        rend.draw(&mut canvas, &date, right_x as f32 - dw, y, base_pt, false, muted);
     }
 
-    // Page number (Swiss design touch), bottom-right corner
-    let page_pt = (base_pt * 0.85).max(9.0 * rs);
+    // Page number — TS baseline at canvasH - canvasH*0.025
     let page = "01 / 01";
     let pw_meas = rend.measure(page, page_pt, false);
     let page_x = canvas_w as f32 - side_gutter as f32 - pw_meas;
-    let page_y = canvas_h as f32 - (canvas_h as f32 * 0.025).round();
-    rend.draw(&mut canvas, page, page_x, page_y, page_pt, false, muted);
+    let page_baseline = canvas_h as f32 - (canvas_h as f32 * 0.025).round();
+    let y = page_baseline - rend.ascent(page_pt, false);
+    rend.draw(&mut canvas, page, page_x, y, page_pt, false, muted);
 
     canvas
 }
