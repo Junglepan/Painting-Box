@@ -6,16 +6,11 @@ use std::{
     sync::{Mutex, OnceLock},
 };
 
-use image::{
-    imageops::{overlay, resize, FilterType},
-    DynamicImage, ImageFormat, Rgba, RgbaImage,
-};
+use image::{DynamicImage, ImageFormat, Rgba, RgbaImage};
 use resvg::{tiny_skia, usvg};
 use serde::Deserialize;
 
-use crate::commands::photos::ExportSinglePhotoRequest;
-use crate::exif::{brand, read_exif, CameraInfo, ExifData, GpsInfo};
-use crate::images::decode_image;
+use crate::exif::{brand, CameraInfo, ExifData, GpsInfo};
 use crate::render::layout_spec::watermark_layout_spec;
 use crate::render::logo_assets::embedded_logos;
 use crate::render::text::TextRenderer;
@@ -137,544 +132,46 @@ pub struct ExportFrameParams {
 }
 
 #[derive(Debug, Clone)]
-struct RenderPlan {
-    resolution_scale: f32,
-    bottom_bar_mode: bool,
+pub(crate) struct RenderPlan {
+    pub(crate) resolution_scale: f32,
+    pub(crate) bottom_bar_mode: bool,
     #[allow(dead_code)]
-    top_margin: u32,
-    extra_line_gap: u32,
+    pub(crate) top_margin: u32,
+    pub(crate) extra_line_gap: u32,
     #[allow(dead_code)]
-    logo_only_watermark: bool,
-    total_text_h: f32,
-    canvas_w: u32,
-    canvas_h: u32,
-    bar_top: u32,
-    photo_w: u32,
-    photo_h: u32,
-    image_left: u32,
-    image_top: u32,
-    block_top: f32,
-    line_plans: Vec<RenderLinePlan>,
+    pub(crate) logo_only_watermark: bool,
+    pub(crate) total_text_h: f32,
+    pub(crate) canvas_w: u32,
+    pub(crate) canvas_h: u32,
+    pub(crate) bar_top: u32,
+    pub(crate) photo_w: u32,
+    pub(crate) photo_h: u32,
+    pub(crate) image_left: u32,
+    pub(crate) image_top: u32,
+    pub(crate) block_top: f32,
+    pub(crate) line_plans: Vec<RenderLinePlan>,
 }
 
 #[derive(Debug, Clone)]
-struct RenderLinePlan {
-    pt: f32,
-    line_height: f32,
-    text_ascent: f32,
-    text_width: f32,
-    inline_gap: f32,
-    logo_inline: Option<(f32, f32)>,
-    inline_x: f32,
+pub(crate) struct RenderLinePlan {
+    pub(crate) pt: f32,
+    pub(crate) line_height: f32,
+    pub(crate) text_ascent: f32,
+    pub(crate) text_width: f32,
+    pub(crate) inline_gap: f32,
+    pub(crate) logo_inline: Option<(f32, f32)>,
+    pub(crate) inline_x: f32,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-struct SampleRegion {
-    x: u32,
-    y: u32,
-    width: u32,
-    height: u32,
+pub(crate) struct SampleRegion {
+    pub(crate) x: u32,
+    pub(crate) y: u32,
+    pub(crate) width: u32,
+    pub(crate) height: u32,
 }
-
-// ── Entry point ──────────────────────────────────────────────────────────────
-
-pub fn render_to_path(request: &ExportSinglePhotoRequest) -> Result<(), String> {
-    let source = decode_image(Path::new(&request.photo_path))?;
-    let exif = request
-        .exif
-        .clone()
-        .unwrap_or_else(|| read_exif(Path::new(&request.photo_path)).into());
-    let renderer = TextRenderer::cached(&request.frame_params.font_family);
-    let rendered = compose(
-        source,
-        &request.frame_params,
-        &exif,
-        &request.config,
-        renderer.as_deref(),
-        &request.template_kind,
-    );
-    save_image(
-        &rendered,
-        Path::new(&request.output_path),
-        request.frame_params.export_quality,
-    )
-}
-
-// ── Composition ──────────────────────────────────────────────────────────────
-
-pub fn compose(
-    source: DynamicImage,
-    frame: &ExportFrameParams,
-    exif: &ExportExif,
-    config: &ExportTemplateConfig,
-    text: Option<&TextRenderer>,
-    template_kind: &str,
-) -> RgbaImage {
-    if template_kind == "magazine" {
-        return compose_magazine(source, frame, exif, config, text);
-    }
-
-    let src_w = source.width();
-    let src_h = source.height();
-
-    let lines = build_lines(exif, config);
-    let logo = if config.show_watermark { load_logo_rgba(frame, exif, config) } else { None };
-    let render_lines = if config.show_watermark {
-        build_render_lines(lines.clone(), logo.is_some())
-    } else {
-        Vec::new()
-    };
-    let plan = build_render_plan(
-        src_w,
-        src_h,
-        frame,
-        template_kind,
-        &render_lines,
-        text,
-        logo.as_ref()
-            .map(|image| image.width() as f32 / image.height().max(1) as f32),
-        config.show_watermark,
-    );
-    compose_with_plan(
-        source,
-        frame,
-        text,
-        template_kind,
-        &plan,
-        &render_lines,
-        logo.as_ref(),
-    )
-}
-
-// ── Magazine two-column renderer ─────────────────────────────────────────────
-
-fn compose_magazine(
-    source: DynamicImage,
-    frame: &ExportFrameParams,
-    exif: &ExportExif,
-    config: &ExportTemplateConfig,
-    text: Option<&TextRenderer>,
-) -> RgbaImage {
-    let src_w = source.width();
-    let src_h = source.height();
-    let rs = src_w as f32 / 900.0; // resolution scale
-
-    let (left_lines, right_items) = build_magazine_columns(exif, config);
-    let logo = if config.show_watermark && config.show_logo {
-        load_logo_rgba(frame, exif, config)
-    } else {
-        None
-    };
-
-    // Use the classic geometry builder with a flat line list just for photo placement.
-    let flat_lines: Vec<String> = left_lines.iter().chain(right_items.iter()).cloned().collect();
-    let render_lines_for_plan = if config.show_watermark {
-        build_render_lines(flat_lines, logo.is_some())
-    } else {
-        Vec::new()
-    };
-    let plan = build_render_plan(
-        src_w,
-        src_h,
-        frame,
-        "magazine",
-        &render_lines_for_plan,
-        text,
-        logo.as_ref().map(|img| img.width() as f32 / img.height().max(1) as f32),
-        config.show_watermark,
-    );
-
-    let bg = parse_color(&frame.bg_color, &frame.background);
-    let mut canvas = RgbaImage::from_pixel(plan.canvas_w, plan.canvas_h, bg);
-
-    // ── Photo ─────────────────────────────────────────────────────────────────
-    let mut photo = resize_photo(source, plan.photo_w, plan.photo_h);
-    let r = ((frame.inner_radius as f32 * rs).round() as u32)
-        .min(plan.photo_h / 2)
-        .min(plan.photo_w / 2);
-    apply_rounded_corners(&mut photo, r);
-
-    if frame.shadow {
-        let shadow_offset_y =
-            ((plan.photo_h as f32) * (frame.shadow_offset_y.max(0.0) / 100.0)).round() as u32;
-        draw_soft_shadow(
-            &mut canvas,
-            plan.image_left,
-            plan.image_top,
-            plan.photo_w,
-            plan.photo_h,
-            r,
-            (frame.shadow_blur as f32 * rs).round() as u32,
-            shadow_offset_y,
-            frame.shadow_opacity.min(100),
-        );
-    }
-    overlay(&mut canvas, &photo, i64::from(plan.image_left), i64::from(plan.image_top));
-
-    if frame.photo_border > 0 && frame.photo_border_style != "none" {
-        let border = (frame.photo_border as f32 * rs).round() as u32;
-        let border_color = if frame.photo_border_color.is_empty() {
-            Rgba([255, 255, 255, 255])
-        } else {
-            parse_color(&frame.photo_border_color, "white")
-        };
-        draw_rounded_rect_stroke(
-            &mut canvas,
-            plan.image_left,
-            plan.image_top,
-            plan.photo_w,
-            plan.photo_h,
-            r,
-            border,
-            border_color,
-        );
-    }
-
-    if !config.show_watermark || plan.canvas_h <= plan.bar_top {
-        return canvas;
-    }
-
-    let spec = watermark_layout_spec();
-    let primary_pt = (frame.font_size as f32 * spec.primary_font_scale)
-        .max(spec.base_min_primary_font_size) * rs;
-    let secondary_pt = (frame.font_size as f32 * spec.secondary_font_scale)
-        .max(spec.base_min_secondary_font_size) * rs;
-
-    let text_color = parse_color(&frame.text_color, "white");
-    let divider_color = parse_color(&frame.divider_color, "white");
-
-    // Luminance sample of the bar area for auto-contrast.
-    let bar_top = plan.bar_top;
-    let avg_luma = average_luminance(&canvas, 0, bar_top, plan.canvas_w, plan.canvas_h - bar_top);
-    let (text_color, divider_color) =
-        resolve_readable_colors(frame.auto_text_contrast, avg_luma, text_color, divider_color);
-
-    // Column layout metrics.
-    let side_margin = (plan.canvas_w as f32 * 0.044).round() as u32;
-    let col_inner_pad = (16.0 * rs).round();
-    let divider_x = plan.canvas_w / 2;
-    let col_gap = (24.0 * rs).round();
-    let left_x = side_margin as f32 + col_inner_pad;
-    let left_end = divider_x as f32 - col_gap / 2.0;
-    let right_start = divider_x as f32 + col_gap / 2.0;
-    let right_x = plan.canvas_w as f32 - side_margin as f32 - col_inner_pad;
-    let bar_center_y = bar_top as f32 + (plan.canvas_h - bar_top) as f32 / 2.0;
-
-    // Optional vertical divider.
-    if frame.divider_show && !left_lines.is_empty() && !right_items.is_empty() {
-        let inset = ((plan.canvas_h - bar_top) as f32 * 0.22).round() as u32;
-        for y in (bar_top + inset)..(plan.canvas_h.saturating_sub(inset)) {
-            if divider_x < plan.canvas_w {
-                canvas.put_pixel(divider_x, y, divider_color);
-            }
-        }
-    }
-
-    // ── Left column: [logo] primary [secondary] ───────────────────────────────
-    let primary = left_lines.first().cloned().unwrap_or_default();
-    let secondary = left_lines.get(1).cloned();
-
-    let logo_ratio = logo.as_ref().map(|img| img.width() as f32 / img.height().max(1) as f32);
-    let logo_target_h = primary_pt * spec.logo_visual_scale;
-    let logo_w = logo_ratio.map(|ratio| logo_target_h * ratio).unwrap_or(0.0);
-    let logo_gap = if logo.is_some() && !primary.is_empty() {
-        frame.logo_gap as f32 * rs
-    } else {
-        0.0
-    };
-
-    // Compute vertical block: draw() takes top-left y; baseline = y + ascent.
-    let line_gap = 6.0 * rs;
-    let (primary_ascent, primary_line_h, secondary_ascent, secondary_line_h) = text
-        .map(|r| {
-            (
-                r.ascent(primary_pt, true),
-                r.line_height(primary_pt, true),
-                r.ascent(secondary_pt, false),
-                r.line_height(secondary_pt, false),
-            )
-        })
-        .unwrap_or((primary_pt * 0.8, primary_pt, secondary_pt * 0.8, secondary_pt));
-
-    let (primary_y, secondary_y_opt) = if secondary.is_some() {
-        let total_h = primary_line_h + line_gap + secondary_line_h;
-        let block_top = bar_center_y - total_h / 2.0;
-        (block_top, Some(block_top + primary_line_h + line_gap))
-    } else {
-        (bar_center_y - primary_line_h / 2.0, None)
-    };
-
-    // primary_baseline is used to anchor the logo.
-    let primary_baseline = primary_y + primary_ascent;
-
-    // Draw logo.
-    if let Some(logo_img) = &logo {
-        let logo_draw_w = (logo_w.round().max(1.0)) as u32;
-        let logo_draw_h = (logo_target_h.round().max(1.0)) as u32;
-        let resized = resize(logo_img, logo_draw_w, logo_draw_h, FilterType::Lanczos3);
-        let logo_x = left_x.round() as i64;
-        let logo_y = (primary_baseline + primary_pt * spec.logo_baseline_offset_ratio - logo_target_h)
-            .round() as i64;
-        overlay(&mut canvas, &resized, logo_x, logo_y);
-    }
-
-    let text_left_x = left_x + logo_w + logo_gap;
-
-    if let Some(rend) = text {
-        if !primary.is_empty() {
-            let avail = (left_end - text_left_x).max(0.0);
-            let clipped = clip_text(rend, &primary, avail, primary_pt, true);
-            rend.draw(&mut canvas, &clipped, text_left_x, primary_y, primary_pt, true, text_color);
-        }
-        if let (Some(sec), Some(sec_y)) = (&secondary, secondary_y_opt) {
-            let avail = (right_x - left_x).max(0.0);
-            let clipped = clip_text(rend, sec, avail, secondary_pt, false);
-            rend.draw(&mut canvas, &clipped, left_x, sec_y, secondary_pt, false, text_color);
-        }
-    }
-
-    // ── Right column: params (single or two-row) ──────────────────────────────
-    if let Some(rend) = text {
-        if !right_items.is_empty() {
-            let sep = "  \u{00B7}  ";
-            let single = right_items.join(sep);
-            let available = right_x - right_start;
-            let single_w = rend.measure(&single, secondary_pt, true);
-
-            if single_w <= available {
-                let y = bar_center_y - secondary_line_h / 2.0;
-                rend.draw(&mut canvas, &single, right_x - single_w, y, secondary_pt, true, text_color);
-            } else {
-                let mid = right_items.len().div_ceil(2);
-                let row1 = right_items[..mid].join(sep);
-                let row2 = right_items[mid..].join(sep);
-                let total_h = secondary_line_h * 2.0 + line_gap;
-                let block_top = bar_center_y - total_h / 2.0;
-                let row2_y = block_top + secondary_line_h + line_gap;
-                let c1 = clip_text(rend, &row1, available, secondary_pt, true);
-                let c2 = clip_text(rend, &row2, available, secondary_pt, true);
-                let w1 = rend.measure(&c1, secondary_pt, true).min(available);
-                let w2 = rend.measure(&c2, secondary_pt, true).min(available);
-                rend.draw(&mut canvas, &c1, right_x - w1, block_top, secondary_pt, true, text_color);
-                rend.draw(&mut canvas, &c2, right_x - w2, row2_y, secondary_pt, true, text_color);
-            }
-        }
-    }
-
-    // Suppress unused variable warning from the original `r` alias for corner radius.
-    let _ = secondary_ascent;
-
-    canvas
-}
-
-fn build_magazine_columns(
-    exif: &ExportExif,
-    config: &ExportTemplateConfig,
-) -> (Vec<String>, Vec<String>) {
-    let mut left: Vec<String> = Vec::new();
-    let mut right: Vec<String> = Vec::new();
-
-    if config.show_camera {
-        let cam = format_camera(exif);
-        if !cam.is_empty() { left.push(cam); }
-    }
-    if config.show_lens {
-        let lens = clean_display_text(&exif.lens);
-        if !lens.is_empty() { left.push(lens); }
-    }
-    for line in &config.custom_lines {
-        let t = line.trim().to_string();
-        if !t.is_empty() { left.push(t); }
-    }
-
-    if config.show_params {
-        let items: Vec<String> = [
-            if exif.focal_length > 0.0 { format!("{}mm", exif.focal_length.round() as u32) } else { String::new() },
-            if exif.aperture > 0.0 { format!("f/{:.1}", exif.aperture) } else { String::new() },
-            exif.shutter_speed.clone(),
-            if exif.iso > 0 { format!("ISO {}", exif.iso) } else { String::new() },
-        ].into_iter().filter(|s| !s.is_empty()).collect();
-        right.extend(items);
-    }
-    if config.show_date {
-        let date = format_date(&exif.taken_at, &config.date_format);
-        if !date.is_empty() { right.push(date); }
-    }
-
-    (left, right)
-}
-
-fn clip_text(r: &TextRenderer, text: &str, max_width: f32, size: f32, bold: bool) -> String {
-    if max_width <= 0.0 || text.is_empty() {
-        return String::new();
-    }
-    if r.measure(text, size, bold) <= max_width {
-        return text.to_string();
-    }
-    let ellipsis = "\u{2026}";
-    let mut end = text.chars().count();
-    while end > 0 {
-        let s: String = text.chars().take(end).collect();
-        let candidate = format!("{}{}", s, ellipsis);
-        if r.measure(&candidate, size, bold) <= max_width {
-            return candidate;
-        }
-        end -= 1;
-    }
-    ellipsis.to_string()
-}
-
-fn compose_with_plan(
-    source: DynamicImage,
-    frame: &ExportFrameParams,
-    text: Option<&TextRenderer>,
-    template_kind: &str,
-    plan: &RenderPlan,
-    render_lines: &[String],
-    logo: Option<&RgbaImage>,
-) -> RgbaImage {
-    let spec = watermark_layout_spec();
-    let bg = parse_color(&frame.bg_color, &frame.background);
-    let text_color = parse_color(&frame.text_color, "white");
-    let divider_color = parse_color(&frame.divider_color, "white");
-    let mut canvas = RgbaImage::from_pixel(plan.canvas_w, plan.canvas_h, bg);
-
-    // ── Photo ────────────────────────────────────────────────────────────────
-    let mut photo = resize_photo(source, plan.photo_w, plan.photo_h);
-    let r = ((frame.inner_radius as f32 * plan.resolution_scale).round() as u32)
-        .min(plan.photo_h / 2)
-        .min(plan.photo_w / 2);
-    apply_rounded_corners(&mut photo, r);
-
-    if frame.shadow {
-        let shadow_offset_y =
-            ((plan.photo_h as f32) * (frame.shadow_offset_y.max(0.0) / 100.0)).round() as u32;
-        draw_soft_shadow(
-            &mut canvas,
-            plan.image_left,
-            plan.image_top,
-            plan.photo_w,
-            plan.photo_h,
-            r,
-            (frame.shadow_blur as f32 * plan.resolution_scale).round() as u32,
-            shadow_offset_y,
-            frame.shadow_opacity.min(100),
-        );
-    }
-
-    overlay(
-        &mut canvas,
-        &photo,
-        i64::from(plan.image_left),
-        i64::from(plan.image_top),
-    );
-
-    if frame.photo_border > 0
-        && frame.photo_border_style != "none"
-    {
-        let border = (frame.photo_border as f32 * plan.resolution_scale).round() as u32;
-        let border_color = if frame.photo_border_color.is_empty() {
-            Rgba([255, 255, 255, 255])
-        } else {
-            parse_color(&frame.photo_border_color, "white")
-        };
-        draw_rounded_rect_stroke(
-            &mut canvas,
-            plan.image_left,
-            plan.image_top,
-            plan.photo_w,
-            plan.photo_h,
-            r,
-            border,
-            border_color,
-        );
-    }
-
-    if render_lines.is_empty() {
-        return canvas;
-    }
-    let image_bottom = plan.image_top as f32 + plan.photo_h as f32;
-
-    let sample_regions = build_text_sample_regions(plan, render_lines);
-    let avg_luma = if sample_regions.is_empty() {
-        sample_watermark_luminance(
-            &canvas,
-            template_kind,
-            plan.bottom_bar_mode,
-            plan.image_left as f32,
-            plan.image_top as f32,
-            plan.photo_w as f32,
-            plan.photo_h as f32,
-            plan.bar_top as f32,
-            plan.canvas_h as f32,
-            plan.block_top,
-            plan.total_text_h,
-            scaled_corner_padding(plan.resolution_scale),
-        )
-    } else {
-        average_luminance_regions(&canvas, &sample_regions)
-    };
-    let (text_color, divider_color) = resolve_readable_colors(
-        frame.auto_text_contrast,
-        avg_luma,
-        text_color,
-        divider_color,
-    );
-
-    if frame.divider_show && plan.bottom_bar_mode {
-        let divider_y = if plan.block_top > image_bottom {
-            image_bottom + (plan.block_top - image_bottom) / 2.0
-        } else {
-            plan.bar_top as f32
-        };
-        let divider_y = divider_y
-            .round()
-            .clamp(0.0, plan.canvas_h.saturating_sub(1) as f32) as u32;
-        let margin = scaled_divider_horizontal_margin(plan.canvas_w);
-        for x in margin..plan.canvas_w.saturating_sub(margin) {
-            canvas.put_pixel(x, divider_y, divider_color);
-        }
-    }
-
-    let mut cursor_y = plan.block_top;
-
-    for (index, line) in render_lines.iter().enumerate() {
-        if index > 0 {
-            cursor_y += plan.extra_line_gap as f32;
-        }
-        let y = cursor_y;
-        let line_plan = &plan.line_plans[index];
-        let text_baseline = y + line_plan.text_ascent;
-
-        if let (Some(logo_image), Some((logo_w, logo_h))) = (logo, line_plan.logo_inline) {
-            let logo_x = line_plan.inline_x.round() as i64;
-            let logo_y = (text_baseline + line_plan.pt * spec.logo_baseline_offset_ratio - logo_h)
-                .round() as i64;
-            let target_w = logo_w.round().max(1.0) as u32;
-            let target_h = logo_h.round().max(1.0) as u32;
-            let resized_logo = resize(logo_image, target_w, target_h, FilterType::Lanczos3);
-            overlay(&mut canvas, &resized_logo, logo_x, logo_y);
-        }
-
-        let text_x = line_plan.inline_x
-            + line_plan
-                .logo_inline
-                .map(|(w, _)| w + line_plan.inline_gap)
-                .unwrap_or(0.0);
-
-        if !line.is_empty() {
-            if let Some(r) = text {
-                r.draw(&mut canvas, line, text_x, y, line_plan.pt, true, text_color);
-            }
-        }
-        cursor_y += line_plan.line_height;
-    }
-
-    canvas
-}
-
 #[allow(clippy::too_many_arguments)]
-fn build_render_plan(
+pub(crate) fn build_render_plan(
     source_w: u32,
     source_h: u32,
     frame: &ExportFrameParams,
@@ -911,7 +408,7 @@ fn parse_canvas_ratio(ratio: &str, orientation: &str) -> f32 {
 
 // ── Text content ─────────────────────────────────────────────────────────────
 
-fn build_lines(exif: &ExportExif, config: &ExportTemplateConfig) -> Vec<String> {
+pub(crate) fn build_lines(exif: &ExportExif, config: &ExportTemplateConfig) -> Vec<String> {
     if let Some(templates) = &config.watermark_template {
         if !templates.is_empty() {
             return build_dsl_lines(exif, templates);
@@ -1053,7 +550,7 @@ fn build_dsl_lines(exif: &ExportExif, templates: &[String]) -> Vec<String> {
         .collect()
 }
 
-fn build_render_lines(lines: Vec<String>, has_logo: bool) -> Vec<String> {
+pub(crate) fn build_render_lines(lines: Vec<String>, has_logo: bool) -> Vec<String> {
     if !lines.is_empty() {
         return lines;
     }
@@ -1079,7 +576,7 @@ fn is_corner_bottom_right_template(template_kind: &str) -> bool {
     matches!(template_kind, "minimal-corner")
 }
 
-fn compute_inline_x(
+pub(crate) fn compute_inline_x(
     canvas_w: f32,
     image_left: f32,
     photo_w: f32,
@@ -1124,19 +621,19 @@ fn compute_corner_watermark_block_top(
     preferred_top.clamp(min_top, max_top)
 }
 
-fn scaled_divider_horizontal_margin(source_width: u32) -> u32 {
+pub(crate) fn scaled_divider_horizontal_margin(source_width: u32) -> u32 {
     (watermark_layout_spec().divider_horizontal_margin_px * (source_width as f32 / 900.0)) as u32
 }
 
-fn scaled_corner_padding(resolution_scale: f32) -> f32 {
+pub(crate) fn scaled_corner_padding(resolution_scale: f32) -> f32 {
     watermark_layout_spec().corner_padding_px * resolution_scale
 }
 
-fn format_camera(exif: &ExportExif) -> String {
+pub(crate) fn format_camera(exif: &ExportExif) -> String {
     brand::normalize_model(&exif.camera.make, &exif.camera.model)
 }
 
-fn load_logo_rgba(
+pub(crate) fn load_logo_rgba(
     frame: &ExportFrameParams,
     exif: &ExportExif,
     config: &ExportTemplateConfig,
@@ -1255,11 +752,11 @@ fn trim_transparent_bounds(image: &RgbaImage) -> RgbaImage {
     image::imageops::crop_imm(image, min_x, min_y, width, height).to_image()
 }
 
-fn clean_display_text(value: &str) -> String {
+pub(crate) fn clean_display_text(value: &str) -> String {
     value.trim().trim_matches('"').trim().to_string()
 }
 
-fn resolve_readable_colors(
+pub(crate) fn resolve_readable_colors(
     auto: bool,
     average_luminance: f32,
     fallback_text: Rgba<u8>,
@@ -1282,7 +779,7 @@ fn resolve_readable_colors(
 }
 
 #[allow(clippy::too_many_arguments)]
-fn sample_watermark_luminance(
+pub(crate) fn sample_watermark_luminance(
     canvas: &RgbaImage,
     template_kind: &str,
     bottom_bar_mode: bool,
@@ -1308,7 +805,7 @@ fn sample_watermark_luminance(
     average_luminance(canvas, 0, y as u32, canvas.width(), h as u32)
 }
 
-fn build_text_sample_regions(plan: &RenderPlan, render_lines: &[String]) -> Vec<SampleRegion> {
+pub(crate) fn build_text_sample_regions(plan: &RenderPlan, render_lines: &[String]) -> Vec<SampleRegion> {
     let mut regions = Vec::new();
     let mut cursor_y = plan.block_top;
     for (index, line) in render_lines.iter().enumerate() {
@@ -1338,7 +835,7 @@ fn build_text_sample_regions(plan: &RenderPlan, render_lines: &[String]) -> Vec<
     regions
 }
 
-fn average_luminance_regions(canvas: &RgbaImage, regions: &[SampleRegion]) -> f32 {
+pub(crate) fn average_luminance_regions(canvas: &RgbaImage, regions: &[SampleRegion]) -> f32 {
     let mut total = 0.0f32;
     let mut area = 0u32;
     for region in regions {
@@ -1354,7 +851,7 @@ fn average_luminance_regions(canvas: &RgbaImage, regions: &[SampleRegion]) -> f3
     }
 }
 
-fn average_luminance(canvas: &RgbaImage, x: u32, y: u32, width: u32, height: u32) -> f32 {
+pub(crate) fn average_luminance(canvas: &RgbaImage, x: u32, y: u32, width: u32, height: u32) -> f32 {
     let x0 = x.min(canvas.width().saturating_sub(1));
     let y0 = y.min(canvas.height().saturating_sub(1));
     let w = width.min(canvas.width().saturating_sub(x0)).max(1);
@@ -1372,7 +869,7 @@ fn average_luminance(canvas: &RgbaImage, x: u32, y: u32, width: u32, height: u32
 
 // ── Save ─────────────────────────────────────────────────────────────────────
 
-fn save_image(image: &RgbaImage, path: &Path, quality: u8) -> Result<(), String> {
+pub(crate) fn save_image(image: &RgbaImage, path: &Path, quality: u8) -> Result<(), String> {
     let ext = path
         .extension()
         .and_then(|e| e.to_str())
@@ -1407,7 +904,7 @@ fn save_image(image: &RgbaImage, path: &Path, quality: u8) -> Result<(), String>
 
 // ── Drawing helpers ───────────────────────────────────────────────────────────
 
-fn apply_rounded_corners(image: &mut RgbaImage, radius: u32) {
+pub(crate) fn apply_rounded_corners(image: &mut RgbaImage, radius: u32) {
     if radius == 0 {
         return;
     }
@@ -1436,7 +933,7 @@ fn apply_rounded_corners(image: &mut RgbaImage, radius: u32) {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn draw_rounded_rect_stroke(
+pub(crate) fn draw_rounded_rect_stroke(
     canvas: &mut RgbaImage,
     x: u32,
     y: u32,
@@ -1457,7 +954,7 @@ fn draw_rounded_rect_stroke(
     }
 }
 
-fn draw_rounded_rect_outline(
+pub(crate) fn draw_rounded_rect_outline(
     canvas: &mut RgbaImage,
     x: i32,
     y: i32,
@@ -1500,7 +997,7 @@ fn draw_rounded_rect_outline(
 /// Gaussian-approximated soft shadow via 3-pass box blur on an alpha mask.
 /// Complexity: O(photo_w × photo_h) — replaces the O(blur_layers × area) ring approach.
 #[allow(clippy::too_many_arguments)]
-fn draw_soft_shadow(
+pub(crate) fn draw_soft_shadow(
     canvas: &mut RgbaImage,
     x: u32,
     y: u32,
@@ -2027,7 +1524,7 @@ mod tests {
 
 /// SIMD-accelerated resize via fast_image_resize (AVX2 / Neon auto-selected).
 /// Falls back to image-crate CatmullRom if the source is already smaller than target.
-fn resize_photo(
+pub(crate) fn resize_photo(
     source: DynamicImage,
     target_w: u32,
     target_h: u32,
@@ -2069,7 +1566,7 @@ fn resize_photo(
     })
 }
 
-fn parse_color(hex: &str, _background: &str) -> Rgba<u8> {
+pub(crate) fn parse_color(hex: &str, _background: &str) -> Rgba<u8> {
     let fallback = Rgba([255, 255, 255, 255]);
     let value = hex.trim_start_matches('#');
     if value.len() == 6 {
