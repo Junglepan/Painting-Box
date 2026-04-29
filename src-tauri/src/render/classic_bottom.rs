@@ -1588,3 +1588,97 @@ fn parse_hex_color(hex: &str, fallback: Rgba<u8>) -> Rgba<u8> {
     }
     fallback
 }
+
+/// Compute export canvas dimensions from source size and frame canvas ratio.
+pub(crate) fn compute_canvas_size(src_w: u32, src_h: u32, frame: &ExportFrameParams) -> (u32, u32) {
+    let ratio = parse_canvas_ratio(&frame.canvas_ratio, &frame.canvas_orientation);
+    let src_ratio = src_w as f32 / src_h as f32;
+    if ratio > src_ratio {
+        let h = (src_w as f32 / ratio).round() as u32;
+        (src_w, h.max(1))
+    } else {
+        let w = (src_h as f32 * ratio).round() as u32;
+        (w.max(1), src_h)
+    }
+}
+
+/// Fit source into area maintaining aspect ratio. Returns (photo_w, photo_h, x_offset, y_offset).
+pub(crate) fn fit_photo_in_area(area_w: u32, area_h: u32, src_w: u32, src_h: u32) -> (u32, u32, u32, u32) {
+    if area_w == 0 || area_h == 0 || src_w == 0 || src_h == 0 {
+        return (area_w.max(1), area_h.max(1), 0, 0);
+    }
+    let src_ratio = src_w as f32 / src_h as f32;
+    let area_ratio = area_w as f32 / area_h as f32;
+    let (pw, ph) = if src_ratio > area_ratio {
+        (area_w, (area_w as f32 / src_ratio).round().max(1.0) as u32)
+    } else {
+        ((area_h as f32 * src_ratio).round().max(1.0) as u32, area_h)
+    };
+    let ox = area_w.saturating_sub(pw) / 2;
+    let oy = area_h.saturating_sub(ph) / 2;
+    (pw.min(area_w), ph.min(area_h), ox, oy)
+}
+
+/// Fill a rectangle with a solid color (clipped to canvas bounds).
+pub(crate) fn fill_rect(canvas: &mut RgbaImage, x: i64, y: i64, w: u32, h: u32, color: Rgba<u8>) {
+    let cw = canvas.width() as i64;
+    let ch = canvas.height() as i64;
+    if w == 0 || h == 0 || x >= cw || y >= ch { return; }
+    let x0 = x.max(0) as u32;
+    let y0 = y.max(0) as u32;
+    let x1 = (x + w as i64).min(cw) as u32;
+    let y1 = (y + h as i64).min(ch) as u32;
+    for py in y0..y1 {
+        for px in x0..x1 {
+            canvas.put_pixel(px, py, color);
+        }
+    }
+}
+
+/// Fill a rounded rectangle with a solid color.
+pub(crate) fn fill_rounded_rect_solid(
+    canvas: &mut RgbaImage,
+    x: i64, y: i64,
+    w: u32, h: u32,
+    r: u32,
+    color: Rgba<u8>,
+) {
+    let r = r.min(w / 2).min(h / 2) as i64;
+    let w = w as i64;
+    let h = h as i64;
+    let cw = canvas.width() as i64;
+    let ch = canvas.height() as i64;
+    for dy in 0..h {
+        for dx in 0..w {
+            let px = x + dx;
+            let py = y + dy;
+            if px < 0 || py < 0 || px >= cw || py >= ch { continue; }
+            let in_corner_x = dx < r || dx >= w - r;
+            let in_corner_y = dy < r || dy >= h - r;
+            if in_corner_x && in_corner_y {
+                let ccx = if dx < r { r } else { w - r - 1 };
+                let ccy = if dy < r { r } else { h - r - 1 };
+                if (dx - ccx) * (dx - ccx) + (dy - ccy) * (dy - ccy) > r * r { continue; }
+            }
+            canvas.put_pixel(px as u32, py as u32, color);
+        }
+    }
+}
+
+/// Build exposure params string with given separator.
+pub(crate) fn build_params_line(exif: &ExportExif, sep: &str) -> String {
+    let mut items: Vec<String> = Vec::new();
+    if exif.focal_length > 0.0 {
+        items.push(format!("{}mm", exif.focal_length.round() as u32));
+    }
+    if exif.aperture > 0.0 {
+        if exif.aperture.fract() < 0.05 {
+            items.push(format!("f/{}", exif.aperture as u32));
+        } else {
+            items.push(format!("f/{:.1}", exif.aperture));
+        }
+    }
+    if !exif.shutter_speed.is_empty() { items.push(exif.shutter_speed.clone()); }
+    if exif.iso > 0 { items.push(format!("ISO {}", exif.iso)); }
+    items.join(sep)
+}

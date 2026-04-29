@@ -1,2 +1,14 @@
+pub mod cinematic;
 pub mod classic_bottom;
+pub mod contact_sheet;
+pub mod crop_marks;
+pub mod darkroom_proof;
+pub mod date_stamp;
+pub mod film_strip;
+pub mod fujifilm_classic;
+pub mod hasselblad;
+pub mod kodak_slide;
 pub mod magazine;
+pub mod photo_album;
+pub mod swiss_grid;
+pub mod xiaomi_leica;
