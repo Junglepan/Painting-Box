@@ -5,6 +5,7 @@
 ## [Unreleased]
 
 ### 功能
+- **Rust 导出端 magazine 渲染与字段双端对齐**：Rust 导出器新增杂志双栏（magazine）原生渲染——左栏 Logo + 型号/镜头，右栏焦距/光圈/快门/ISO，参数过长自动折两行，中间可选分割线，超长文本省略号截断；`show_date` / `date_format` / `custom_lines` / `photo_border_color` / `photo_border_style` 五个新字段现已在 Rust 侧生效，预览与导出完全对齐。同步更新了渲染计划几何对等检验（parity fixture）以匹配当前代码输出。
 - **再添 5 款相机文化向经典模板**：模板库新增「富士经典」（fujifilm-classic，米白底 + 绿色 FUJIFILM 字标 + 胶片模拟标签 CLASSIC CHROME）、「哈苏」（hasselblad，纯黑底 + 橙色 HASSELBLAD 字标，极简到只剩型号）、「暗房样片」（darkroom-proof，黑色相纸边 + 米白照片纸 + 红色旋转 PROOF 印章 + 打字机风元数据）、「柯达幻灯片」（kodak-slide，米黄背景 + 幻灯片白色装裱框 + KODACHROME 64 红色色条 + 黄色描边）、「接触印样」（contact-sheet，黑底 + 上下白色齿孔条 + 白色 1px 边框 + Courier 字体的 FRAME 24A 编号）。模板库现共 **17 款**模板可选，覆盖品牌致敬、暗房文化、胶片美学、印刷流程四大风格谱系。
 - **五款新经典模板上线**：模板库新增「小米 × Leica」（xiaomi-leica，白底双栏 + 红色竖线分隔 + 底部红色横线）、「老相册」（photo-album，奶黄色背景 + 四角暗三角装裱 + 草书风格题注）、「日期压印」（date-stamp，全幅照片 + 橙色 LCD 风格日期水印，模拟 90 年代傻瓜相机）、「瑞士网格」（swiss-grid，白底 + 照片下方细黑线 + 超粗型号字 + 右对齐参数）、「裁切标记」（crop-marks，白底 + 宽边距 + 四角 L 形裁切标记 + CMYK 色标条）。模板库现共 **12 款**模板可选。
 - **Web 模板展示页 + GitHub Pages 自动部署**：Web 模式下默认进入纯展示页 `TemplateShowcase`，以网格（移动端 1 列 / 平板 2 列 / 桌面 3 列）渲染全部 7 款模板，每张卡片用同一张样图 + Painting Box 品牌 EXIF 渲染，便于横向对比视觉差异。新增 `.github/workflows/deploy-pages.yml` workflow：master 分支推送时自动 `bun run build` 并通过 `actions/deploy-pages@v4` 发布到 GitHub Pages（`VITE_BASE_PATH=/<repo>/` 自动注入）。需要在仓库 Settings → Pages 中将 Source 设为「GitHub Actions」即可一键启用。访问 `?app=1` 可在 web 下切回完整编辑器视图（用于 QA）。
@@ -19,8 +20,6 @@
 - **内置字体扩展**：新增 Playfair Display（英文衬线）、Bebas Neue（英文超粗无衬线）、Noto Sans SC（中文无衬线，GB2312 subset，6884 字）三款字体，均内置于应用二进制，跨平台一致渲染，无需依赖系统字体。字体选择器改为按「英文」/「中文」分组展示，共 6 款可选字体（英文 4 款 + 中文 2 款）。
 
 ### 已知限制
-- **杂志双栏模板的导出暂用经典底栏渲染**：本次更新仅在前端预览实现了双栏布局，Rust 导出端的双栏渲染将在后续版本补齐。当前 magazine 模板导出时会按 classic-bottom 的单列居中方式渲染（功能可用，但视觉与预览不一致）。
-- **新参数字段（自定义文字 / 日期 / 边框样式）暂仅在预览生效**：Rust 导出端会忽略这些新字段，导出图与预览存在一定偏差，将在后续版本补齐双端一致性。
 - **新增的三款模板（极简白底 / 电影黑边 / 胶片齿孔）暂仅在前端预览实现**：minimal-fullbleed 走 classic-bottom 渲染器，导出可用；cinematic / film-strip 是独立的 Canvas 渲染器，Rust 导出端尚未实现，导出会走 classic-bottom fallback，视觉与预览不一致。
 
 ### 重构
