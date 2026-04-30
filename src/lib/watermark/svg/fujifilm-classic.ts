@@ -35,10 +35,10 @@ export function buildFujifilmClassicSvg(
   frameParams: FrameParams,
   config: TemplateConfig,
   photoHref: string = FUJI_PHOTO_PLACEHOLDER,
+  canvasBaseWidth: number = 900,
 ): string {
-  const CANVAS_W = 900;
   const ratio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation);
-  const canvasW = CANVAS_W;
+  const canvasW = Math.max(320, Math.round(canvasBaseWidth));
   const canvasH = canvasW / ratio;
   const watermarkActive = config.showWatermark ?? true;
 
@@ -50,9 +50,10 @@ export function buildFujifilmClassicSvg(
   const placed = fitPhoto(photoArea, photoW, photoH);
 
   const lines: string[] = [];
-  lines.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`);
+  lines.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`);
   lines.push(`<rect width="${canvasW}" height="${canvasH}" fill="${FUJI_PAPER}"/>`);
-  lines.push(`<image x="${placed.x}" y="${placed.y}" width="${placed.w}" height="${placed.h}" href="${photoHref}" preserveAspectRatio="none"/>`);
+  const hrefEscaped = xmlEscape(photoHref);
+  lines.push(`<image x="${placed.x}" y="${placed.y}" width="${placed.w}" height="${placed.h}" href="${hrefEscaped}" xlink:href="${hrefEscaped}" preserveAspectRatio="none"/>`);
 
   if (!watermarkActive) {
     lines.push("</svg>");
