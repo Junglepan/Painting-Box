@@ -35,24 +35,27 @@ export function buildFujifilmClassicSvg(
   frameParams: FrameParams,
   config: TemplateConfig,
   photoHref: string = FUJI_PHOTO_PLACEHOLDER,
+  renderWidth: number = 900,
 ): string {
-  const CANVAS_W = 900;
   const ratio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation);
-  const canvasW = CANVAS_W;
-  const canvasH = canvasW / ratio;
+  const layoutW = 900;
+  const layoutH = layoutW / ratio;
+  const outW = Math.max(320, Math.round(renderWidth));
+  const outH = Math.max(240, Math.round(outW / ratio));
   const watermarkActive = config.showWatermark ?? true;
 
-  const sideMargin = canvasW * 0.05;
-  const topMargin = canvasH * 0.05;
-  const captionH = watermarkActive ? Math.max(96, canvasH * 0.16) : canvasH * 0.05;
+  const sideMargin = layoutW * 0.05;
+  const topMargin = layoutH * 0.05;
+  const captionH = watermarkActive ? Math.max(96, layoutH * 0.16) : layoutH * 0.05;
 
-  const photoArea = { x: sideMargin, y: topMargin, w: canvasW - sideMargin * 2, h: canvasH - topMargin - captionH };
+  const photoArea = { x: sideMargin, y: topMargin, w: layoutW - sideMargin * 2, h: layoutH - topMargin - captionH };
   const placed = fitPhoto(photoArea, photoW, photoH);
 
   const lines: string[] = [];
-  lines.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`);
-  lines.push(`<rect width="${canvasW}" height="${canvasH}" fill="${FUJI_PAPER}"/>`);
-  lines.push(`<image x="${placed.x}" y="${placed.y}" width="${placed.w}" height="${placed.h}" href="${photoHref}" preserveAspectRatio="none"/>`);
+  lines.push(`<svg xmlns="http://www.w3.org/2000/svg" width="${outW}" height="${outH}" viewBox="0 0 ${layoutW} ${layoutH}">`);
+  lines.push(`<rect width="${layoutW}" height="${layoutH}" fill="${FUJI_PAPER}"/>`);
+  const hrefEscaped = xmlEscape(photoHref);
+  lines.push(`<image x="${placed.x}" y="${placed.y}" width="${placed.w}" height="${placed.h}" href="${hrefEscaped}" preserveAspectRatio="none"/>`);
 
   if (!watermarkActive) {
     lines.push("</svg>");
@@ -60,7 +63,7 @@ export function buildFujifilmClassicSvg(
   }
 
   const fontFamily = "Inter";
-  const captionTop = placed.y + placed.h + canvasH * 0.03;
+  const captionTop = placed.y + placed.h + layoutH * 0.03;
   const wordmarkSize = Math.max(20, frameParams.fontSize * 1.7);
   const wordmarkBaseline = captionTop + wordmarkSize * 0.85;
   const detailSize = Math.max(11, frameParams.fontSize);

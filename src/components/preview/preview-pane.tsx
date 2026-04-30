@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { usePhotoStore } from "@/stores/photo-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { EMPTY_EXIF, effectiveShowWatermark } from "@/stores/types";
 import type { ExifData } from "@/stores/types";
-import { buildFujifilmClassicSvg } from "@/lib/watermark/svg/fujifilm-classic";
 import { drawClassicBottomPreview, resolvePreviewLogoSelection } from "@/lib/watermark/classic-bottom";
 import { drawMagazinePreview } from "@/lib/watermark/magazine";
 import { drawCinematicPreview } from "@/lib/watermark/cinematic";
@@ -69,19 +68,6 @@ export function PreviewPane() {
 
   const previewReady =
     selected?.previewStatus === "ready" && selected.exifStatus === "ready";
-
-  // SVG-path preview for fujifilm-classic: single source of truth with export.
-  const fujiSvgString = useMemo(() => {
-    if (currentKind !== "fujifilm-classic") return null;
-    if (!selected) {
-      // Mock preview: branding text over default image.
-      const mockCfg = { ...config, showCamera: true, showLens: true, showParams: false };
-      return buildFujifilmClassicSvg(MOCK_W, MOCK_H, MOCK_EXIF, frameParams, mockCfg, MOCK_IMAGE_SRC);
-    }
-    if (!selected.thumbnailDataUrl || !selected.width || !selected.height) return null;
-    const effCfg = { ...config, showWatermark: effectiveShowWatermark(selected, config.showWatermark) };
-    return buildFujifilmClassicSvg(selected.width, selected.height, selected.exif ?? EMPTY_EXIF, frameParams, effCfg, selected.thumbnailDataUrl);
-  }, [currentKind, selected, config, frameParams]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -180,27 +166,6 @@ export function PreviewPane() {
         <p className="text-[11px] text-destructive/80">
           {selected.previewError ?? "预览生成失败"}
         </p>
-      </div>
-    );
-  }
-
-  // SVG-path preview (fujifilm-classic): renders identical to export.
-  if (fujiSvgString) {
-    // Remove fixed width/height so the SVG scales via its viewBox to fit the container.
-    const responsiveSvg = fujiSvgString.replace(
-      /(<svg[^>]*?)\s+width="[^"]*"\s+height="[^"]*"/,
-      '$1 style="max-width:100%;max-height:100%;display:block;"',
-    );
-    return (
-      <div
-        ref={containerRef}
-        className="surface-inset relative flex h-full w-full items-center justify-center overflow-hidden p-4"
-      >
-        <div
-          className="shadow-[0_10px_24px_rgba(148,163,184,0.14)]"
-          style={{ maxWidth: "100%", maxHeight: "100%", lineHeight: 0 }}
-          dangerouslySetInnerHTML={{ __html: responsiveSvg }}
-        />
       </div>
     );
   }

@@ -75,6 +75,7 @@ export function PhotoList() {
 
   function buildSvgTemplate(photo: Photo, kind: TemplateKind, fp: FrameParams, cfg: TemplateConfig): string | undefined {
     if (kind !== "fujifilm-classic") return undefined;
+    const exportSvgWidth = Math.max(900, Math.round(photo.width ?? 900));
     return buildFujifilmClassicSvg(
       photo.width ?? 900,
       photo.height ?? 600,
@@ -82,6 +83,7 @@ export function PhotoList() {
       fp,
       cfg,
       FUJI_PHOTO_PLACEHOLDER,
+      exportSvgWidth,
     );
   }
   const pendingRef = useRef<Map<string, PendingItem>>(new Map());
