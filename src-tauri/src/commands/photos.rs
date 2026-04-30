@@ -52,6 +52,9 @@ pub struct ExportSinglePhotoRequest {
     pub frame_params: ExportFrameParams,
     pub exif: Option<ExportExif>,
     pub config: ExportTemplateConfig,
+    /// Pre-built SVG template (with `__FUJI_PHOTO__` placeholder) for SVG-path export.
+    /// When present, bypasses the image-crate renderer and uses resvg instead.
+    pub svg_template: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

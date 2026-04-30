@@ -14,6 +14,16 @@ use crate::render::text::TextRenderer;
 /// Decode, compose, and write one photo to disk.
 /// Keeps the Tauri command thin by centralising all I/O here.
 pub fn render_to_path(request: &ExportSinglePhotoRequest) -> Result<(), String> {
+    // SVG-path: frontend pre-built the SVG template; use resvg renderer.
+    if let Some(ref svg_template) = request.svg_template {
+        return crate::render::svg_export::render_svg_export(
+            &request.photo_path,
+            svg_template,
+            &request.output_path,
+            request.frame_params.export_quality,
+        );
+    }
+
     let source = decode_image(Path::new(&request.photo_path))?;
     let exif = request
         .exif

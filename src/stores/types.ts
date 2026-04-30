@@ -233,6 +233,8 @@ export type ExportSinglePhotoRequest = {
   exif?: ExifData;
   config: TemplateConfig;
   exportQuality: number;
+  /** SVG template (with __FUJI_PHOTO__ placeholder) for SVG-path export. */
+  svgTemplate?: string;
 };
 
 export type ExportSinglePhotoResult = {

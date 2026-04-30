@@ -16,6 +16,7 @@ import { useExportStore } from "@/stores/export-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { effectiveShowWatermark, exifHasContent } from "@/stores/types";
 import type { ExifData, ExportJob, FrameParams, Photo, TemplateConfig, TemplateKind } from "@/stores/types";
+import { buildFujifilmClassicSvg, FUJI_PHOTO_PLACEHOLDER } from "@/lib/watermark/svg/fujifilm-classic";
 import {
   AlertCircle,
   CheckCircle2,
@@ -69,7 +70,20 @@ export function PhotoList() {
     snapshotFrameParams: FrameParams;
     snapshotKind: TemplateKind;
     snapshotQuality: number;
+    svgTemplate?: string;
   };
+
+  function buildSvgTemplate(photo: Photo, kind: TemplateKind, fp: FrameParams, cfg: TemplateConfig): string | undefined {
+    if (kind !== "fujifilm-classic") return undefined;
+    return buildFujifilmClassicSvg(
+      photo.width ?? 900,
+      photo.height ?? 600,
+      photo.exif ?? { camera: { make: "", model: "" }, lens: "", focalLength: 0, aperture: 0, shutterSpeed: "", iso: 0, takenAt: "", gps: undefined },
+      fp,
+      cfg,
+      FUJI_PHOTO_PLACEHOLDER,
+    );
+  }
   const pendingRef = useRef<Map<string, PendingItem>>(new Map());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const flushRef = useRef<(() => Promise<void>) | undefined>(undefined);
@@ -151,14 +165,16 @@ export function PhotoList() {
     try {
       startRunning();
       enqueue([{ id: jobId, photoId: photo.id, status: "running", progress: 0, outputPath }]);
+      const effectiveConfig = { ...globalConfig, showWatermark: effectiveShowWatermark(photo, globalConfig.showWatermark) };
       await exportSinglePhoto({
         photoPath: photo.path,
         outputPath,
         templateKind: currentKind,
         frameParams: globalFrameParams,
         exif: photo.exif,
-        config: { ...globalConfig, showWatermark: effectiveShowWatermark(photo, globalConfig.showWatermark) },
+        config: effectiveConfig,
         exportQuality: quality,
+        svgTemplate: buildSvgTemplate(photo, currentKind, globalFrameParams, effectiveConfig),
       });
       updateJob(jobId, { status: "done", progress: 100, outputPath });
       return true;
@@ -202,6 +218,7 @@ export function PhotoList() {
           exif: item.photo.exif,
           config: item.snapshotConfig,
           exportQuality: item.snapshotQuality,
+          svgTemplate: item.svgTemplate,
         },
       })),
     )
@@ -231,6 +248,10 @@ export function PhotoList() {
         snapshotFrameParams: { ...globalFrameParams },
         snapshotKind: currentKind,
         snapshotQuality: quality,
+        svgTemplate: buildSvgTemplate(photo, currentKind, globalFrameParams, {
+          ...globalConfig,
+          showWatermark: effectiveShowWatermark(photo, globalConfig.showWatermark),
+        }),
       });
       enqueue([{ id: jobId, photoId: photo.id, status: "queued", progress: 0, outputPath }]);
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
