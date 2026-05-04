@@ -1,25 +1,10 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
 import { Camera, Globe } from "lucide-react";
 import { TEMPLATE_REGISTRY } from "@/lib/watermark/template-registry";
-import { drawClassicBottomPreview, resolvePreviewLogoSelection } from "@/lib/watermark/classic-bottom";
-import { drawMagazinePreview } from "@/lib/watermark/magazine";
-import { drawCinematicPreview } from "@/lib/watermark/cinematic";
-import { drawFilmStripPreview } from "@/lib/watermark/film-strip";
-import { drawXiaomiLeicaPreview } from "@/lib/watermark/xiaomi-leica";
-import { drawPhotoAlbumPreview } from "@/lib/watermark/photo-album";
-import { drawCropMarksPreview } from "@/lib/watermark/crop-marks";
-import { drawFujifilmClassicPreview } from "@/lib/watermark/fujifilm-classic";
-import { drawHasselbladPreview } from "@/lib/watermark/hasselblad";
-import { drawDarkroomProofPreview } from "@/lib/watermark/darkroom-proof";
-import { drawContactSheetPreview } from "@/lib/watermark/contact-sheet";
-import { loadImage, loadLogoImage } from "@/lib/watermark/load-image";
 import { getTemplateDefaults } from "@/stores/template-store";
-import type {
-  ExifData,
-  FrameParams,
-  TemplateConfig,
-  TemplateKind,
-} from "@/stores/types";
+import { buildWatermarkSvgTemplate } from "@/lib/watermark/svg/templates";
+import { makeSvgResponsive } from "@/lib/watermark/svg/shared";
+import type { ExifData, TemplateKind } from "@/stores/types";
 
 const SAMPLE_IMAGE = "/images/preview-default.jpg";
 const SAMPLE_W = 1536;
@@ -99,31 +84,51 @@ function ShowcaseCard({
   name: string;
   desc: string;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const [svgUrl, setSvgUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const { frameParams, config } = previewParamsFor(kind);
-    const logoSelection = resolvePreviewLogoSelection(SAMPLE_EXIF, frameParams, config);
+    const base = getTemplateDefaults(kind);
+    const frameParams = { ...base.frameParams, logoKey: "painting-box", logoVariant: "original" };
+    const config = { ...base.config, showLogo: true };
+
     let cancelled = false;
-    void Promise.all([
-      loadImage(SAMPLE_IMAGE),
-      logoSelection ? loadLogoImage(logoSelection.key, logoSelection.variant) : Promise.resolve(null),
-    ]).then(([image, logoImage]) => {
-      if (cancelled) return;
-      dispatch(kind, canvas, image, logoImage, frameParams, config);
+    let objectUrl: string | null = null;
+
+    void imageHrefToDataUrl(SAMPLE_IMAGE).then((href) => {
+      if (cancelled || !href) return;
+      const svg = buildWatermarkSvgTemplate(
+        { width: SAMPLE_W, height: SAMPLE_H, exif: SAMPLE_EXIF },
+        kind,
+        frameParams,
+        config,
+        href,
+        900,
+      );
+      if (!svg) return;
+      const responsive = makeSvgResponsive(svg);
+      objectUrl = URL.createObjectURL(new Blob([responsive], { type: "image/svg+xml" }));
+      if (!cancelled) setSvgUrl(objectUrl);
     });
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
   }, [kind]);
 
   return (
     <article className="overflow-hidden rounded-2xl border border-border/50 bg-white shadow-[0_4px_14px_rgba(148,163,184,0.16)] transition-shadow duration-200 hover:shadow-[0_10px_28px_rgba(148,163,184,0.22)]">
       <div className="flex aspect-[3/2] items-center justify-center overflow-hidden bg-[#eef1f6] p-4">
-        <canvas
-          ref={canvasRef}
-          className="max-h-full max-w-full rounded-md shadow-[0_2px_10px_rgba(17,24,39,0.08)]"
-        />
+        {svgUrl ? (
+          <img
+            src={svgUrl}
+            alt=""
+            className="max-h-full max-w-full rounded-md shadow-[0_2px_10px_rgba(17,24,39,0.08)]"
+            draggable={false}
+          />
+        ) : (
+          <div className="h-12 w-12 animate-pulse rounded-full bg-foreground/8" />
+        )}
       </div>
       <div className="flex flex-col gap-1 px-4 py-3">
         <h2 className="text-[14px] font-semibold tracking-tight text-foreground">
@@ -137,62 +142,18 @@ function ShowcaseCard({
   );
 }
 
-function dispatch(
-  kind: TemplateKind,
-  canvas: HTMLCanvasElement,
-  image: HTMLImageElement,
-  logoImage: HTMLImageElement | null,
-  frameParams: FrameParams,
-  config: TemplateConfig,
-) {
-  const photo = { width: SAMPLE_W, height: SAMPLE_H, src: "", exif: SAMPLE_EXIF };
-  if (kind === "magazine") {
-    drawMagazinePreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
+async function imageHrefToDataUrl(href: string): Promise<string | null> {
+  try {
+    const response = await fetch(href);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("预览图加载失败"));
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
   }
-  if (kind === "cinematic") {
-    drawCinematicPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "film-strip") {
-    drawFilmStripPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "xiaomi-leica") {
-    drawXiaomiLeicaPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "photo-album") {
-    drawPhotoAlbumPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "crop-marks") {
-    drawCropMarksPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "fujifilm-classic") {
-    drawFujifilmClassicPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "hasselblad") {
-    drawHasselbladPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "darkroom-proof") {
-    drawDarkroomProofPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "contact-sheet") {
-    drawContactSheetPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  drawClassicBottomPreview(canvas, image, logoImage, photo, frameParams, config, kind);
-}
-
-function previewParamsFor(kind: TemplateKind) {
-  const base = getTemplateDefaults(kind);
-  return {
-    frameParams: { ...base.frameParams, logoKey: "painting-box", logoVariant: "original" },
-    config: { ...base.config, showLogo: true },
-  };
 }
