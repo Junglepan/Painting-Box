@@ -60,13 +60,10 @@ pub fn compose(
         "cinematic" => return templates::cinematic::compose_cinematic(source, frame, exif, config, text),
         "film_strip" => return templates::film_strip::compose_film_strip(source, frame, exif, config, text),
         "xiaomi_leica" => return templates::xiaomi_leica::compose_xiaomi_leica(source, frame, exif, config, text),
-        "swiss_grid" => return templates::swiss_grid::compose_swiss_grid(source, frame, exif, config, text),
-        "date_stamp" => return templates::date_stamp::compose_date_stamp(source, frame, exif, config, text),
         "fujifilm_classic" => return templates::fujifilm_classic::compose_fujifilm_classic(source, frame, exif, config, text),
         "hasselblad" => return templates::hasselblad::compose_hasselblad(source, frame, exif, config, text),
         "photo_album" => return templates::photo_album::compose_photo_album(source, frame, exif, config, text),
         "darkroom_proof" => return templates::darkroom_proof::compose_darkroom_proof(source, frame, exif, config, text),
-        "kodak_slide" => return templates::kodak_slide::compose_kodak_slide(source, frame, exif, config, text),
         "crop_marks" => return templates::crop_marks::compose_crop_marks(source, frame, exif, config, text),
         "contact_sheet" => return templates::contact_sheet::compose_contact_sheet(source, frame, exif, config, text),
         _ => {}
