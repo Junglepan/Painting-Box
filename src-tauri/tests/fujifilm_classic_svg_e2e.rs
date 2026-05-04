@@ -100,7 +100,7 @@ fn xml_escape(s: &str) -> String {
 }
 
 /// Build the Fujifilm Classic template as a complete SVG document.
-/// Geometry mirrors `src/lib/watermark/fujifilm-classic.ts` exactly so
+/// Geometry mirrors `src/lib/watermark/svg/fujifilm-classic.ts` exactly so
 /// the same SVG can drive both browser preview and resvg export.
 fn build_fujifilm_classic_svg(
     photo_data_url: &str,
