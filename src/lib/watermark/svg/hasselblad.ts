@@ -2,7 +2,7 @@ import { normalizeModel } from "@/lib/exif/brand";
 import type { ExifData, FrameParams, TemplateConfig } from "@/stores/types";
 import { cleanDisplayText, formatTakenAt } from "../classic-bottom";
 import { fitPhoto, getCanvasRatio, paramsLine } from "../renderer-utils";
-import { SVG_PHOTO_PLACEHOLDER, svgFontFamily, svgImage, xmlEscape } from "./shared";
+import { applySvgWidthRatio, closeSvg, isPortraitPhoto, shouldStackMetadata, SVG_PHOTO_PLACEHOLDER, svgFontFamily, svgImage, xmlEscape } from "./shared";
 
 const HASSY_BG = "#0a0a0a";
 const HASSY_ORANGE = "#ff8a00";
@@ -39,7 +39,7 @@ export function buildHasselbladSvg(
   const lines = [`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`];
   lines.push(`<rect width="${canvasW}" height="${canvasH}" fill="${HASSY_BG}"/>`);
   lines.push(svgImage(photoHref, placed.x, placed.y, placed.w, placed.h));
-  if (!watermarkActive) return close(lines);
+  if (!watermarkActive) return closeSvg(lines);
 
   const portraitPhotoLayout = isPortraitPhoto(photoW, photoH);
   const watermarkX = portraitPhotoLayout ? Math.max(24 * scale, canvasW * 0.03) : placed.x;
@@ -78,29 +78,6 @@ export function buildHasselbladSvg(
     const x = stackMetadata ? watermarkX : rightX;
     lines.push(`<text x="${x}" y="${dateY}"${anchor} font-family="${fontFamily}" font-weight="400" font-size="${detailSize}" fill="${HASSY_MUTED}">${xmlEscape(date)}</text>`);
   }
-  return close(lines);
+  return closeSvg(lines);
 }
 
-function close(lines: string[]): string {
-  lines.push("</svg>");
-  return lines.join("\n");
-}
-
-function applySvgWidthRatio(area: { x: number; y: number; w: number; h: number }, ratioPercent: number) {
-  const ratio = Math.min(100, Math.max(1, Number.isFinite(ratioPercent) ? ratioPercent : 100)) / 100;
-  const w = area.w * ratio;
-  return {
-    x: area.x + (area.w - w) / 2,
-    y: area.y,
-    w,
-    h: area.h,
-  };
-}
-
-function shouldStackMetadata(photoWidth: number, canvasWidth: number) {
-  return photoWidth < canvasWidth * 0.58;
-}
-
-function isPortraitPhoto(photoW: number, photoH: number) {
-  return photoH > photoW;
-}

@@ -2,7 +2,7 @@ import { normalizeModel } from "@/lib/exif/brand";
 import type { ExifData, FrameParams, TemplateConfig } from "@/stores/types";
 import { cleanDisplayText, formatTakenAt, sanitizeCustomLines } from "../classic-bottom";
 import { fitPhoto, getCanvasRatio, paramsLine } from "../renderer-utils";
-import { SVG_PHOTO_PLACEHOLDER, applySvgMainImageRatio, svgFontFamily, svgImage, xmlEscape } from "./shared";
+import { closeSvg, SVG_PHOTO_PLACEHOLDER, applySvgMainImageRatio, svgFontFamily, svgImage, xmlEscape } from "./shared";
 
 const LEICA_RED = "#e20612";
 const BAR_HEIGHT_RATIO = 0.16;
@@ -28,7 +28,7 @@ export function buildXiaomiLeicaSvg(
   const lines = [`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`];
   lines.push(`<rect width="${canvasW}" height="${canvasH}" fill="#ffffff"/>`);
   lines.push(svgImage(photoHref, placed.x, placed.y, placed.w, placed.h));
-  if (!watermarkActive) return close(lines);
+  if (!watermarkActive) return closeSvg(lines);
 
   const fontFamily = svgFontFamily(frameParams.fontFamily);
   const barTop = canvasH - barH;
@@ -62,10 +62,6 @@ export function buildXiaomiLeicaSvg(
   if (dateLine) {
     lines.push(`<text x="${canvasW - padding}" y="${barTop + barH * 0.72}" text-anchor="end" font-family="${fontFamily}" font-weight="500" font-size="${dateSize}" fill="#7d7d7d">${xmlEscape(dateLine)}</text>`);
   }
-  return close(lines);
+  return closeSvg(lines);
 }
 
-function close(lines: string[]): string {
-  lines.push("</svg>");
-  return lines.join("\n");
-}

@@ -2,7 +2,7 @@ import { normalizeModel } from "@/lib/exif/brand";
 import type { ExifData, FrameParams, TemplateConfig } from "@/stores/types";
 import { cleanDisplayText, formatTakenAt, sanitizeCustomLines } from "../classic-bottom";
 import { fitPhoto, getCanvasRatio, paramsLine } from "../renderer-utils";
-import { makeSvgResponsive, SVG_PHOTO_PLACEHOLDER, svgFontFamily, svgImage, xmlEscape } from "./shared";
+import { applySvgWidthRatio, closeSvg, isPortraitPhoto, makeSvgResponsive, shouldStackMetadata, SVG_PHOTO_PLACEHOLDER, svgFontFamily, svgImage, xmlEscape } from "./shared";
 
 export const FUJI_PHOTO_PLACEHOLDER = SVG_PHOTO_PLACEHOLDER;
 
@@ -11,15 +11,6 @@ const FUJI_PAPER = "#f5f1e7";
 const FUJI_INK = "#161616";
 const FUJI_MUTED = "#5a5650";
 
-/**
- * Build the Fujifilm Classic template as a standalone SVG document.
- *
- * Geometry mirrors `fujifilm-classic.ts` (Canvas renderer) exactly so the
- * same calculation drives both browser preview (inline SVG) and resvg export.
- *
- * @param photoHref  URL or data-URL for the photo; use FUJI_PHOTO_PLACEHOLDER
- *                   when generating the template for Rust export.
- */
 export function buildFujifilmClassicSvg(
   photoW: number,
   photoH: number,
@@ -114,29 +105,10 @@ export function buildFujifilmClassicSvg(
     lines.push(`<text x="${x}" y="${dateY}"${anchor} font-family="${fontFamily}" font-weight="500" font-size="${detailSize}" fill="${FUJI_MUTED}">${xmlEscape(date)}</text>`);
   }
 
-  lines.push("</svg>");
-  return lines.join("\n");
+  return closeSvg(lines);
 }
 
 export function makeFujifilmClassicSvgResponsive(svg: string): string {
   return makeSvgResponsive(svg);
 }
 
-function applySvgWidthRatio(area: { x: number; y: number; w: number; h: number }, ratioPercent: number) {
-  const ratio = Math.min(100, Math.max(1, Number.isFinite(ratioPercent) ? ratioPercent : 100)) / 100;
-  const w = area.w * ratio;
-  return {
-    x: area.x + (area.w - w) / 2,
-    y: area.y,
-    w,
-    h: area.h,
-  };
-}
-
-function shouldStackMetadata(photoWidth: number, canvasWidth: number) {
-  return photoWidth < canvasWidth * 0.58;
-}
-
-function isPortraitPhoto(photoW: number, photoH: number) {
-  return photoH > photoW;
-}

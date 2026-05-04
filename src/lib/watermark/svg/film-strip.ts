@@ -2,7 +2,7 @@ import { normalizeModel } from "@/lib/exif/brand";
 import type { ExifData, FrameParams, TemplateConfig } from "@/stores/types";
 import { cleanDisplayText, formatTakenAt, sanitizeCustomLines } from "../classic-bottom";
 import { getCanvasRatio } from "../renderer-utils";
-import { SVG_PHOTO_PLACEHOLDER, applySvgMainImageRatio, svgContainedImage, svgFontFamily, svgImage, xmlEscape, type SvgLogoAsset } from "./shared";
+import { closeSvg, SVG_PHOTO_PLACEHOLDER, applySvgMainImageRatio, svgContainedImage, svgFontFamily, svgImage, xmlEscape, type SvgLogoAsset } from "./shared";
 
 const TOP_BAR_RATIO = 0.08;
 const BOTTOM_BAR_RATIO = 0.13;
@@ -47,7 +47,7 @@ export function buildFilmStripSvg(
   lines.push(sprocketHoles(0, sprocketBandW, topBarH, canvasH - bottomBarH));
   lines.push(sprocketHoles(canvasW - sprocketBandW, sprocketBandW, topBarH, canvasH - bottomBarH));
 
-  if (!watermarkActive) return close(lines);
+  if (!watermarkActive) return closeSvg(lines);
 
   const fontSize = Math.max(10 * scale, frameParams.fontSize * scale);
   const textColor = frameParams.textColor || "#f5f5f5";
@@ -78,16 +78,11 @@ export function buildFilmStripSvg(
     lines.push(`<text x="${canvasW - margin}" y="${barCenterY + fontSize * 0.55}" text-anchor="end" dominant-baseline="middle" font-family="${fontFamily}" font-weight="400" font-size="${Math.max(9 * scale, fontSize - 2 * scale)}" fill="${textColor}" opacity="0.7">${xmlEscape(detail)}</text>`);
   }
 
-  return close(lines);
+  return closeSvg(lines);
 }
 
 function svgRoot(canvasW: number, canvasH: number, fontFamily: string): string[] {
   return [`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}" font-family="${xmlEscape(fontFamily)}">`];
-}
-
-function close(lines: string[]): string {
-  lines.push("</svg>");
-  return lines.join("\n");
 }
 
 function sprocketHoles(bandX: number, width: number, bandTop: number, bandBottom: number): string {

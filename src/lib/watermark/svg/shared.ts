@@ -52,6 +52,12 @@ function safeRatio(width: number, height: number): number {
 
 export type SvgRect = { x: number; y: number; w: number; h: number };
 
+export function applySvgWidthRatio(area: SvgRect, ratioPercent: number): SvgRect {
+  const ratio = Math.min(100, Math.max(1, Number.isFinite(ratioPercent) ? ratioPercent : 100)) / 100;
+  const w = area.w * ratio;
+  return { x: area.x + (area.w - w) / 2, y: area.y, w, h: area.h };
+}
+
 export function applySvgMainImageRatio(area: SvgRect, ratioPercent: number): SvgRect {
   const ratio = Math.min(100, Math.max(1, Number.isFinite(ratioPercent) ? ratioPercent : 100)) / 100;
   const w = area.w * ratio;
@@ -80,6 +86,19 @@ export function svgFontFamily(fontFamily: WatermarkFontFamily): string {
     default:
       return "Inter, sans-serif";
   }
+}
+
+export function closeSvg(lines: string[]): string {
+  lines.push("</svg>");
+  return lines.join("\n");
+}
+
+export function shouldStackMetadata(photoWidth: number, canvasWidth: number): boolean {
+  return photoWidth < canvasWidth * 0.58;
+}
+
+export function isPortraitPhoto(photoW: number, photoH: number): boolean {
+  return photoH > photoW;
 }
 
 export function makeSvgResponsive(svg: string): string {
