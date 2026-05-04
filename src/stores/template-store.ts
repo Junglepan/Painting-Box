@@ -73,7 +73,7 @@ const defaultFrameParams: FrameParams = {
   dividerColor: "#d7dce6",
 
   canvasRatio: "3:2" as CanvasRatio,
-  canvasOrientation: "landscape" as CanvasOrientation,
+  canvasOrientation: "auto" as CanvasOrientation,
 };
 
 type TemplateBaseState = {
