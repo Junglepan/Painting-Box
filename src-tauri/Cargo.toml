@@ -1,7 +1,7 @@
 [package]
 name = "painting-box"
 version = "0.1.0"
-description = "A Tauri App"
+description = "Painting Box – photo watermark & frame desktop app"
 authors = ["panbokui"]
 edition = "2021"
 
@@ -34,7 +34,12 @@ fast_image_resize = "4"
 turbojpeg = { version = "1", features = ["image"] }
 
 [lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ["cfg(bundled_inter)"] }
+unexpected_cfgs = { level = "warn", check-cfg = [
+  "cfg(bundled_inter)",
+  "cfg(bundled_playfair_display)",
+  "cfg(bundled_bebas_neue)",
+  "cfg(bundled_noto_sans_sc)",
+] }
 
 [profile.release]
 opt-level = 3
