@@ -78,21 +78,16 @@ export type LoadPhotosResponse = {
 
 export type TemplateKind =
   | "classic-bottom"
-  | "polaroid"
   | "minimal-corner"
   | "magazine"
-  | "minimal-fullbleed"
   | "cinematic"
   | "film-strip"
   | "xiaomi-leica"
   | "photo-album"
-  | "date-stamp"
-  | "swiss-grid"
   | "crop-marks"
   | "fujifilm-classic"
   | "hasselblad"
   | "darkroom-proof"
-  | "kodak-slide"
   | "contact-sheet";
 
 export type DateFormat =

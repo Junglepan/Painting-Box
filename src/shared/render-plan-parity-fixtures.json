@@ -49,22 +49,5 @@
       "imageTop": 97,
       "blockTop": 2442
     }
-  },
-  "polaroidDefault4032x3024TwoLines": {
-    "sourceW": 4032,
-    "sourceH": 3024,
-    "templateKind": "polaroid",
-    "scenario": "two-lines",
-    "expected": {
-      "canvasW": 4032,
-      "canvasH": 2688,
-      "topMargin": 81,
-      "barTop": 2025,
-      "photoW": 2484,
-      "photoH": 1863,
-      "imageLeft": 774,
-      "imageTop": 81,
-      "blockTop": 2233
-    }
   }
 }

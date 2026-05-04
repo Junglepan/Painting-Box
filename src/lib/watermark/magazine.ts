@@ -4,12 +4,9 @@ import {
   averageLuminance,
   backgroundFill,
   buildPreviewRenderPlan,
-  cleanDisplayText,
-  formatTakenAt,
   getPreviewFontFamily,
   resolvePreviewGeometryMetrics,
   resolveReadableTextAndDivider,
-  sanitizeCustomLines,
 } from "./classic-bottom";
 import { WATERMARK_LAYOUT_SPEC } from "./layout-spec";
 
@@ -39,25 +36,11 @@ export function buildMagazineColumns(
     const camera = normalizeModel(exif.camera.make, exif.camera.model);
     if (camera) left.push(camera);
   }
-  if (config.showLens) {
-    const lens = cleanDisplayText(exif.lens);
-    if (lens) left.push(lens);
-  }
-
   if (config.showParams) {
     if (exif.focalLength) right.push(`${Math.round(exif.focalLength)}mm`);
     if (exif.aperture) right.push(`f/${trimNumeric(exif.aperture)}`);
     if (exif.shutterSpeed) right.push(exif.shutterSpeed);
     if (exif.iso) right.push(`ISO ${exif.iso}`);
-  }
-
-  if (config.showDate) {
-    const date = formatTakenAt(exif.takenAt, config.dateFormat);
-    if (date) right.push(date);
-  }
-
-  for (const custom of sanitizeCustomLines(config.customLines)) {
-    left.push(custom);
   }
 
   return { left, right };

@@ -41,7 +41,7 @@ type PreviewGeometryMetrics = {
   logoGap: number;
 };
 
-type PreviewRenderPlan = {
+export type PreviewRenderPlan = {
   templateMode: TemplateLayoutMode;
   placement: WatermarkPlacement;
   canvasW: number;
@@ -124,24 +124,25 @@ export function buildPreviewRenderPlan({
   showWatermark?: boolean;
   baseWidth?: number;
 }): PreviewRenderPlan {
+  const designScale = baseWidth / 900;
   const templateLayout = getTemplateLayout(templateKind);
   const topBottomMargin = Math.round(baseWidth * (frameParams.minTopBottomMargin / 100));
   const primaryFontSize = Math.max(
-    WATERMARK_LAYOUT_SPEC.baseMinPrimaryFontSize,
-    frameParams.fontSize * WATERMARK_LAYOUT_SPEC.primaryFontScale,
+    WATERMARK_LAYOUT_SPEC.baseMinPrimaryFontSize * designScale,
+    frameParams.fontSize * WATERMARK_LAYOUT_SPEC.primaryFontScale * designScale,
   );
   const secondaryFontSize = Math.max(
-    WATERMARK_LAYOUT_SPEC.baseMinSecondaryFontSize,
-    frameParams.fontSize * WATERMARK_LAYOUT_SPEC.secondaryFontScale,
+    WATERMARK_LAYOUT_SPEC.baseMinSecondaryFontSize * designScale,
+    frameParams.fontSize * WATERMARK_LAYOUT_SPEC.secondaryFontScale * designScale,
   );
-  const extraLineGap = WATERMARK_LAYOUT_SPEC.baseLineGapPx;
+  const extraLineGap = WATERMARK_LAYOUT_SPEC.baseLineGapPx * designScale;
   const geometry = resolvePreviewGeometryMetrics(frameParams);
-  const minInfoBarHeight = Math.round(totalTextHeight) + 12;
+  const minInfoBarHeight = Math.round(totalTextHeight) + 12 * designScale;
   // When watermark is off the info bar disappears entirely → image fills the canvas.
   const infoBarHeight = !showWatermark
     ? 0
     : templateLayout.mode === "bottom-bar"
-      ? Math.max(geometry.infoBarHeight, minInfoBarHeight)
+      ? Math.max(geometry.infoBarHeight * designScale, minInfoBarHeight)
       : 0;
   const canvasRatio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation ?? "landscape");
   const canvasH = baseWidth / canvasRatio;
@@ -152,11 +153,15 @@ export function buildPreviewRenderPlan({
   );
   const naturalWidth = Math.round(baseWidth * (frameParams.mainImageWidthRatio / 100));
   const naturalHeight = (photoHeight * naturalWidth) / photoWidth;
+  const portraitPhotoOnLandscapeCanvas = photoHeight > photoWidth && canvasRatio > 1;
   const fitScale = Math.min(1, availableHeight / naturalHeight);
-  const photoW = Math.round(naturalWidth * fitScale);
-  const photoH = Math.round(naturalHeight * fitScale);
+  const fittedWidth = naturalWidth * fitScale;
+  const fittedHeight = naturalHeight * fitScale;
+  const portraitScale = frameParams.mainImageWidthRatio / 100;
+  const photoW = Math.round(portraitPhotoOnLandscapeCanvas ? fittedWidth * portraitScale : fittedWidth);
+  const photoH = Math.round(portraitPhotoOnLandscapeCanvas ? fittedHeight * portraitScale : fittedHeight);
   const imageX = Math.floor((baseWidth - photoW) / 2);
-  const imageY = topBottomMargin + Math.floor((availableHeight - photoH) / 2);
+  const imageY = topBottomMargin + Math.round((availableHeight - photoH) / 2);
   const imageBottom = imageY + photoH;
   const blockTop = templateLayout.mode === "bottom-bar"
     ? computeWatermarkBlockTop({

@@ -87,6 +87,7 @@ fn jpg_import_and_export_pipeline_works() {
                 date_format: String::new(),
                 custom_lines: Vec::new(),
             },
+            svg_template: None,
         };
 
         let result = export_single_photo(request)

@@ -81,6 +81,27 @@ type TemplateBaseState = {
   frameParams: FrameParams;
 };
 
+const ACTIVE_TEMPLATE_KINDS: readonly TemplateKind[] = [
+  "classic-bottom",
+  "magazine",
+  "minimal-corner",
+  "cinematic",
+  "film-strip",
+  "xiaomi-leica",
+  "photo-album",
+  "crop-marks",
+  "fujifilm-classic",
+  "hasselblad",
+  "darkroom-proof",
+  "contact-sheet",
+];
+
+function normalizeTemplateKind(kind: unknown): TemplateKind {
+  return typeof kind === "string" && ACTIVE_TEMPLATE_KINDS.includes(kind as TemplateKind)
+    ? kind as TemplateKind
+    : "classic-bottom";
+}
+
 function createTemplateBase(
   frameOverrides: Partial<FrameParams> = {},
   configOverrides: Partial<TemplateConfig> = {},
@@ -92,31 +113,14 @@ function createTemplateBase(
 }
 
 const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
-  "classic-bottom": createTemplateBase(),
-  polaroid: createTemplateBase(
-    {
-      background: "white",
-      bgColor: "#ffffff",
-      textColor: "#1f2937",
-      dividerShow: false,
-      innerRadius: 0,
-      outerRadius: 0,
-      photoBorder: 10,
-      infoBarHeight: 148,
-      mainImageWidthRatio: 85,
-      minTopBottomMargin: 2,
-      fontSize: 9,
-      logoSize: 12,
-      logoGap: 10,
-      shadow: false,
-    },
-    {
-      showLogo: false,
-      showCamera: true,
-      showLens: false,
-      showParams: false,
-    },
-  ),
+  "classic-bottom": createTemplateBase({
+    fontFamily: "pingfang-sc",
+    logoSize: 20,
+    mainImageWidthRatio: 85,
+    minTopBottomMargin: 0,
+    infoBarHeight: 0,
+    innerRadius: 0,
+  }),
   magazine: createTemplateBase(
     {
       background: "white",
@@ -126,10 +130,10 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       innerRadius: 0,
       outerRadius: 0,
       photoBorder: 0,
-      infoBarHeight: 80,
+      infoBarHeight: 42,
       mainImageWidthRatio: 85,
-      minTopBottomMargin: 2,
-      fontSize: 11,
+      minTopBottomMargin: 1.5,
+      fontSize: 10,
       logoSize: 14,
       logoGap: 8,
       shadow: true,
@@ -140,8 +144,9 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
     {
       showLogo: true,
       showCamera: true,
-      showLens: true,
+      showLens: false,
       showParams: true,
+      showDate: false,
     },
   ),
   "minimal-corner": createTemplateBase(
@@ -156,7 +161,7 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       minTopBottomMargin: 1.4,
       infoBarHeight: 0,
       fontSize: 9,
-      logoSize: 12,
+      logoSize: 14,
       logoGap: 10,
       shadow: false,
     },
@@ -165,30 +170,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       showCamera: false,
       showLens: false,
       showParams: false,
-    },
-  ),
-  "minimal-fullbleed": createTemplateBase(
-    {
-      background: "white",
-      bgColor: "#ffffff",
-      textColor: "#1f2937",
-      dividerShow: false,
-      innerRadius: 0,
-      outerRadius: 0,
-      photoBorder: 0,
-      mainImageWidthRatio: 78,
-      minTopBottomMargin: 6,
-      infoBarHeight: 56,
-      fontSize: 9,
-      logoSize: 12,
-      logoGap: 8,
-      shadow: false,
-    },
-    {
-      showLogo: false,
-      showCamera: true,
-      showLens: false,
-      showParams: true,
     },
   ),
   cinematic: createTemplateBase(
@@ -203,7 +184,7 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       photoBorder: 0,
       mainImageWidthRatio: 100,
       minTopBottomMargin: 0,
-      infoBarHeight: 96,
+      infoBarHeight: 84,
       fontSize: 11,
       logoSize: 13,
       logoGap: 10,
@@ -226,9 +207,9 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       innerRadius: 0,
       outerRadius: 0,
       photoBorder: 0,
-      mainImageWidthRatio: 88,
+      mainImageWidthRatio: 90,
       minTopBottomMargin: 0,
-      infoBarHeight: 80,
+      infoBarHeight: 92,
       fontSize: 10,
       logoSize: 12,
       logoGap: 8,
@@ -252,7 +233,7 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       innerRadius: 0,
       outerRadius: 0,
       photoBorder: 0,
-      mainImageWidthRatio: 100,
+      mainImageWidthRatio: 96,
       minTopBottomMargin: 0,
       infoBarHeight: 110,
       fontSize: 11,
@@ -279,9 +260,9 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       outerRadius: 0,
       photoBorder: 6,
       photoBorderColor: "#fdfaf2",
-      mainImageWidthRatio: 76,
-      minTopBottomMargin: 4,
-      infoBarHeight: 96,
+      mainImageWidthRatio: 90,
+      minTopBottomMargin: 2,
+      infoBarHeight: 0,
       fontSize: 10,
       logoSize: 12,
       logoGap: 8,
@@ -292,62 +273,10 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
     },
     {
       showLogo: false,
-      showCamera: true,
-      showLens: false,
-      showParams: false,
-      showDate: true,
-    },
-  ),
-  "date-stamp": createTemplateBase(
-    {
-      background: "white",
-      bgColor: "#ffffff",
-      textColor: "#ff7a00",
-      autoTextContrast: false,
-      dividerShow: false,
-      innerRadius: 0,
-      outerRadius: 0,
-      photoBorder: 0,
-      mainImageWidthRatio: 92,
-      minTopBottomMargin: 1.4,
-      infoBarHeight: 0,
-      fontSize: 14,
-      logoSize: 12,
-      logoGap: 0,
-      shadow: false,
-    },
-    {
-      showLogo: false,
       showCamera: false,
       showLens: false,
       showParams: false,
-      showDate: true,
-    },
-  ),
-  "swiss-grid": createTemplateBase(
-    {
-      background: "white",
-      bgColor: "#ffffff",
-      textColor: "#0a0a0a",
-      autoTextContrast: false,
-      dividerShow: false,
-      innerRadius: 0,
-      outerRadius: 0,
-      photoBorder: 0,
-      mainImageWidthRatio: 90,
-      minTopBottomMargin: 4,
-      infoBarHeight: 130,
-      fontSize: 11,
-      logoSize: 12,
-      logoGap: 8,
-      shadow: false,
-    },
-    {
-      showLogo: false,
-      showCamera: true,
-      showLens: false,
-      showParams: true,
-      showDate: true,
+      showDate: false,
     },
   ),
   "crop-marks": createTemplateBase(
@@ -360,8 +289,8 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       innerRadius: 0,
       outerRadius: 0,
       photoBorder: 0,
-      mainImageWidthRatio: 84,
-      minTopBottomMargin: 6,
+      mainImageWidthRatio: 86,
+      minTopBottomMargin: 7,
       infoBarHeight: 0,
       fontSize: 9,
       logoSize: 12,
@@ -386,9 +315,9 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       innerRadius: 0,
       outerRadius: 0,
       photoBorder: 0,
-      mainImageWidthRatio: 100,
+      mainImageWidthRatio: 90,
       minTopBottomMargin: 0,
-      infoBarHeight: 110,
+      infoBarHeight: 80,
       fontSize: 11,
       logoSize: 14,
       logoGap: 8,
@@ -412,9 +341,9 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       innerRadius: 0,
       outerRadius: 0,
       photoBorder: 0,
-      mainImageWidthRatio: 100,
+      mainImageWidthRatio: 90,
       minTopBottomMargin: 0,
-      infoBarHeight: 96,
+      infoBarHeight: 80,
       fontSize: 11,
       logoSize: 14,
       logoGap: 8,
@@ -439,9 +368,9 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       outerRadius: 0,
       photoBorder: 6,
       photoBorderColor: "#f5efe1",
-      mainImageWidthRatio: 80,
-      minTopBottomMargin: 5,
-      infoBarHeight: 100,
+      mainImageWidthRatio: 88,
+      minTopBottomMargin: 2,
+      infoBarHeight: 80,
       fontSize: 10,
       logoSize: 12,
       logoGap: 8,
@@ -449,39 +378,10 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
     },
     {
       showLogo: false,
-      showCamera: true,
-      showLens: true,
-      showParams: true,
-      showDate: false,
-    },
-  ),
-  "kodak-slide": createTemplateBase(
-    {
-      background: "custom",
-      bgColor: "#f5f3ed",
-      textColor: "#1a1a1a",
-      autoTextContrast: false,
-      dividerShow: false,
-      innerRadius: 0,
-      outerRadius: 0,
-      photoBorder: 0,
-      mainImageWidthRatio: 78,
-      minTopBottomMargin: 6,
-      infoBarHeight: 70,
-      fontSize: 9,
-      logoSize: 12,
-      logoGap: 8,
-      shadow: true,
-      shadowBlur: 18,
-      shadowOffsetY: 0.04,
-      shadowOpacity: 14,
-    },
-    {
-      showLogo: false,
-      showCamera: true,
+      showCamera: false,
       showLens: false,
       showParams: false,
-      showDate: true,
+      showDate: false,
     },
   ),
   "contact-sheet": createTemplateBase(
@@ -495,9 +395,9 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       outerRadius: 0,
       photoBorder: 2,
       photoBorderColor: "#ffffff",
-      mainImageWidthRatio: 86,
-      minTopBottomMargin: 5,
-      infoBarHeight: 90,
+      mainImageWidthRatio: 90,
+      minTopBottomMargin: 3,
+      infoBarHeight: 72,
       fontSize: 9,
       logoSize: 12,
       logoGap: 8,
@@ -505,10 +405,10 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
     },
     {
       showLogo: false,
-      showCamera: true,
+      showCamera: false,
       showLens: false,
-      showParams: true,
-      showDate: true,
+      showParams: false,
+      showDate: false,
     },
   ),
 };
@@ -517,7 +417,7 @@ function getTemplateBase(kind: TemplateKind): TemplateBaseState {
   const base = TEMPLATE_BASES[kind];
   return {
     config: applyTemplateConfigConstraints(kind, { ...base.config }),
-    frameParams: applyTemplateFrameConstraints({ ...base.frameParams }),
+    frameParams: applyTemplateFrameConstraints(kind, { ...base.frameParams }),
   };
 }
 
@@ -571,7 +471,7 @@ export const useTemplateStore = create<TemplateState>()(
               partial.paddingLeft ??
               0;
             return {
-              frameParams: applyTemplateFrameConstraints({
+              frameParams: applyTemplateFrameConstraints(s.currentKind, {
                 ...s.frameParams,
                 paddingTop: v,
                 paddingRight: v,
@@ -582,19 +482,22 @@ export const useTemplateStore = create<TemplateState>()(
             };
           }
           return {
-            frameParams: applyTemplateFrameConstraints({
+            frameParams: applyTemplateFrameConstraints(s.currentKind, {
               ...s.frameParams,
               ...partial,
             }),
           };
         }),
       applyPreset: (preset) =>
-        set({
-          currentKind: preset.kind,
-          config: applyTemplateConfigConstraints(preset.kind, {
+        set(() => {
+          const kind = normalizeTemplateKind(preset.kind);
+          return {
+          currentKind: kind,
+          config: applyTemplateConfigConstraints(kind, {
             ...preset.config,
           }),
-          frameParams: applyTemplateFrameConstraints({ ...preset.frameParams }),
+          frameParams: applyTemplateFrameConstraints(kind, { ...preset.frameParams }),
+          };
         }),
       resetFrameParams: () =>
         set((s) => {
@@ -611,6 +514,7 @@ export const useTemplateStore = create<TemplateState>()(
         if (version < 3 && s.currentKind === "classic-white") {
           s.currentKind = "classic-bottom";
         }
+        s.currentKind = normalizeTemplateKind(s.currentKind);
         if (version < 5) {
           const cfg = (s.config ?? {}) as Record<string, unknown>;
           if (cfg.showDate === undefined) cfg.showDate = false;
@@ -627,15 +531,16 @@ export const useTemplateStore = create<TemplateState>()(
       merge: (persisted, current) => {
         const next = persisted as Partial<TemplateState> | undefined;
         const base = current as TemplateState;
-        const kind = next?.currentKind ?? base.currentKind;
+        const kind = normalizeTemplateKind(next?.currentKind ?? base.currentKind);
         return {
           ...base,
           ...next,
+          currentKind: kind,
           config: applyTemplateConfigConstraints(
             kind,
             { ...base.config, ...(next?.config ?? {}) },
           ),
-          frameParams: applyTemplateFrameConstraints({
+          frameParams: applyTemplateFrameConstraints(kind, {
             ...base.frameParams,
             ...(next?.frameParams ?? {}),
           }),

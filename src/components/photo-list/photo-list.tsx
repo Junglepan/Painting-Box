@@ -14,9 +14,12 @@ import { IMPORT_EXTENSIONS } from "@/lib/import/accept";
 import { createImportedPhotos } from "@/lib/import/records";
 import { useExportStore } from "@/stores/export-store";
 import { useTemplateStore } from "@/stores/template-store";
-import { effectiveShowWatermark, exifHasContent } from "@/stores/types";
+import { EMPTY_EXIF, effectiveShowWatermark, exifHasContent } from "@/stores/types";
 import type { ExifData, ExportJob, FrameParams, Photo, TemplateConfig, TemplateKind } from "@/stores/types";
-import { buildFujifilmClassicSvg, FUJI_PHOTO_PLACEHOLDER } from "@/lib/watermark/svg/fujifilm-classic";
+import { resolvePreviewLogoSelection } from "@/lib/watermark/classic-bottom";
+import { getLogoSvg } from "@/lib/tauri/logo";
+import { svgAspectRatio, svgDataUrl, type SvgLogoAsset } from "@/lib/watermark/svg/shared";
+import { buildWatermarkSvgTemplate } from "@/lib/watermark/svg/templates";
 import {
   AlertCircle,
   CheckCircle2,
@@ -73,18 +76,25 @@ export function PhotoList() {
     svgTemplate?: string;
   };
 
-  function buildSvgTemplate(photo: Photo, kind: TemplateKind, fp: FrameParams, cfg: TemplateConfig): string | undefined {
-    if (kind !== "fujifilm-classic") return undefined;
-    const exportSvgWidth = Math.max(900, Math.round(photo.width ?? 900));
-    return buildFujifilmClassicSvg(
-      photo.width ?? 900,
-      photo.height ?? 600,
-      photo.exif ?? { camera: { make: "", model: "" }, lens: "", focalLength: 0, aperture: 0, shutterSpeed: "", iso: 0, takenAt: "", gps: undefined },
-      fp,
-      cfg,
-      FUJI_PHOTO_PLACEHOLDER,
-      exportSvgWidth,
-    );
+  async function loadSvgLogoAsset(
+    exif: ExifData | undefined,
+    fp: FrameParams,
+    cfg: TemplateConfig,
+  ): Promise<SvgLogoAsset | null> {
+    const logoSelection = resolvePreviewLogoSelection(exif ?? EMPTY_EXIF, fp, cfg);
+    if (!logoSelection) return null;
+    const svg = await getLogoSvg(logoSelection.key, logoSelection.variant);
+    return svg ? { href: svgDataUrl(svg), aspectRatio: svgAspectRatio(svg) } : null;
+  }
+
+  async function buildSvgTemplate(
+    photo: Photo,
+    kind: TemplateKind,
+    fp: FrameParams,
+    cfg: TemplateConfig,
+  ): Promise<string | undefined> {
+    const logo = await loadSvgLogoAsset(photo.exif, fp, cfg);
+    return buildWatermarkSvgTemplate(photo, kind, fp, cfg, undefined, undefined, logo);
   }
   const pendingRef = useRef<Map<string, PendingItem>>(new Map());
   const flushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -168,6 +178,7 @@ export function PhotoList() {
       startRunning();
       enqueue([{ id: jobId, photoId: photo.id, status: "running", progress: 0, outputPath }]);
       const effectiveConfig = { ...globalConfig, showWatermark: effectiveShowWatermark(photo, globalConfig.showWatermark) };
+      const svgTemplate = await buildSvgTemplate(photo, currentKind, globalFrameParams, effectiveConfig);
       await exportSinglePhoto({
         photoPath: photo.path,
         outputPath,
@@ -176,7 +187,7 @@ export function PhotoList() {
         exif: photo.exif,
         config: effectiveConfig,
         exportQuality: quality,
-        svgTemplate: buildSvgTemplate(photo, currentKind, globalFrameParams, effectiveConfig),
+        svgTemplate,
       });
       updateJob(jobId, { status: "done", progress: 100, outputPath });
       return true;
@@ -238,22 +249,22 @@ export function PhotoList() {
       if (pendingRef.current.has(photo.id)) return;
       const outputPath = buildBatchExportPath(defaultOutputDir, photo.path, format);
       const jobId = crypto.randomUUID();
+      const snapshotConfig = {
+        ...globalConfig,
+        showWatermark: effectiveShowWatermark(photo, globalConfig.showWatermark),
+      };
+      const snapshotFrameParams = { ...globalFrameParams };
+      const svgTemplate = await buildSvgTemplate(photo, currentKind, snapshotFrameParams, snapshotConfig);
       // Snapshot config at click time so mid-export param changes don't affect this job.
       pendingRef.current.set(photo.id, {
         jobId,
         photo,
         outputPath,
-        snapshotConfig: {
-          ...globalConfig,
-          showWatermark: effectiveShowWatermark(photo, globalConfig.showWatermark),
-        },
-        snapshotFrameParams: { ...globalFrameParams },
+        snapshotConfig,
+        snapshotFrameParams,
         snapshotKind: currentKind,
         snapshotQuality: quality,
-        svgTemplate: buildSvgTemplate(photo, currentKind, globalFrameParams, {
-          ...globalConfig,
-          showWatermark: effectiveShowWatermark(photo, globalConfig.showWatermark),
-        }),
+        svgTemplate,
       });
       enqueue([{ id: jobId, photoId: photo.id, status: "queued", progress: 0, outputPath }]);
       if (flushTimerRef.current) clearTimeout(flushTimerRef.current);
@@ -327,8 +338,13 @@ export function PhotoList() {
       });
     });
 
-    exportBatchPhotos(
-      batchItems.map((item) => ({
+    const batchRequests = await Promise.all(
+      batchItems.map(async (item) => {
+        const effectiveConfig = {
+          ...globalConfig,
+          showWatermark: effectiveShowWatermark(item.photo, globalConfig.showWatermark),
+        };
+        return {
         jobId: item.jobId,
         request: {
           photoPath: item.photo.path,
@@ -336,11 +352,15 @@ export function PhotoList() {
           templateKind: currentKind,
           frameParams: globalFrameParams,
           exif: item.photo.exif,
-          config: { ...globalConfig, showWatermark: effectiveShowWatermark(item.photo, globalConfig.showWatermark) },
+          config: effectiveConfig,
           exportQuality: quality,
+          svgTemplate: await buildSvgTemplate(item.photo, currentKind, globalFrameParams, effectiveConfig),
         },
-      })),
-    )
+      };
+      }),
+    );
+
+    exportBatchPhotos(batchRequests)
       .catch(() => {})
       .finally(() => {
         unlisten();

@@ -7,13 +7,10 @@ import { drawCinematicPreview } from "@/lib/watermark/cinematic";
 import { drawFilmStripPreview } from "@/lib/watermark/film-strip";
 import { drawXiaomiLeicaPreview } from "@/lib/watermark/xiaomi-leica";
 import { drawPhotoAlbumPreview } from "@/lib/watermark/photo-album";
-import { drawDateStampPreview } from "@/lib/watermark/date-stamp";
-import { drawSwissGridPreview } from "@/lib/watermark/swiss-grid";
 import { drawCropMarksPreview } from "@/lib/watermark/crop-marks";
 import { drawFujifilmClassicPreview } from "@/lib/watermark/fujifilm-classic";
 import { drawHasselbladPreview } from "@/lib/watermark/hasselblad";
 import { drawDarkroomProofPreview } from "@/lib/watermark/darkroom-proof";
-import { drawKodakSlidePreview } from "@/lib/watermark/kodak-slide";
 import { drawContactSheetPreview } from "@/lib/watermark/contact-sheet";
 import { loadImage, loadLogoImage } from "@/lib/watermark/load-image";
 import { getTemplateDefaults } from "@/stores/template-store";
@@ -169,14 +166,6 @@ function dispatch(
     drawPhotoAlbumPreview(canvas, image, logoImage, photo, frameParams, config);
     return;
   }
-  if (kind === "date-stamp") {
-    drawDateStampPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "swiss-grid") {
-    drawSwissGridPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
   if (kind === "crop-marks") {
     drawCropMarksPreview(canvas, image, logoImage, photo, frameParams, config);
     return;
@@ -191,10 +180,6 @@ function dispatch(
   }
   if (kind === "darkroom-proof") {
     drawDarkroomProofPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "kodak-slide") {
-    drawKodakSlidePreview(canvas, image, logoImage, photo, frameParams, config);
     return;
   }
   if (kind === "contact-sheet") {

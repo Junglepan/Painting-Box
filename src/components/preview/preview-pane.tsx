@@ -1,24 +1,23 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePhotoStore } from "@/stores/photo-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { EMPTY_EXIF, effectiveShowWatermark } from "@/stores/types";
 import type { ExifData } from "@/stores/types";
-import { buildFujifilmClassicSvg } from "@/lib/watermark/svg/fujifilm-classic";
+import { makeSvgResponsive, svgAspectRatio, svgDataUrl, type SvgLogoAsset } from "@/lib/watermark/svg/shared";
+import { buildWatermarkSvgTemplate, SVG_TEMPLATE_KINDS } from "@/lib/watermark/svg/templates";
 import { drawClassicBottomPreview, resolvePreviewLogoSelection } from "@/lib/watermark/classic-bottom";
 import { drawMagazinePreview } from "@/lib/watermark/magazine";
 import { drawCinematicPreview } from "@/lib/watermark/cinematic";
 import { drawFilmStripPreview } from "@/lib/watermark/film-strip";
 import { drawXiaomiLeicaPreview } from "@/lib/watermark/xiaomi-leica";
 import { drawPhotoAlbumPreview } from "@/lib/watermark/photo-album";
-import { drawDateStampPreview } from "@/lib/watermark/date-stamp";
-import { drawSwissGridPreview } from "@/lib/watermark/swiss-grid";
 import { drawCropMarksPreview } from "@/lib/watermark/crop-marks";
 import { drawFujifilmClassicPreview } from "@/lib/watermark/fujifilm-classic";
 import { drawHasselbladPreview } from "@/lib/watermark/hasselblad";
 import { drawDarkroomProofPreview } from "@/lib/watermark/darkroom-proof";
-import { drawKodakSlidePreview } from "@/lib/watermark/kodak-slide";
 import { drawContactSheetPreview } from "@/lib/watermark/contact-sheet";
 import { loadImage, loadLogoImage } from "@/lib/watermark/load-image";
+import { getLogoSvg } from "@/lib/tauri/logo";
 import type { TemplateKind } from "@/stores/types";
 import type { FrameParams, TemplateConfig } from "@/stores/types";
 
@@ -36,7 +35,6 @@ const MOCK_EXIF: ExifData = {
 const MOCK_W = 1536;
 const MOCK_H = 1024;
 const MOCK_IMAGE_SRC = "/images/preview-default.jpg";
-
 export function PreviewPane() {
   const selected = usePhotoStore((s) =>
     s.photos.find((p) => p.id === s.selectedId),
@@ -44,6 +42,10 @@ export function PreviewPane() {
   const { currentKind, frameParams, config } = useTemplateStore();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const displayedSvgUrlRef = useRef<string | null>(null);
+  const [svgPreviewUrl, setSvgPreviewUrl] = useState<string | null>(null);
+  const [svgLogoAsset, setSvgLogoAsset] = useState<SvgLogoAsset | null | undefined>(undefined);
+  const [mockImageHref, setMockImageHref] = useState<string | null>(null);
 
   const fitCanvasToContainer = useCallback(() => {
     const canvas = canvasRef.current;
@@ -69,19 +71,129 @@ export function PreviewPane() {
 
   const previewReady =
     selected?.previewStatus === "ready" && selected.exifStatus === "ready";
+  const svgPreviewReady =
+    SVG_TEMPLATE_KINDS.has(currentKind) &&
+    selected?.previewStatus === "ready" &&
+    Boolean(selected.thumbnailDataUrl && selected.width && selected.height);
 
-  // SVG-path preview for fujifilm-classic: single source of truth with export.
-  const fujiSvgString = useMemo(() => {
-    if (currentKind !== "fujifilm-classic") return null;
+  useEffect(() => {
+    if (!SVG_TEMPLATE_KINDS.has(currentKind)) {
+      setSvgLogoAsset(null);
+      return;
+    }
+
+    const photoExif = selected ? selected.exif ?? EMPTY_EXIF : MOCK_EXIF;
+    const effectiveConfig = selected
+      ? { ...config, showWatermark: effectiveShowWatermark(selected, config.showWatermark) }
+      : { ...config, showCamera: true, showLens: true, showParams: false, showLogo: true };
+    const effectiveFrameParams = selected
+      ? frameParams
+      : { ...frameParams, logoKey: "painting-box", logoVariant: "original" };
+    const logoSelection = resolvePreviewLogoSelection(photoExif, effectiveFrameParams, effectiveConfig);
+
+    if (!logoSelection) {
+      setSvgLogoAsset(null);
+      return;
+    }
+
+    let cancelled = false;
+    setSvgLogoAsset(undefined);
+    void getLogoSvg(logoSelection.key, logoSelection.variant).then((svg) => {
+      if (cancelled) return;
+      setSvgLogoAsset(svg ? { href: svgDataUrl(svg), aspectRatio: svgAspectRatio(svg) } : null);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [config, currentKind, frameParams, selected]);
+
+  useEffect(() => {
+    if (selected || !SVG_TEMPLATE_KINDS.has(currentKind)) return;
+    let cancelled = false;
+    void imageHrefToDataUrl(MOCK_IMAGE_SRC).then((href) => {
+      if (!cancelled) setMockImageHref(href);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentKind, selected]);
+
+  // SVG-path preview: single source of truth with export.
+  const svgString = useMemo(() => {
+    if (!SVG_TEMPLATE_KINDS.has(currentKind)) return null;
     if (!selected) {
+      if (!mockImageHref) return null;
       // Mock preview: branding text over default image.
-      const mockCfg = { ...config, showCamera: true, showLens: true, showParams: false };
-      return buildFujifilmClassicSvg(MOCK_W, MOCK_H, MOCK_EXIF, frameParams, mockCfg, MOCK_IMAGE_SRC);
+      const mockCfg = { ...config, showCamera: true, showLens: true, showParams: false, showLogo: true };
+      return buildWatermarkSvgTemplate(
+        { width: MOCK_W, height: MOCK_H, exif: MOCK_EXIF },
+        currentKind,
+        frameParams,
+        mockCfg,
+        mockImageHref,
+        900,
+        svgLogoAsset,
+      );
     }
     if (!selected.thumbnailDataUrl || !selected.width || !selected.height) return null;
     const effCfg = { ...config, showWatermark: effectiveShowWatermark(selected, config.showWatermark) };
-    return buildFujifilmClassicSvg(selected.width, selected.height, selected.exif ?? EMPTY_EXIF, frameParams, effCfg, selected.thumbnailDataUrl);
-  }, [currentKind, selected, config, frameParams]);
+    return buildWatermarkSvgTemplate(
+      { ...selected, exif: selected.exif ?? EMPTY_EXIF },
+      currentKind,
+      frameParams,
+      effCfg,
+      selected.thumbnailDataUrl,
+      900,
+      svgLogoAsset,
+    );
+  }, [currentKind, selected, config, frameParams, svgLogoAsset, mockImageHref]);
+
+  useEffect(() => {
+    if (!svgString) {
+      if (displayedSvgUrlRef.current) {
+        URL.revokeObjectURL(displayedSvgUrlRef.current);
+        displayedSvgUrlRef.current = null;
+      }
+      setSvgPreviewUrl(null);
+      return;
+    }
+
+    let adopted = false;
+    let cancelled = false;
+    const responsiveSvg = makeSvgResponsive(svgString);
+    const nextUrl = URL.createObjectURL(new Blob([responsiveSvg], { type: "image/svg+xml" }));
+    const image = new Image();
+    image.onload = () => {
+      if (cancelled) {
+        URL.revokeObjectURL(nextUrl);
+        return;
+      }
+      adopted = true;
+      const previousUrl = displayedSvgUrlRef.current;
+      displayedSvgUrlRef.current = nextUrl;
+      setSvgPreviewUrl(nextUrl);
+      if (previousUrl) URL.revokeObjectURL(previousUrl);
+    };
+    image.onerror = () => {
+      if (!adopted) URL.revokeObjectURL(nextUrl);
+    };
+    image.src = nextUrl;
+
+    return () => {
+      cancelled = true;
+      if (!adopted) URL.revokeObjectURL(nextUrl);
+    };
+  }, [svgString]);
+
+  useEffect(() => {
+    return () => {
+      if (displayedSvgUrlRef.current) {
+        URL.revokeObjectURL(displayedSvgUrlRef.current);
+        displayedSvgUrlRef.current = null;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -159,7 +271,7 @@ export function PreviewPane() {
   }, [config, currentKind, frameParams, previewReady, selected]);
 
   // Loading skeleton
-  if (selected && !previewReady) {
+  if (selected && !previewReady && !svgPreviewReady) {
     return (
       <div className="surface-inset flex h-full w-full items-center justify-center overflow-hidden p-4">
         <div className="relative flex h-full w-full max-w-[calc(100%)] items-center justify-center overflow-hidden rounded-[18px]">
@@ -184,23 +296,21 @@ export function PreviewPane() {
     );
   }
 
-  // SVG-path preview (fujifilm-classic): renders identical to export.
-  if (fujiSvgString) {
-    // Remove fixed width/height so the SVG scales via its viewBox to fit the container.
-    const responsiveSvg = fujiSvgString.replace(
-      /(<svg[^>]*?)\s+width="[^"]*"\s+height="[^"]*"/,
-      '$1 style="max-width:100%;max-height:100%;display:block;"',
-    );
+  // SVG-path preview: renders identical to export.
+  if (svgString) {
     return (
       <div
         ref={containerRef}
         className="surface-inset relative flex h-full w-full items-center justify-center overflow-hidden p-4"
       >
-        <div
-          className="shadow-[0_10px_24px_rgba(148,163,184,0.14)]"
-          style={{ maxWidth: "100%", maxHeight: "100%", lineHeight: 0 }}
-          dangerouslySetInnerHTML={{ __html: responsiveSvg }}
-        />
+        {svgPreviewUrl ? (
+          <img
+            src={svgPreviewUrl}
+            alt=""
+            className="block h-full w-full object-contain shadow-[0_10px_24px_rgba(148,163,184,0.14)]"
+            draggable={false}
+          />
+        ) : null}
       </div>
     );
   }
@@ -217,6 +327,22 @@ export function PreviewPane() {
       />
     </div>
   );
+}
+
+async function imageHrefToDataUrl(href: string): Promise<string | null> {
+  try {
+    const response = await fetch(href);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    return await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("默认预览图加载失败"));
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return null;
+  }
 }
 
 function dispatchPreview(
@@ -248,14 +374,6 @@ function dispatchPreview(
     drawPhotoAlbumPreview(canvas, image, logoImage, photo, frameParams, config);
     return;
   }
-  if (kind === "date-stamp") {
-    drawDateStampPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "swiss-grid") {
-    drawSwissGridPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
   if (kind === "crop-marks") {
     drawCropMarksPreview(canvas, image, logoImage, photo, frameParams, config);
     return;
@@ -270,10 +388,6 @@ function dispatchPreview(
   }
   if (kind === "darkroom-proof") {
     drawDarkroomProofPreview(canvas, image, logoImage, photo, frameParams, config);
-    return;
-  }
-  if (kind === "kodak-slide") {
-    drawKodakSlidePreview(canvas, image, logoImage, photo, frameParams, config);
     return;
   }
   if (kind === "contact-sheet") {

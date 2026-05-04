@@ -2,22 +2,14 @@ import { normalizeModel } from "@/lib/exif/brand";
 import type { ExifData, FrameParams, TemplateConfig } from "@/stores/types";
 import { cleanDisplayText, formatTakenAt, sanitizeCustomLines } from "../classic-bottom";
 import { fitPhoto, getCanvasRatio, paramsLine } from "../renderer-utils";
+import { makeSvgResponsive, SVG_PHOTO_PLACEHOLDER, svgFontFamily, svgImage, xmlEscape } from "./shared";
 
-export const FUJI_PHOTO_PLACEHOLDER = "__FUJI_PHOTO__";
+export const FUJI_PHOTO_PLACEHOLDER = SVG_PHOTO_PLACEHOLDER;
 
 const FUJI_GREEN = "#00643f";
 const FUJI_PAPER = "#f5f1e7";
 const FUJI_INK = "#161616";
 const FUJI_MUTED = "#5a5650";
-
-function xmlEscape(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
 
 /**
  * Build the Fujifilm Classic template as a standalone SVG document.
@@ -37,49 +29,55 @@ export function buildFujifilmClassicSvg(
   photoHref: string = FUJI_PHOTO_PLACEHOLDER,
   canvasBaseWidth: number = 900,
 ): string {
+  const DESIGN_W = 900;
   const ratio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation);
   const canvasW = Math.max(320, Math.round(canvasBaseWidth));
   const canvasH = canvasW / ratio;
+  const scale = canvasW / DESIGN_W;
   const watermarkActive = config.showWatermark ?? true;
 
-  const sideMargin = canvasW * 0.05;
-  const topMargin = canvasH * 0.05;
-  const captionH = watermarkActive ? Math.max(96, canvasH * 0.16) : canvasH * 0.05;
+  const sideMargin = Math.max(canvasW * 0.015, canvasW * (frameParams.minTopBottomMargin / 100));
+  const topMargin = Math.max(canvasH * 0.025, canvasW * (frameParams.minTopBottomMargin / 100));
+  const captionH = watermarkActive ? Math.max(frameParams.infoBarHeight * scale, 64 * scale, canvasH * 0.11) : canvasH * 0.035;
 
-  const photoArea = { x: sideMargin, y: topMargin, w: canvasW - sideMargin * 2, h: canvasH - topMargin - captionH };
+  const photoArea = applySvgWidthRatio(
+    { x: sideMargin, y: topMargin, w: canvasW - sideMargin * 2, h: canvasH - topMargin - captionH },
+    frameParams.mainImageWidthRatio,
+  );
   const placed = fitPhoto(photoArea, photoW, photoH);
 
   const lines: string[] = [];
   lines.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`);
   lines.push(`<rect width="${canvasW}" height="${canvasH}" fill="${FUJI_PAPER}"/>`);
-  const hrefEscaped = xmlEscape(photoHref);
-  lines.push(`<image x="${placed.x}" y="${placed.y}" width="${placed.w}" height="${placed.h}" href="${hrefEscaped}" xlink:href="${hrefEscaped}" preserveAspectRatio="none"/>`);
+  lines.push(svgImage(photoHref, placed.x, placed.y, placed.w, placed.h));
 
   if (!watermarkActive) {
     lines.push("</svg>");
     return lines.join("\n");
   }
 
-  const fontFamily = "Inter";
-  const captionTop = placed.y + placed.h + canvasH * 0.03;
-  const wordmarkSize = Math.max(20, frameParams.fontSize * 1.7);
+  const portraitPhotoLayout = isPortraitPhoto(photoW, photoH);
+  const watermarkX = portraitPhotoLayout ? Math.max(24 * scale, canvasW * 0.03) : placed.x;
+  const fontFamily = svgFontFamily(frameParams.fontFamily);
+  const captionTop = placed.y + placed.h + canvasH * 0.035;
+  const wordmarkSize = Math.max(20 * scale, frameParams.fontSize * 1.7 * scale);
   const wordmarkBaseline = captionTop + wordmarkSize * 0.85;
-  const detailSize = Math.max(11, frameParams.fontSize);
-  const paramsSize = Math.max(13, frameParams.fontSize * 1.2);
-  const detailGap = Math.max(20, frameParams.fontSize * 1.6);
+  const detailSize = Math.max(11 * scale, frameParams.fontSize * scale);
+  const paramsSize = Math.max(13 * scale, frameParams.fontSize * 1.2 * scale);
+  const detailGap = Math.max(20 * scale, frameParams.fontSize * 1.6 * scale);
   const detailBaseline = wordmarkBaseline + detailGap;
 
-  lines.push(`<text x="${placed.x}" y="${wordmarkBaseline}" font-family="${fontFamily}" font-weight="900" font-size="${wordmarkSize}" fill="${FUJI_GREEN}">FUJIFILM</text>`);
+  lines.push(`<text x="${watermarkX}" y="${wordmarkBaseline}" font-family="${fontFamily}" font-weight="900" font-size="${wordmarkSize}" fill="${FUJI_GREEN}">FUJIFILM</text>`);
 
   // Film simulation pill — approximate FUJIFILM advance width for placement
   // (consistent across browser + resvg since both use the same formula, not measureText).
   const customLines = sanitizeCustomLines(config.customLines);
   const sim = (customLines[0] || "CLASSIC CHROME").toUpperCase();
-  const pillSize = Math.max(10, frameParams.fontSize - 1);
+  const pillSize = Math.max(10 * scale, (frameParams.fontSize - 1) * scale);
   const approxWordW = wordmarkSize * 0.62 * 8.0;
   const pillW = pillSize * sim.length * 0.62 + pillSize * 1.4;
   const pillH = pillSize * 1.9;
-  const pillX = placed.x + approxWordW + pillSize * 0.9;
+  const pillX = watermarkX + approxWordW + pillSize * 0.9;
   const pillY = wordmarkBaseline - pillH * 0.78;
   const r = pillH / 2;
   lines.push(`<g>`);
@@ -91,21 +89,54 @@ export function buildFujifilmClassicSvg(
   const camera = config.showCamera ? normalizeModel(exif.camera.make, exif.camera.model) : "";
   const lens = config.showLens ? cleanDisplayText(exif.lens) : "";
   const detail = [camera, lens].filter(Boolean).join("  ·  ");
+  let lowerBaseline = wordmarkBaseline;
   if (detail) {
-    lines.push(`<text x="${placed.x}" y="${detailBaseline}" font-family="${fontFamily}" font-weight="500" font-size="${detailSize}" fill="${FUJI_MUTED}">${xmlEscape(detail)}</text>`);
+    lowerBaseline = detailBaseline;
+    lines.push(`<text x="${watermarkX}" y="${lowerBaseline}" font-family="${fontFamily}" font-weight="500" font-size="${detailSize}" fill="${FUJI_MUTED}">${xmlEscape(detail)}</text>`);
   }
 
   // Right: params + date
-  const rightX = placed.x + placed.w;
+  const rightX = portraitPhotoLayout ? canvasW - watermarkX : placed.x + placed.w;
   const params = config.showParams ? paramsLine(exif, "  /  ") : "";
   const date = config.showDate ? formatTakenAt(exif.takenAt, config.dateFormat) : "";
+  const stackMetadata = !portraitPhotoLayout && shouldStackMetadata(placed.w, canvasW);
   if (params) {
-    lines.push(`<text x="${rightX}" y="${wordmarkBaseline}" text-anchor="end" font-family="${fontFamily}" font-weight="700" font-size="${paramsSize}" fill="${FUJI_INK}">${xmlEscape(params)}</text>`);
+    const paramsY = stackMetadata ? lowerBaseline + detailGap : wordmarkBaseline;
+    const anchor = stackMetadata ? "" : ` text-anchor="end"`;
+    const x = stackMetadata ? watermarkX : rightX;
+    lines.push(`<text x="${x}" y="${paramsY}"${anchor} font-family="${fontFamily}" font-weight="700" font-size="${paramsSize}" fill="${FUJI_INK}">${xmlEscape(params)}</text>`);
+    lowerBaseline = Math.max(lowerBaseline, paramsY);
   }
   if (date) {
-    lines.push(`<text x="${rightX}" y="${detailBaseline}" text-anchor="end" font-family="${fontFamily}" font-weight="500" font-size="${detailSize}" fill="${FUJI_MUTED}">${xmlEscape(date)}</text>`);
+    const dateY = stackMetadata ? lowerBaseline + detailGap : detailBaseline;
+    const anchor = stackMetadata ? "" : ` text-anchor="end"`;
+    const x = stackMetadata ? watermarkX : rightX;
+    lines.push(`<text x="${x}" y="${dateY}"${anchor} font-family="${fontFamily}" font-weight="500" font-size="${detailSize}" fill="${FUJI_MUTED}">${xmlEscape(date)}</text>`);
   }
 
   lines.push("</svg>");
   return lines.join("\n");
+}
+
+export function makeFujifilmClassicSvgResponsive(svg: string): string {
+  return makeSvgResponsive(svg);
+}
+
+function applySvgWidthRatio(area: { x: number; y: number; w: number; h: number }, ratioPercent: number) {
+  const ratio = Math.min(100, Math.max(1, Number.isFinite(ratioPercent) ? ratioPercent : 100)) / 100;
+  const w = area.w * ratio;
+  return {
+    x: area.x + (area.w - w) / 2,
+    y: area.y,
+    w,
+    h: area.h,
+  };
+}
+
+function shouldStackMetadata(photoWidth: number, canvasWidth: number) {
+  return photoWidth < canvasWidth * 0.58;
+}
+
+function isPortraitPhoto(photoW: number, photoH: number) {
+  return photoH > photoW;
 }
