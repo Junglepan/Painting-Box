@@ -168,7 +168,8 @@ export function buildContactSheetSvg(args: SvgArgs) {
   if (g.watermarkActive) {
     const captionTop = placed.y + placed.h + g.canvasH * 0.025;
     const size = Math.max(11 * g.scale, args.frameParams.fontSize * 1.05 * g.scale);
-    lines.push(text(placed.x, captionTop + size, "→ FRAME 24A", size, "700", "#f5f5f5"));
+    const frameNum = args.exif.takenAt.match(/(\d{2})$/)?.[1] ?? "—";
+    lines.push(text(placed.x, captionTop + size, `→ FRAME ${frameNum}`, size, "700", "#f5f5f5"));
   }
   return closeSvg(lines);
 }
@@ -264,11 +265,10 @@ function buildBottomBarSvg(args: SvgArgs, mode: "classic-bottom" | "magazine") {
 
 function base(args: SvgArgs, bg: string) {
   const canvasW = Math.max(320, Math.round(args.canvasBaseWidth ?? 900));
-  const ratio = getCanvasRatio(args.frameParams.canvasRatio, args.frameParams.canvasOrientation);
   return {
     bg,
     canvasW,
-    canvasH: canvasW / ratio,
+    canvasH: canvasW / getCanvasRatio(args.frameParams.canvasRatio, args.frameParams.canvasOrientation, args.photoW / args.photoH),
     scale: canvasW / 900,
     fontFamily: svgFontFamily(args.frameParams.fontFamily),
     photoHref: args.photoHref ?? SVG_PHOTO_PLACEHOLDER,
