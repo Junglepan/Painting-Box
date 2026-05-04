@@ -198,7 +198,6 @@ describe("classic bottom preview lines", () => {
       parityFixtures.classicBottomDefault4032x3024TwoLines,
       parityFixtures.minimalCornerDefault4032x3024LogoOnly,
       parityFixtures.classicBottomDefault4032x3024LogoOnly,
-      parityFixtures.polaroidDefault4032x3024TwoLines,
     ];
 
     for (const fixture of scenarios) {
@@ -214,19 +213,7 @@ describe("classic bottom preview lines", () => {
             logoGap: 10,
             canvasRatio: "auto" as const,
           }
-        : fixture.templateKind === "polaroid"
-          ? {
-              ...baseline,
-              infoBarHeight: 148,
-              mainImageWidthRatio: 82,
-              minTopBottomMargin: 2,
-              fontSize: 9,
-              innerRadius: 0,
-              photoBorder: 10,
-              logoGap: 10,
-              canvasRatio: "auto" as const,
-            }
-          : {
+        : {
               ...baseline,
               infoBarHeight: 72,
               mainImageWidthRatio: 85,

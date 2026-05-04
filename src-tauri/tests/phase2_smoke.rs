@@ -57,6 +57,8 @@ fn jpg_import_and_export_pipeline_works() {
                 shadow_offset_y: 10.0,
                 shadow_opacity: 20,
                 photo_border: 0,
+                photo_border_color: String::new(),
+                photo_border_style: String::new(),
                 background: "white".to_string(),
                 bg_color: "#ffffff".to_string(),
                 text_color: "#1f2937".to_string(),
@@ -81,7 +83,11 @@ fn jpg_import_and_export_pipeline_works() {
                 show_lens: true,
                 show_params: true,
                 watermark_template: None,
+                show_date: false,
+                date_format: String::new(),
+                custom_lines: Vec::new(),
             },
+            svg_template: None,
         };
 
         let result = export_single_photo(request)

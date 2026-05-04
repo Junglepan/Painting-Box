@@ -11,9 +11,8 @@ use uuid::Uuid;
 
 use crate::exif::{read_exif, ExifData};
 use crate::images::{decode_image, supported_extension};
-use crate::render::classic_bottom::{
-    render_to_path, ExportExif, ExportFrameParams, ExportTemplateConfig,
-};
+use crate::render::classic_bottom::{ExportExif, ExportFrameParams, ExportTemplateConfig};
+use crate::render::compose::render_to_path;
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -53,6 +52,9 @@ pub struct ExportSinglePhotoRequest {
     pub frame_params: ExportFrameParams,
     pub exif: Option<ExportExif>,
     pub config: ExportTemplateConfig,
+    /// Pre-built SVG template (with `__FUJI_PHOTO__` placeholder) for SVG-path export.
+    /// When present, bypasses the image-crate renderer and uses resvg instead.
+    pub svg_template: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

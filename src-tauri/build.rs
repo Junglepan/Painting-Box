@@ -1,6 +1,11 @@
 fn main() {
     tauri_build::build();
 
+    println!("cargo:rustc-check-cfg=cfg(bundled_inter)");
+    println!("cargo:rustc-check-cfg=cfg(bundled_playfair_display)");
+    println!("cargo:rustc-check-cfg=cfg(bundled_bebas_neue)");
+    println!("cargo:rustc-check-cfg=cfg(bundled_noto_sans_sc)");
+
     let fonts_dir = std::path::Path::new("fonts");
 
     if fonts_dir.join("inter-regular.ttf").exists()

@@ -2,7 +2,6 @@ import { useState } from "react";
 import { usePhotoStore } from "@/stores/photo-store";
 import { useTemplateStore } from "@/stores/template-store";
 import type {
-  CanvasOrientation,
   CanvasRatio,
   DateFormat,
   ExifData,
@@ -25,7 +24,7 @@ import {
   getResolvedLogoKey,
   resolveLogoSelection,
 } from "@/lib/exif/logo";
-import { getTemplateDisplayFields } from "@/lib/template-capabilities";
+import { getTemplateDisplayFields, getTemplateFrameCapabilities, isTemplateDisplayFieldFixed } from "@/lib/template-capabilities";
 import {
   Aperture,
   Bold,
@@ -33,15 +32,13 @@ import {
   Camera,
   ChevronDown,
   Eye,
-  FileText,
   Image as ImageIcon,
   Layout,
-  Minus,
+  Layers,
   Palette,
   RectangleHorizontal,
   RectangleVertical,
   RotateCcw,
-  Sparkles,
   SquareDashed,
   Sticker,
   Type,
@@ -110,9 +107,7 @@ type SectionId =
   | "photo"
   | "type"
   | "logo"
-  | "divider"
-  | "display"
-  | "content";
+  | "display";
 
 export function FrameParamsPanel() {
   const { currentKind, frameParams, setFrameParams, resetFrameParams, config, setConfig } =
@@ -132,11 +127,8 @@ export function FrameParamsPanel() {
     photo: false,
     type: false,
     logo: false,
-    divider: false,
     display: true,
-    content: false,
   });
-  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const toggle = (id: SectionId) =>
     setOpen((o) => ({ ...o, [id]: !o[id] }));
@@ -156,6 +148,29 @@ export function FrameParamsPanel() {
     ? frameParams.logoVariant
     : resolvedLogo.variant;
   const displayFields = getTemplateDisplayFields(currentKind);
+  const frameCapabilities = getTemplateFrameCapabilities(currentKind);
+  const frameControls = frameCapabilities.controls;
+  const has = (key: keyof typeof frameControls) => Boolean(frameControls[key]);
+  const range = (key: keyof typeof frameControls) => {
+    const control = frameControls[key];
+    return control && control !== true ? control : null;
+  };
+  const mainImageRange = range("mainImageWidthRatio");
+  const marginRange = range("minTopBottomMargin");
+  const infoBarRange = range("infoBarHeight");
+  const radiusRange = range("innerRadius");
+  const borderRange = range("photoBorder");
+  const fontSizeRange = range("fontSize");
+  const shadowBlurRange = range("shadowBlur");
+  const shadowOffsetYRange = range("shadowOffsetY");
+  const shadowOpacityRange = range("shadowOpacity");
+  const logoSizeRange = range("logoSize");
+  const logoGapRange = range("logoGap");
+  const showLayoutFineControls = Boolean(mainImageRange || marginRange || infoBarRange || radiusRange);
+  const showBackgroundControls = has("background");
+  const showShadowControls = Boolean(has("shadow") || shadowBlurRange || shadowOffsetYRange || shadowOpacityRange);
+  const showTypeControls = Boolean(has("fontFamily") || fontSizeRange || has("textColor"));
+  const showLogoControls = Boolean(logoSizeRange || logoGapRange);
 
   return (
     <div className="flex h-full w-full flex-col">
@@ -195,7 +210,18 @@ export function FrameParamsPanel() {
           <div className="mb-3">
             <div className="mb-2 flex items-center gap-1.5">
               <span className="label-plain flex-1">画布比例</span>
-              {(["landscape", "portrait"] as CanvasOrientation[]).map((o) => (
+              <button
+                type="button"
+                title="跟随照片方向"
+                onClick={() => set({ canvasOrientation: "auto" })}
+                className={cn(
+                  "chip h-6 px-1.5 text-[9px] font-medium",
+                  frameParams.canvasOrientation === "auto" && "chip-active",
+                )}
+              >
+                自动
+              </button>
+              {(["landscape", "portrait"] as const).map((o) => (
                 <button
                   key={o}
                   type="button"
@@ -215,11 +241,15 @@ export function FrameParamsPanel() {
             <div className="grid grid-cols-3 gap-1.5">
               {CANVAS_RATIOS.map((ratio) => {
                 const isSquare = ratio.value === "1:1";
-                // "原图" keeps its semantic label in both orientations;
-                // other non-square ratios show flipped string in portrait.
                 const hasSemanticLabel = ratio.label !== ratio.value;
+                const effectiveOrientation =
+                  frameParams.canvasOrientation === "auto"
+                    ? selectedPhoto?.width && selectedPhoto?.height && selectedPhoto.height > selectedPhoto.width
+                      ? "portrait"
+                      : "landscape"
+                    : frameParams.canvasOrientation;
                 const label =
-                  !isSquare && !hasSemanticLabel && frameParams.canvasOrientation === "portrait"
+                  !isSquare && !hasSemanticLabel && effectiveOrientation === "portrait"
                     ? ratio.value.split(":").reverse().join(":")
                     : ratio.label;
                 return (
@@ -238,68 +268,154 @@ export function FrameParamsPanel() {
               })}
             </div>
           </div>
-          <div className="space-y-1.5">
-            <SliderRow
-              hint="主图占比"
-              min={70}
-              max={95}
-              step={1}
-              value={frameParams.mainImageWidthRatio}
-              unit="%"
-              onChange={(v) => set({ mainImageWidthRatio: v })}
-            />
-            <SliderRow
-              hint="内圆角"
-              min={0}
-              max={50}
-              value={frameParams.innerRadius}
-              onChange={(v) => set({ innerRadius: v })}
-            />
-          </div>
+          {showLayoutFineControls ? (
+            <div className="space-y-1.5">
+              {mainImageRange ? (
+                <SliderRow
+                  hint="主图占比"
+                  min={mainImageRange.min}
+                  max={mainImageRange.max}
+                  step={mainImageRange.step}
+                  value={frameParams.mainImageWidthRatio}
+                  unit="%"
+                  onChange={(v) => set({ mainImageWidthRatio: v })}
+                />
+              ) : null}
+              {marginRange ? (
+                <SliderRow
+                  hint="边距"
+                  min={marginRange.min}
+                  max={marginRange.max}
+                  step={marginRange.step}
+                  value={frameParams.minTopBottomMargin}
+                  unit="%"
+                  onChange={(v) => set({ minTopBottomMargin: v })}
+                />
+              ) : null}
+              {infoBarRange ? (
+                <SliderRow
+                  hint="底栏"
+                  min={infoBarRange.min}
+                  max={infoBarRange.max}
+                  step={infoBarRange.step}
+                  value={frameParams.infoBarHeight}
+                  onChange={(v) => set({ infoBarHeight: v })}
+                />
+              ) : null}
+              {radiusRange ? (
+                <SliderRow
+                  hint="内圆角"
+                  min={radiusRange.min}
+                  max={radiusRange.max}
+                  step={radiusRange.step}
+                  value={frameParams.innerRadius}
+                  onChange={(v) => set({ innerRadius: v })}
+                />
+              ) : null}
+            </div>
+          ) : null}
         </Section>
 
-        <Section
-          id="background"
-          icon={Palette}
-          label="背景"
-          open={open.background}
-          onToggle={toggle}
-        >
-          <div className="mb-2 flex gap-1.5">
-            {BG_OPTIONS.map((o) => (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => set({ background: o.value })}
-                aria-label={o.label}
-                title={o.label}
-                className={cn(
-                  "relative h-7 flex-1 overflow-hidden rounded-md border transition-all duration-200",
-                  frameParams.background === o.value
-                    ? "border-primary/60 shadow-[var(--ring-selected)]"
-                    : "border-border/60 hover:border-border",
-                )}
-                style={{ background: o.swatch }}
+        {showBackgroundControls ? (
+          <Section
+            id="background"
+            icon={Palette}
+            label="背景"
+            open={open.background}
+            onToggle={toggle}
+          >
+            <div className="mb-2 flex gap-1.5">
+              {BG_OPTIONS.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => set({ background: o.value })}
+                  aria-label={o.label}
+                  title={o.label}
+                  className={cn(
+                    "relative h-7 flex-1 overflow-hidden rounded-md border transition-all duration-200",
+                    frameParams.background === o.value
+                      ? "border-primary/60 shadow-[var(--ring-selected)]"
+                      : "border-border/60 hover:border-border",
+                  )}
+                  style={{ background: o.swatch }}
+                />
+              ))}
+            </div>
+            {frameParams.background === "custom" ? (
+              <ColorRow
+                label="颜色"
+                value={frameParams.bgColor}
+                onChange={(v) => set({ bgColor: v })}
               />
-            ))}
-          </div>
-          {frameParams.background === "custom" ? (
-            <ColorRow
-              label="颜色"
-              value={frameParams.bgColor}
-              onChange={(v) => set({ bgColor: v })}
-            />
-          ) : null}
-          {frameParams.background === "blur" ? (
-            <SliderRow
-              hint="模糊"
-              min={0}
-              max={80}
-              value={frameParams.blurRadius}
-              onChange={(v) => set({ blurRadius: v })}
-            />
-          ) : null}
-        </Section>
+            ) : null}
+            {frameParams.background === "blur" ? (
+              <SliderRow
+                hint="模糊"
+                min={0}
+                max={80}
+                value={frameParams.blurRadius}
+                onChange={(v) => set({ blurRadius: v })}
+              />
+            ) : null}
+          </Section>
+        ) : null}
+
+        {showShadowControls ? (
+          <Section
+            id="shadow"
+            icon={Layers}
+            label="阴影"
+            open={open.shadow}
+            onToggle={toggle}
+          >
+            {has("shadow") ? (
+              <div className="param-row mb-2">
+                <span className="label-plain">照片阴影</span>
+                <Toggle
+                  active={frameParams.shadow}
+                  onClick={() => set({ shadow: !frameParams.shadow })}
+                />
+              </div>
+            ) : null}
+            {frameParams.shadow ? (
+              <div className="space-y-1.5">
+                {shadowBlurRange ? (
+                  <SliderRow
+                    hint="模糊"
+                    min={shadowBlurRange.min}
+                    max={shadowBlurRange.max}
+                    step={shadowBlurRange.step}
+                    value={frameParams.shadowBlur}
+                    onChange={(v) => set({ shadowBlur: v })}
+                  />
+                ) : null}
+                {shadowOffsetYRange ? (
+                  <SliderRow
+                    hint="下移"
+                    min={shadowOffsetYRange.min}
+                    max={shadowOffsetYRange.max}
+                    step={shadowOffsetYRange.step}
+                    value={frameParams.shadowOffsetY}
+                    unit="%"
+                    onChange={(v) => set({ shadowOffsetY: v })}
+                  />
+                ) : null}
+                {shadowOpacityRange ? (
+                  <SliderRow
+                    hint="强度"
+                    min={shadowOpacityRange.min}
+                    max={shadowOpacityRange.max}
+                    step={shadowOpacityRange.step}
+                    value={frameParams.shadowOpacity}
+                    unit="%"
+                    onChange={(v) => set({ shadowOpacity: v })}
+                  />
+                ) : null}
+              </div>
+            ) : null}
+          </Section>
+        ) : null}
 
         <Section
           id="display"
@@ -317,15 +433,25 @@ export function FrameParamsPanel() {
           </div>
           {config.showWatermark ? (
             <div className="grid grid-cols-3 gap-1.5">
-              {FIELDS.filter((f) => displayFields.includes(f.key)).map((f) => {
+              {FIELDS.map((f) => {
                 const Icon = f.icon;
                 const active = Boolean(config[f.key]);
+                const fixed = isTemplateDisplayFieldFixed(currentKind, f.key);
                 return (
                   <button
                     key={f.key}
                     type="button"
-                    onClick={() => setConfig({ [f.key]: !active })}
-                    className={cn("chip", active && "chip-active")}
+                    disabled={fixed}
+                    aria-disabled={fixed}
+                    onClick={() => {
+                      if (!fixed) setConfig({ [f.key]: !active });
+                    }}
+                    title={fixed ? "当前模板不支持配置此显示项" : undefined}
+                    className={cn(
+                      "chip",
+                      active && "chip-active",
+                      fixed && "cursor-not-allowed opacity-45",
+                    )}
                   >
                     <Icon className="h-3 w-3" />
                     <span>{f.label}</span>
@@ -338,75 +464,7 @@ export function FrameParamsPanel() {
           )}
         </Section>
 
-        <Section
-          id="content"
-          icon={FileText}
-          label="内容"
-          open={open.content}
-          onToggle={toggle}
-        >
-          {displayFields.includes("showDate") && config.showDate ? (
-            <SelectRow
-              label="日期格式"
-              value={config.dateFormat}
-              options={DATE_FORMAT_OPTIONS}
-              onChange={(value) =>
-                setConfig({ dateFormat: value as DateFormat })
-              }
-            />
-          ) : null}
-          <CustomLinesEditor
-            lines={config.customLines}
-            onChange={(lines) => setConfig({ customLines: lines })}
-          />
-        </Section>
-
-        <AdvancedGroup open={advancedOpen} onToggle={() => setAdvancedOpen((v) => !v)}>
-        <Section
-          id="shadow"
-          icon={Sparkles}
-          label="阴影"
-          open={open.shadow}
-          onToggle={toggle}
-        >
-          <div className="param-row">
-            <span className="label-plain">启用</span>
-            <Toggle
-              active={frameParams.shadow}
-              onClick={() => set({ shadow: !frameParams.shadow })}
-            />
-          </div>
-          {frameParams.shadow ? (
-            <div className="space-y-1.5">
-              <SliderRow
-                hint="模糊"
-                min={0}
-                max={60}
-                value={frameParams.shadowBlur}
-                onChange={(v) => set({ shadowBlur: v })}
-              />
-              <SliderRow
-                hint="偏移"
-                min={0}
-                max={2}
-                step={0.01}
-                value={frameParams.shadowOffsetY}
-                unit="%"
-                onChange={(v) => set({ shadowOffsetY: v })}
-              />
-              <SliderRow
-                hint="浓度"
-                min={0}
-                max={100}
-                value={frameParams.shadowOpacity}
-                unit="%"
-                onChange={(v) => set({ shadowOpacity: v })}
-              />
-            </div>
-          ) : null}
-        </Section>
-
-        <Section
+        {borderRange ? <Section
           id="photo"
           icon={ImageIcon}
           label="照片"
@@ -415,8 +473,9 @@ export function FrameParamsPanel() {
         >
           <SliderRow
             hint="边框"
-            min={0}
-            max={16}
+            min={borderRange.min}
+            max={borderRange.max}
+            step={borderRange.step}
             value={frameParams.photoBorder}
             onChange={(v) => set({ photoBorder: v })}
           />
@@ -449,36 +508,59 @@ export function FrameParamsPanel() {
               ) : null}
             </>
           ) : null}
-        </Section>
+        </Section> : null}
 
-        <Section
+        {showTypeControls ? <Section
           id="type"
           icon={Type}
           label="文字"
           open={open.type}
           onToggle={toggle}
         >
-          <SelectRow
-            label="字体"
-            value={frameParams.fontFamily}
-            options={FONT_FAMILIES}
-            onChange={(value) => set({ fontFamily: value as WatermarkFontFamily })}
-          />
-          <SliderRow
-            hint="字号"
-            min={10}
-            max={25}
-            value={frameParams.fontSize}
-            onChange={(v) => set({ fontSize: v })}
-          />
-          <ColorRow
-            label="颜色"
-            value={frameParams.textColor}
-            onChange={(v) => set({ textColor: v })}
-          />
-        </Section>
+          {has("fontFamily") ? (
+            <SelectRow
+              label="字体"
+              value={frameParams.fontFamily}
+              options={FONT_FAMILIES}
+              onChange={(value) => set({ fontFamily: value as WatermarkFontFamily })}
+            />
+          ) : null}
+          {fontSizeRange ? (
+            <SliderRow
+              hint="字号"
+              min={fontSizeRange.min}
+              max={fontSizeRange.max}
+              step={fontSizeRange.step}
+              value={frameParams.fontSize}
+              onChange={(v) => set({ fontSize: v })}
+            />
+          ) : null}
+          {has("textColor") ? (
+            <ColorRow
+              label="颜色"
+              value={frameParams.textColor}
+              onChange={(v) => set({ textColor: v })}
+            />
+          ) : null}
+          <div className="mt-2 border-t border-border/40 pt-2">
+            {displayFields.includes("showDate") && config.showDate ? (
+              <SelectRow
+                label="日期格式"
+                value={config.dateFormat}
+                options={DATE_FORMAT_OPTIONS}
+                onChange={(value) =>
+                  setConfig({ dateFormat: value as DateFormat })
+                }
+              />
+            ) : null}
+            <CustomLinesEditor
+              lines={config.customLines}
+              onChange={(lines) => setConfig({ customLines: lines })}
+            />
+          </div>
+        </Section> : null}
 
-        <Section
+        {showLogoControls ? <Section
           id="logo"
           icon={Bold}
           label="Logo"
@@ -516,50 +598,32 @@ export function FrameParamsPanel() {
             }))}
             onChange={(value) => set({ logoVariant: value as LogoVariant })}
           />
-          <SliderRow
-            hint="尺寸"
-            min={10}
-            max={25}
-            value={frameParams.logoSize}
-            onChange={(v) => set({ logoSize: v })}
-          />
-          <SliderRow
-            hint="间距"
-            min={0}
-            max={30}
-            value={frameParams.logoGap}
-            onChange={(v) => set({ logoGap: v })}
-          />
+          {logoSizeRange ? (
+            <SliderRow
+              hint="尺寸"
+              min={logoSizeRange.min}
+              max={logoSizeRange.max}
+              step={logoSizeRange.step}
+              value={frameParams.logoSize}
+              onChange={(v) => set({ logoSize: v })}
+            />
+          ) : null}
+          {logoGapRange ? (
+            <SliderRow
+              hint="间距"
+              min={logoGapRange.min}
+              max={logoGapRange.max}
+              step={logoGapRange.step}
+              value={frameParams.logoGap}
+              onChange={(v) => set({ logoGap: v })}
+            />
+          ) : null}
           <p className="mt-2 text-[10px] text-muted-foreground/70">
             {effectiveLogoKey
               ? `当前 Logo: ${effectiveLogoKey}`
               : "当前 Logo: 跟随照片"}
           </p>
-        </Section>
-
-        <Section
-          id="divider"
-          icon={Minus}
-          label="分隔线"
-          open={open.divider}
-          onToggle={toggle}
-        >
-          <div className="param-row">
-            <span className="label-plain">显示</span>
-            <Toggle
-              active={frameParams.dividerShow}
-              onClick={() => set({ dividerShow: !frameParams.dividerShow })}
-            />
-          </div>
-          {frameParams.dividerShow ? (
-            <ColorRow
-              label="颜色"
-              value={frameParams.dividerColor}
-              onChange={(v) => set({ dividerColor: v })}
-            />
-          ) : null}
-        </Section>
-        </AdvancedGroup>
+        </Section> : null}
 
         {selectedPhoto ? (
           <div className="border-t border-border/40 pt-4">
@@ -583,37 +647,6 @@ export function FrameParamsPanel() {
           </div>
         ) : null}
       </fieldset>
-    </div>
-  );
-}
-
-function AdvancedGroup({
-  open,
-  onToggle,
-  children,
-}: {
-  open: boolean;
-  onToggle: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="border-t border-border/40 pt-2">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between py-1.5 text-left"
-      >
-        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
-          高级
-        </span>
-        <ChevronDown
-          className={cn(
-            "h-3.5 w-3.5 text-muted-foreground transition-transform duration-200",
-            open && "rotate-180 text-primary",
-          )}
-        />
-      </button>
-      {open ? <div>{children}</div> : null}
     </div>
   );
 }

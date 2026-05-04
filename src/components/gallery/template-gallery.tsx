@@ -95,12 +95,6 @@ function TemplateThumbnail({ kind }: { kind: TemplateKind }) {
         </div>
       );
 
-    case "polaroid":
-      return (
-        <div className="h-full w-full bg-card p-1 pb-2.5">
-          <div className="h-full w-full bg-muted-foreground/20" />
-        </div>
-      );
     case "minimal-corner":
       return (
         <div className="relative h-full w-full bg-muted-foreground/20">
@@ -116,13 +110,6 @@ function TemplateThumbnail({ kind }: { kind: TemplateKind }) {
             <div className="h-2 w-px bg-muted-foreground/40" />
             <div className="h-1 flex-1 rounded-sm bg-muted-foreground/40" />
           </div>
-        </div>
-      );
-    case "minimal-fullbleed":
-      return (
-        <div className="flex h-full w-full flex-col bg-card p-1.5 pb-2">
-          <div className="flex-1 bg-muted-foreground/20" />
-          <div className="mt-1 h-0.5 w-3/5 self-center rounded-sm bg-muted-foreground/40" />
         </div>
       );
     case "cinematic":
@@ -185,23 +172,6 @@ function TemplateThumbnail({ kind }: { kind: TemplateKind }) {
           <div className="mt-1 h-1 w-2/5 rounded-sm bg-[#3b3024]/50" />
         </div>
       );
-    case "date-stamp":
-      return (
-        <div className="relative flex h-full w-full items-end justify-end bg-muted-foreground/20 p-1">
-          <span className="font-mono text-[6px] font-bold text-orange-500 opacity-90">'26  4  28</span>
-        </div>
-      );
-    case "swiss-grid":
-      return (
-        <div className="flex h-full w-full flex-col bg-white p-1.5">
-          <div className="flex-1 bg-muted-foreground/20" />
-          <div className="my-1 h-px bg-muted-foreground/60" />
-          <div className="flex items-end justify-between">
-            <div className="h-1.5 w-2/5 rounded-sm bg-muted-foreground/60" />
-            <div className="h-1 w-1/4 rounded-sm bg-muted-foreground/30" />
-          </div>
-        </div>
-      );
     case "crop-marks":
       return (
         <div className="relative flex h-full w-full items-center justify-center bg-white">
@@ -244,17 +214,6 @@ function TemplateThumbnail({ kind }: { kind: TemplateKind }) {
             <div className="flex-1 bg-muted-foreground/30" />
             <span className="absolute bottom-0.5 left-0.5 -rotate-12 text-[5px] font-bold text-red-700">PROOF</span>
             <div className="absolute bottom-0.5 right-0.5 h-0.5 w-3 bg-muted-foreground/60" />
-          </div>
-        </div>
-      );
-    case "kodak-slide":
-      return (
-        <div className="flex h-full w-full flex-col bg-[#f5f3ed] p-1">
-          <div className="flex flex-1 flex-col bg-[#fafaf6] p-0.5 shadow-sm">
-            <div className="flex-1 border border-black/40 bg-muted-foreground/25" />
-            <div className="mt-0.5 flex h-2 items-center bg-[#cb1f27] px-0.5">
-              <span className="text-[5px] font-extrabold text-white">KODACHROME</span>
-            </div>
           </div>
         </div>
       );

@@ -8,12 +8,12 @@
       "canvasW": 4032,
       "canvasH": 2688,
       "topMargin": 97,
-      "barTop": 2510,
-      "photoW": 3088,
-      "photoH": 2316,
-      "imageLeft": 472,
+      "barTop": 2365,
+      "photoW": 2895,
+      "photoH": 2171,
+      "imageLeft": 568,
       "imageTop": 97,
-      "blockTop": 2510
+      "blockTop": 2395
     }
   },
   "minimalCornerDefault4032x3024LogoOnly": {
@@ -25,12 +25,12 @@
       "canvasW": 4032,
       "canvasH": 2688,
       "topMargin": 56,
-      "barTop": 2604,
-      "photoW": 3323,
-      "photoH": 2492,
-      "imageLeft": 354,
+      "barTop": 2562,
+      "photoW": 3267,
+      "photoH": 2450,
+      "imageLeft": 382,
       "imageTop": 56,
-      "blockTop": 2604
+      "blockTop": 2562
     }
   },
   "classicBottomDefault4032x3024LogoOnly": {
@@ -42,29 +42,12 @@
       "canvasW": 4032,
       "canvasH": 2688,
       "topMargin": 97,
-      "barTop": 2604,
-      "photoW": 3213,
-      "photoH": 2410,
-      "imageLeft": 409,
+      "barTop": 2365,
+      "photoW": 2895,
+      "photoH": 2171,
+      "imageLeft": 568,
       "imageTop": 97,
-      "blockTop": 2604
-    }
-  },
-  "polaroidDefault4032x3024TwoLines": {
-    "sourceW": 4032,
-    "sourceH": 3024,
-    "templateKind": "polaroid",
-    "scenario": "two-lines",
-    "expected": {
-      "canvasW": 4032,
-      "canvasH": 2688,
-      "topMargin": 81,
-      "barTop": 2510,
-      "photoW": 3131,
-      "photoH": 2348,
-      "imageLeft": 450,
-      "imageTop": 81,
-      "blockTop": 2510
+      "blockTop": 2442
     }
   }
 }
