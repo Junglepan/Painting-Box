@@ -18,7 +18,7 @@ export function buildXiaomiLeicaSvg(
 ): string {
   const designW = 900;
   const canvasW = Math.max(320, Math.round(canvasBaseWidth));
-  const ratio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation);
+  const ratio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation, photoW / photoH);
   const canvasH = canvasW / ratio;
   const scale = canvasW / designW;
   const watermarkActive = config.showWatermark ?? true;

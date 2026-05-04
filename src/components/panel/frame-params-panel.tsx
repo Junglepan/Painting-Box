@@ -2,7 +2,6 @@ import { useState } from "react";
 import { usePhotoStore } from "@/stores/photo-store";
 import { useTemplateStore } from "@/stores/template-store";
 import type {
-  CanvasOrientation,
   CanvasRatio,
   DateFormat,
   ExifData,
@@ -211,7 +210,18 @@ export function FrameParamsPanel() {
           <div className="mb-3">
             <div className="mb-2 flex items-center gap-1.5">
               <span className="label-plain flex-1">画布比例</span>
-              {(["landscape", "portrait"] as CanvasOrientation[]).map((o) => (
+              <button
+                type="button"
+                title="跟随照片方向"
+                onClick={() => set({ canvasOrientation: "auto" })}
+                className={cn(
+                  "chip h-6 px-1.5 text-[9px] font-medium",
+                  frameParams.canvasOrientation === "auto" && "chip-active",
+                )}
+              >
+                自动
+              </button>
+              {(["landscape", "portrait"] as const).map((o) => (
                 <button
                   key={o}
                   type="button"
@@ -231,11 +241,15 @@ export function FrameParamsPanel() {
             <div className="grid grid-cols-3 gap-1.5">
               {CANVAS_RATIOS.map((ratio) => {
                 const isSquare = ratio.value === "1:1";
-                // "原图" keeps its semantic label in both orientations;
-                // other non-square ratios show flipped string in portrait.
                 const hasSemanticLabel = ratio.label !== ratio.value;
+                const effectiveOrientation =
+                  frameParams.canvasOrientation === "auto"
+                    ? selectedPhoto?.width && selectedPhoto?.height && selectedPhoto.height > selectedPhoto.width
+                      ? "portrait"
+                      : "landscape"
+                    : frameParams.canvasOrientation;
                 const label =
-                  !isSquare && !hasSemanticLabel && frameParams.canvasOrientation === "portrait"
+                  !isSquare && !hasSemanticLabel && effectiveOrientation === "portrait"
                     ? ratio.value.split(":").reverse().join(":")
                     : ratio.label;
                 return (

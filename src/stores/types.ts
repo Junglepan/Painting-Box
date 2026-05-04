@@ -131,7 +131,7 @@ export type CanvasRatio =
   | "16:9"
   | "21:9"
   | "2.35:1";
-export type CanvasOrientation = "landscape" | "portrait";
+export type CanvasOrientation = "landscape" | "portrait" | "auto";
 export type FrameBackground = "white" | "black" | "blur" | "custom";
 export type PhotoBorderStyle = "none" | "solid" | "dashed";
 export type LogoColor = "original" | "black" | "white";

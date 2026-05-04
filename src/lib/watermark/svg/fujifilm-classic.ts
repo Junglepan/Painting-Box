@@ -21,7 +21,7 @@ export function buildFujifilmClassicSvg(
   canvasBaseWidth: number = 900,
 ): string {
   const DESIGN_W = 900;
-  const ratio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation);
+  const ratio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation, photoW / photoH);
   const canvasW = Math.max(320, Math.round(canvasBaseWidth));
   const canvasH = canvasW / ratio;
   const scale = canvasW / DESIGN_W;
