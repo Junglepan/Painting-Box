@@ -55,7 +55,7 @@ export function buildClassicBottomSvg(args: SvgArgs) {
   });
   const lines = root(g);
   lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="${backgroundFill(args.frameParams)}"/>`);
-  lines.push(photoShadowElement(args, g, plan.imageX, plan.imageY, plan.photoW, plan.photoH));
+  lines.push(photoShadowDefs(args, g, plan.imageX, plan.imageY, plan.photoW, plan.photoH));
   lines.push(photoElement(args, g, plan.imageX, plan.imageY, plan.photoW, plan.photoH));
   if (watermarkActive) {
     const readable = resolveReadableTextAndDivider({
@@ -296,12 +296,15 @@ function widthTunablePhotoArea(args: SvgArgs, area: SvgRect) {
 
 function photoElement(args: SvgArgs, g: ReturnType<typeof base>, x: number, y: number, w: number, h: number) {
   const radius = Math.min(args.frameParams.innerRadius * g.scale, Math.min(w, h) / 8);
+  const shadowFilter = photoShadowDefs(args, g, x, y, w, h) ? ` filter="url(#pb-photo-shadow)"` : "";
   const image = radius > 0
     ? [
         `<defs><clipPath id="pb-photo-clip"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${radius}" ry="${radius}"/></clipPath></defs>`,
-        `<g clip-path="url(#pb-photo-clip)">${svgImage(g.photoHref, x, y, w, h)}</g>`,
+        `<g clip-path="url(#pb-photo-clip)"${shadowFilter}>${svgImage(g.photoHref, x, y, w, h)}</g>`,
       ].join("\n")
-    : svgImage(g.photoHref, x, y, w, h);
+    : shadowFilter
+      ? `<g${shadowFilter}>${svgImage(g.photoHref, x, y, w, h)}</g>`
+      : svgImage(g.photoHref, x, y, w, h);
   const border = args.frameParams.photoBorder;
   if (!border || args.frameParams.photoBorderStyle === "none") return image;
   const strokeWidth = Math.min(border * g.scale, Math.min(w, h) / 12);
@@ -312,19 +315,17 @@ function photoElement(args: SvgArgs, g: ReturnType<typeof base>, x: number, y: n
   ].join("\n");
 }
 
-function photoShadowElement(args: SvgArgs, g: ReturnType<typeof base>, x: number, y: number, w: number, h: number) {
+function photoShadowDefs(args: SvgArgs, g: ReturnType<typeof base>, x: number, y: number, w: number, h: number): string {
   if (!args.frameParams.shadow) return "";
   const blur = Math.max(0, args.frameParams.shadowBlur * g.scale);
   const offsetY = h * (args.frameParams.shadowOffsetY / 100);
   const opacity = Math.min(1, Math.max(0, args.frameParams.shadowOpacity / 100));
   if (blur <= 0 || opacity <= 0) return "";
   const pad = blur * 3 + Math.abs(offsetY);
-  const rx = Math.min(args.frameParams.innerRadius * g.scale, Math.min(w, h) / 8);
   return [
     `<defs><filter id="pb-photo-shadow" x="${x - pad}" y="${y - pad}" width="${w + pad * 2}" height="${h + pad * 2}" filterUnits="userSpaceOnUse">`,
     `<feDropShadow dx="0" dy="${offsetY}" stdDeviation="${blur}" flood-color="#111827" flood-opacity="${opacity}"/>`,
     `</filter></defs>`,
-    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" ry="${rx}" fill="#000000" filter="url(#pb-photo-shadow)"/>`,
   ].join("\n");
 }
 
