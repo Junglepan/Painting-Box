@@ -168,8 +168,7 @@ export function buildContactSheetSvg(args: SvgArgs) {
   if (g.watermarkActive) {
     const captionTop = placed.y + placed.h + g.canvasH * 0.025;
     const size = Math.max(11 * g.scale, args.frameParams.fontSize * 1.05 * g.scale);
-    const frameNum = args.exif.takenAt.match(/(\d{2})$/)?.[1] ?? "—";
-    lines.push(text(placed.x, captionTop + size, `→ FRAME ${frameNum}`, size, "700", "#f5f5f5"));
+    lines.push(text(placed.x, captionTop + size, "→ FRAME 24A", size, "700", "#f5f5f5"));
   }
   return closeTemplate(lines);
 }

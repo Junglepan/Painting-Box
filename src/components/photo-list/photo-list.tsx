@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
-import { openPath } from "@tauri-apps/plugin-opener";
 import { usePhotoStore } from "@/stores/photo-store";
 import { exportBatchPhotos, exportSinglePhoto, onExportProgress } from "@/lib/tauri/photos";
+import { revealExportDirectory } from "@/lib/tauri/open";
 import {
   buildBatchExportPlan,
   buildBatchExportPath,
@@ -621,7 +621,7 @@ function ExportDirBar({
       <button
         type="button"
         disabled={!defaultOutputDir}
-        onClick={() => defaultOutputDir && void openPath(defaultOutputDir)}
+        onClick={() => defaultOutputDir && void revealExportDirectory(defaultOutputDir)}
         className={cn(
           "min-w-0 flex-1 truncate text-left text-[10px]",
           dirName

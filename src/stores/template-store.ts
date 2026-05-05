@@ -115,7 +115,7 @@ function createTemplateBase(
 const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
   "classic-bottom": createTemplateBase({
     fontFamily: "pingfang-sc",
-    logoSize: 18,
+    logoSize: 20,
     mainImageWidthRatio: 85,
     minTopBottomMargin: 0,
     infoBarHeight: 0,
