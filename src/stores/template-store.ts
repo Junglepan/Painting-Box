@@ -191,7 +191,7 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       shadow: false,
     },
     {
-      showLogo: true,
+      showLogo: false,
       showCamera: true,
       showLens: false,
       showParams: true,
