@@ -9,7 +9,7 @@ import {
 } from "../classic-bottom";
 import { WATERMARK_LAYOUT_SPEC } from "../layout-spec";
 import { fitPhoto, getCanvasRatio, paramsLine } from "../renderer-utils";
-import { applySvgMainImageRatio, applySvgWidthRatio, closeSvg, isPortraitPhoto, shouldStackMetadata, SVG_PHOTO_PLACEHOLDER, svgContainedImage, svgFontFamily, svgImage, xmlEscape, type SvgLogoAsset, type SvgRect } from "./shared";
+import { applySvgMainImageRatio, applySvgWidthRatio, isPortraitPhoto, shouldStackMetadata, SVG_PHOTO_PLACEHOLDER, svgContainedImage, svgFontFamily, svgImage, xmlEscape, type SvgLogoAsset, type SvgRect } from "./shared";
 
 type SvgArgs = {
   photoW: number;
@@ -77,7 +77,7 @@ export function buildClassicBottomSvg(args: SvgArgs) {
       cursorY += fontSize;
     });
   }
-  return closeSvg(lines);
+  return closeTemplate(lines);
 }
 
 export function buildMinimalCornerSvg(args: SvgArgs) {
@@ -113,7 +113,7 @@ export function buildMinimalCornerSvg(args: SvgArgs) {
       lines.push(text(right, watermarkTop + size, label, size, "600", args.frameParams.textColor || "#111827", "end"));
     }
   }
-  return closeSvg(lines);
+  return closeTemplate(lines);
 }
 
 export function buildCinematicSvg(args: SvgArgs) {
@@ -135,7 +135,7 @@ export function buildCinematicSvg(args: SvgArgs) {
     } else if (left) lines.push(text(32 * g.scale, y, left, size, "600", args.frameParams.textColor || "#f5f5f5", "start", "middle"));
     if (right) lines.push(text(g.canvasW - 32 * g.scale, y, right, size, "400", args.frameParams.textColor || "#f5f5f5", "end", "middle"));
   }
-  return closeSvg(lines);
+  return closeTemplate(lines);
 }
 
 export function buildCropMarksSvg(args: SvgArgs) {
@@ -153,7 +153,7 @@ export function buildCropMarksSvg(args: SvgArgs) {
     const params = args.config.showParams ? paramsLine(args.exif, "  ·  ") : "";
     if (params) lines.push(text(placed.x + placed.w, stripY + 12 * g.scale, params, Math.max(10 * g.scale, (args.frameParams.fontSize - 1) * g.scale), "400", "#404040", "end", "middle"));
   }
-  return closeSvg(lines);
+  return closeTemplate(lines);
 }
 
 export function buildContactSheetSvg(args: SvgArgs) {
@@ -171,7 +171,7 @@ export function buildContactSheetSvg(args: SvgArgs) {
     const frameNum = args.exif.takenAt.match(/(\d{2})$/)?.[1] ?? "—";
     lines.push(text(placed.x, captionTop + size, `→ FRAME ${frameNum}`, size, "700", "#f5f5f5"));
   }
-  return closeSvg(lines);
+  return closeTemplate(lines);
 }
 
 export function buildPhotoAlbumSvg(args: SvgArgs) {
@@ -183,7 +183,7 @@ export function buildPhotoAlbumSvg(args: SvgArgs) {
   const lines = root(g);
   lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="#ede2cc"/>`, `<rect x="${placed.x - 6 * g.scale}" y="${placed.y - 6 * g.scale}" width="${placed.w + 12 * g.scale}" height="${placed.h + 12 * g.scale}" fill="#fdfaf2"/>`, photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
   cornerTriangles(lines, placed.x, placed.y, placed.w, placed.h, Math.max(28 * g.scale, Math.min(placed.w, placed.h) * 0.075));
-  return closeSvg(lines);
+  return closeTemplate(lines);
 }
 
 export function buildDarkroomProofSvg(args: SvgArgs) {
@@ -206,7 +206,7 @@ export function buildDarkroomProofSvg(args: SvgArgs) {
     lines.push(text(0, 0, "PROOF", stampSize, "900", "#b22222"));
     lines.push(`</g>`);
   }
-  return closeSvg(lines);
+  return closeTemplate(lines);
 }
 
 export function buildGenericSvgForKind(kind: TemplateKind, args: SvgArgs): string | undefined {
@@ -260,7 +260,7 @@ function buildBottomBarSvg(args: SvgArgs, mode: "classic-bottom" | "magazine") {
       lines.push(text(stackMetadata ? watermarkX : paramsX, paramsY, params, size, "500", args.frameParams.textColor || "#1f2937", stackMetadata ? "start" : "end"));
     }
   }
-  return closeSvg(lines);
+  return closeTemplate(lines);
 }
 
 function base(args: SvgArgs, bg: string) {
@@ -365,7 +365,16 @@ function inlineLogoAndText(
 }
 
 function root(g: ReturnType<typeof base>) {
-  return [`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${g.canvasW}" height="${g.canvasH}" viewBox="0 0 ${g.canvasW} ${g.canvasH}" font-family="${xmlEscape(g.fontFamily)}">`];
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${g.canvasW}" height="${g.canvasH}" viewBox="0 0 ${g.canvasW} ${g.canvasH}">`,
+    `<g font-family="${xmlEscape(g.fontFamily)}">`,
+  ];
+}
+
+function closeTemplate(lines: string[]): string {
+  lines.push("</g>");
+  lines.push("</svg>");
+  return lines.join("\n");
 }
 
 function text(x: number, y: number, value: string, size: number, weight: string, fill: string, anchor: "start" | "middle" | "end" = "start", baseline?: "middle") {
