@@ -54,7 +54,7 @@ export function buildClassicBottomSvg(args: SvgArgs) {
     baseWidth: g.canvasW,
   });
   const lines = root(g);
-  lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="${backgroundFill(args.frameParams)}"/>`);
+  lines.push(backgroundElements(args, g));
   lines.push(photoShadowDefs(args, g, plan.imageX, plan.imageY, plan.photoW, plan.photoH));
   lines.push(photoElement(args, g, plan.imageX, plan.imageY, plan.photoW, plan.photoH));
   if (watermarkActive) {
@@ -239,7 +239,7 @@ function buildBottomBarSvg(args: SvgArgs, mode: "classic-bottom" | "magazine") {
   const photoArea = { x: margin, y: topMargin, w: g.canvasW - margin * 2, h: g.canvasH - topMargin - bottomSafety - barH };
   const placed = fitPhoto(compact ? widthTunablePhotoArea(args, photoArea) : tunablePhotoArea(args, photoArea), args.photoW, args.photoH);
   const lines = root(g);
-  lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="${bg}"/>`);
+  lines.push(backgroundElements(args, g));
   lines.push(photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
   if (g.watermarkActive) {
     const y = placed.y + placed.h + barH * (compact ? 0.55 : 0.35);
@@ -278,16 +278,28 @@ function base(args: SvgArgs, bg: string) {
 function backgroundFill(frameParams: FrameParams) {
   if (frameParams.background === "black") return "#111827";
   if (frameParams.background === "custom") return frameParams.bgColor;
-  if (frameParams.background === "blur") return "#eef1f6";
   return "#ffffff";
 }
 
 function backgroundLuminance(frameParams: FrameParams): number {
+  if (frameParams.background === "blur") return 40;
   const hex = backgroundFill(frameParams).replace("#", "");
   const r = parseInt(hex.slice(0, 2), 16);
   const g = parseInt(hex.slice(2, 4), 16);
   const b = parseInt(hex.slice(4, 6), 16);
   return 0.299 * r + 0.587 * g + 0.114 * b;
+}
+
+function backgroundElements(args: SvgArgs, g: ReturnType<typeof base>): string {
+  if (args.frameParams.background !== "blur") {
+    return `<rect width="${g.canvasW}" height="${g.canvasH}" fill="${backgroundFill(args.frameParams)}"/>`;
+  }
+  const blur = Math.max(1, Math.round(args.frameParams.blurRadius * g.scale * 0.45));
+  return [
+    `<defs><filter id="pb-bg-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${blur}"/></filter></defs>`,
+    `<image x="0" y="0" width="${g.canvasW}" height="${g.canvasH}" href="${xmlEscape(g.photoHref)}" xlink:href="${xmlEscape(g.photoHref)}" preserveAspectRatio="xMidYMid slice" filter="url(#pb-bg-blur)"/>`,
+    `<rect width="${g.canvasW}" height="${g.canvasH}" fill="rgba(0,0,0,0.22)"/>`,
+  ].join("\n");
 }
 
 function scaledBarH(args: SvgArgs, g: ReturnType<typeof base>, fallback: number) {

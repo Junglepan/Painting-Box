@@ -338,7 +338,7 @@ export function FrameParamsPanel() {
                       ? "border-primary/60 shadow-[var(--ring-selected)]"
                       : "border-border/60 hover:border-border",
                   )}
-                  style={{ background: o.swatch }}
+                  style={{ background: o.value === "custom" ? frameParams.bgColor : o.swatch }}
                 />
               ))}
             </div>

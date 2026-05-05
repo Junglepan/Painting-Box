@@ -88,6 +88,22 @@ export function svgFontFamily(fontFamily: WatermarkFontFamily): string {
   }
 }
 
+export function blurBackgroundSvg(
+  photoHref: string,
+  canvasW: number,
+  canvasH: number,
+  blurRadius: number,
+  scale: number,
+): string {
+  const std = Math.max(1, Math.round(blurRadius * scale * 0.45));
+  const safeHref = xmlEscape(photoHref);
+  return [
+    `<defs><filter id="pb-bg-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${std}"/></filter></defs>`,
+    `<image x="0" y="0" width="${canvasW}" height="${canvasH}" href="${safeHref}" xlink:href="${safeHref}" preserveAspectRatio="xMidYMid slice" filter="url(#pb-bg-blur)"/>`,
+    `<rect width="${canvasW}" height="${canvasH}" fill="rgba(0,0,0,0.22)"/>`,
+  ].join("\n");
+}
+
 export function closeSvg(lines: string[]): string {
   lines.push("</svg>");
   return lines.join("\n");

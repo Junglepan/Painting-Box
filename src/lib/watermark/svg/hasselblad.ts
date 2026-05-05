@@ -2,7 +2,7 @@ import { normalizeModel } from "@/lib/exif/brand";
 import type { ExifData, FrameParams, TemplateConfig } from "@/stores/types";
 import { cleanDisplayText, formatTakenAt } from "../classic-bottom";
 import { fitPhoto, getCanvasRatio, paramsLine } from "../renderer-utils";
-import { applySvgWidthRatio, closeSvg, isPortraitPhoto, shouldStackMetadata, SVG_PHOTO_PLACEHOLDER, svgFontFamily, svgImage, xmlEscape } from "./shared";
+import { applySvgWidthRatio, blurBackgroundSvg, closeSvg, isPortraitPhoto, shouldStackMetadata, SVG_PHOTO_PLACEHOLDER, svgFontFamily, svgImage, xmlEscape } from "./shared";
 
 const HASSY_BG = "#0a0a0a";
 const HASSY_ORANGE = "#ff8a00";
@@ -37,7 +37,14 @@ export function buildHasselbladSvg(
   );
 
   const lines = [`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`];
-  lines.push(`<rect width="${canvasW}" height="${canvasH}" fill="${HASSY_BG}"/>`);
+  if (frameParams.background === "blur") {
+    lines.push(blurBackgroundSvg(photoHref, canvasW, canvasH, frameParams.blurRadius, scale));
+  } else {
+    const bg = frameParams.background === "white" ? "#ffffff"
+      : frameParams.background === "custom" ? frameParams.bgColor
+      : HASSY_BG;
+    lines.push(`<rect width="${canvasW}" height="${canvasH}" fill="${bg}"/>`);
+  }
   lines.push(svgImage(photoHref, placed.x, placed.y, placed.w, placed.h));
   if (!watermarkActive) return closeSvg(lines);
 
