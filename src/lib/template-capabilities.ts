@@ -84,6 +84,8 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
       infoBarHeight: { min: 72, max: 112, step: 1 },
       fontSize: { min: 3, max: 18, step: 1 },
       textColor: true,
+      logoSize: { min: 10, max: 25, step: 1 },
+      logoGap: { min: 0, max: 30, step: 1 },
     },
   },
   "film-strip": {
