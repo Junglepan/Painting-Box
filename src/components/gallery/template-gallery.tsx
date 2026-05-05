@@ -2,6 +2,7 @@ import { useTemplateStore } from "@/stores/template-store";
 import { usePhotoStore } from "@/stores/photo-store";
 import type { TemplateKind } from "@/stores/types";
 import { TEMPLATE_LIBRARY } from "@/lib/templates";
+import { scrollHorizontallyWithWheel } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
 import { Layers } from "lucide-react";
 
@@ -25,7 +26,10 @@ export function TemplateGallery() {
         </span>
       </div>
       <div className="surface-inset mx-3 mb-3 flex-1 overflow-hidden">
-        <div className="scrollbar-gutter-stable flex h-full items-center gap-2 overflow-x-auto overflow-y-hidden px-3 py-2.5">
+        <div
+          className="scrollbar-gutter-stable flex h-full items-center gap-2 overflow-x-auto overflow-y-hidden px-3 py-2.5"
+          onWheel={(event) => scrollHorizontallyWithWheel(event.currentTarget, event)}
+        >
           {TEMPLATE_LIBRARY.map((t) => (
             <TemplateCard
               key={t.kind}

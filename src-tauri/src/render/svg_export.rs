@@ -3,7 +3,7 @@ use std::sync::Arc;
 
 use resvg::{tiny_skia, usvg};
 
-use crate::images::decode_image;
+use crate::images::{decode_image, supported_extension};
 
 const PHOTO_PLACEHOLDER: &str = "__FUJI_PHOTO__";
 
@@ -15,20 +15,10 @@ pub fn render_svg_export(
     output_path: &str,
     quality: u8,
 ) -> Result<(), String> {
-    let img = decode_image(Path::new(photo_path)).map_err(|e| format!("load photo: {e}"))?;
-
-    // Encode the decoded source once; usvg resolves the placeholder to these bytes.
-    let mut jpeg_buf: Vec<u8> = Vec::new();
-    {
-        use image::codecs::jpeg::JpegEncoder;
-        let mut enc = JpegEncoder::new_with_quality(&mut jpeg_buf, 92);
-        let rgb = img.to_rgb8();
-        enc.encode_image(&rgb).map_err(|e| format!("encode photo: {e}"))?;
-    }
-    let photo_bytes = Arc::new(jpeg_buf);
+    let source_path = Path::new(photo_path);
+    let photo_kind = photo_placeholder_kind(source_path)?;
 
     let mut db = usvg::fontdb::Database::new();
-    db.load_system_fonts();
     #[cfg(bundled_inter)]
     {
         db.load_font_data(include_bytes!("../../fonts/inter-regular.ttf").to_vec());
@@ -51,7 +41,7 @@ pub fn render_svg_export(
 
     let default_data_resolver = usvg::ImageHrefResolver::default_data_resolver();
     let default_string_resolver = usvg::ImageHrefResolver::default_string_resolver();
-    let photo_resolver_bytes = photo_bytes.clone();
+    let photo_resolver_kind = photo_kind.clone();
 
     let opt = usvg::Options {
         fontdb: Arc::new(db),
@@ -60,7 +50,7 @@ pub fn render_svg_export(
             resolve_data: default_data_resolver,
             resolve_string: Box::new(move |href, opts| {
                 if href == PHOTO_PLACEHOLDER {
-                    Some(usvg::ImageKind::JPEG(photo_resolver_bytes.clone()))
+                    Some(photo_resolver_kind.clone())
                 } else {
                     default_string_resolver(href, opts)
                 }
@@ -82,10 +72,56 @@ pub fn render_svg_export(
     crate::render::classic_bottom::save_image(&rgba, Path::new(output_path), quality)
 }
 
+fn photo_placeholder_kind(photo_path: &Path) -> Result<usvg::ImageKind, String> {
+    match supported_extension(photo_path).ok().as_deref() {
+        Some("jpg") | Some("jpeg") if has_jpeg_magic(photo_path) => {
+            let bytes = std::fs::read(photo_path).map_err(|e| format!("read jpeg photo: {e}"))?;
+            Ok(usvg::ImageKind::JPEG(Arc::new(bytes)))
+        }
+        Some("png") if has_png_magic(photo_path) => {
+            let bytes = std::fs::read(photo_path).map_err(|e| format!("read png photo: {e}"))?;
+            Ok(usvg::ImageKind::PNG(Arc::new(bytes)))
+        }
+        _ => {
+            let img = decode_image(photo_path).map_err(|e| format!("load photo: {e}"))?;
+            let mut png_buf: Vec<u8> = Vec::new();
+            {
+                use image::codecs::png::PngEncoder;
+                use image::{ColorType, ImageEncoder};
+                let rgba = img.to_rgba8();
+                let enc = PngEncoder::new(&mut png_buf);
+                enc.write_image(
+                    rgba.as_raw(),
+                    rgba.width(),
+                    rgba.height(),
+                    ColorType::Rgba8.into(),
+                )
+                .map_err(|e| format!("encode photo png: {e}"))?;
+            }
+            Ok(usvg::ImageKind::PNG(Arc::new(png_buf)))
+        }
+    }
+}
+
+fn has_jpeg_magic(path: &Path) -> bool {
+    let Ok(mut file) = std::fs::File::open(path) else { return false };
+    let mut magic = [0u8; 3];
+    use std::io::Read;
+    file.read_exact(&mut magic).is_ok() && magic == [0xFF, 0xD8, 0xFF]
+}
+
+fn has_png_magic(path: &Path) -> bool {
+    let Ok(mut file) = std::fs::File::open(path) else { return false };
+    let mut magic = [0u8; 8];
+    use std::io::Read;
+    file.read_exact(&mut magic).is_ok() && magic == [0x89, b'P', b'N', b'G', 0x0D, 0x0A, 0x1A, 0x0A]
+}
+
 #[cfg(test)]
 mod tests {
-    use super::render_svg_export;
+    use super::{photo_placeholder_kind, render_svg_export};
     use image::{Rgba, RgbaImage};
+    use resvg::usvg;
 
     #[test]
     fn resolves_photo_placeholder_without_data_url_replacement() {
@@ -146,7 +182,7 @@ mod tests {
 
         let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="240" height="80" viewBox="0 0 240 80">
   <rect x="0" y="0" width="240" height="80" fill="#ffffff"/>
-  <text x="12" y="52" font-family="PingFang SC, Noto Sans SC, sans-serif" font-weight="700" font-size="40" fill="#111827">Z 7II</text>
+  <text x="12" y="52" font-family="Noto Sans SC Thin, Inter, sans-serif" font-weight="700" font-size="40" fill="#111827">Z 7II</text>
 </svg>"##;
 
         render_svg_export(
@@ -166,5 +202,33 @@ mod tests {
 
         let _ = std::fs::remove_file(source);
         let _ = std::fs::remove_file(output);
+    }
+
+    #[test]
+    fn preserves_original_jpeg_bytes_for_photo_placeholder() {
+        let dir = std::env::temp_dir();
+        let suffix = format!(
+            "{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock before unix epoch")
+                .as_nanos()
+        );
+        let source = dir.join(format!("painting-box-svg-original-jpeg-{suffix}.jpg"));
+        let source_image = image::RgbImage::from_pixel(8, 8, image::Rgb([12, 34, 56]));
+        source_image.save(&source).expect("write source image");
+        let original = std::fs::read(&source).expect("read original source");
+
+        let kind = photo_placeholder_kind(&source).expect("resolve placeholder kind");
+
+        match kind {
+            usvg::ImageKind::JPEG(bytes) => {
+                assert_eq!(&*bytes, &original);
+            }
+            _ => panic!("expected original JPEG bytes"),
+        }
+
+        let _ = std::fs::remove_file(source);
     }
 }

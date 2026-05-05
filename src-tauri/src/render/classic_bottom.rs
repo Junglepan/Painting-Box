@@ -883,7 +883,7 @@ pub(crate) fn save_image(image: &RgbaImage, path: &Path, quality: u8) -> Result<
 
     match ext.as_str() {
         "jpg" | "jpeg" => {
-            let jpeg = turbojpeg::compress_image(image, q as i32, turbojpeg::Subsamp::Sub2x2)
+            let jpeg = turbojpeg::compress_image(image, q as i32, turbojpeg::Subsamp::None)
                 .map_err(|e| format!("JPEG 导出失败：{e}"))?;
             std::io::Write::write_all(&mut w, &jpeg)
                 .map_err(|e| format!("JPEG 写入失败：{e}"))?;

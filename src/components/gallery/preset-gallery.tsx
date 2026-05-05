@@ -3,6 +3,7 @@ import { usePresetStore } from "@/stores/preset-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { usePhotoStore } from "@/stores/photo-store";
 import { PRESET_NAME_MAX, type Preset } from "@/stores/types";
+import { scrollHorizontallyWithWheel } from "@/lib/scroll";
 import { cn } from "@/lib/utils";
 import { Bookmark, BookmarkPlus, Trash2, Check, X } from "lucide-react";
 
@@ -105,6 +106,7 @@ export function PresetGallery() {
         <div
           ref={stripRef}
           className="flex h-full items-center gap-2 overflow-x-auto overflow-y-hidden px-3 py-2.5"
+          onWheel={(event) => scrollHorizontallyWithWheel(event.currentTarget, event)}
         >
           {draftName !== null ? (
             <DraftCard

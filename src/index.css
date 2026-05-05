@@ -55,6 +55,20 @@
   font-display: swap;
   src: url("/fonts/noto-sans-sc-bold.ttf") format("truetype");
 }
+@font-face {
+  font-family: "Noto Sans SC Thin";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/noto-sans-sc-regular.ttf") format("truetype");
+}
+@font-face {
+  font-family: "Noto Sans SC Thin";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/noto-sans-sc-bold.ttf") format("truetype");
+}
 
 @custom-variant dark (&:is(.dark *));
 
