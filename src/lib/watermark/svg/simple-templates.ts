@@ -296,15 +296,16 @@ function widthTunablePhotoArea(args: SvgArgs, area: SvgRect) {
 
 function photoElement(args: SvgArgs, g: ReturnType<typeof base>, x: number, y: number, w: number, h: number) {
   const radius = Math.min(args.frameParams.innerRadius * g.scale, Math.min(w, h) / 8);
-  const shadowFilter = photoShadowDefs(args, g, x, y, w, h) ? ` filter="url(#pb-photo-shadow)"` : "";
-  const image = radius > 0
+  const hasShadow = Boolean(photoShadowDefs(args, g, x, y, w, h));
+  const clipped = radius > 0
     ? [
         `<defs><clipPath id="pb-photo-clip"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${radius}" ry="${radius}"/></clipPath></defs>`,
-        `<g clip-path="url(#pb-photo-clip)"${shadowFilter}>${svgImage(g.photoHref, x, y, w, h)}</g>`,
+        `<g clip-path="url(#pb-photo-clip)">${svgImage(g.photoHref, x, y, w, h)}</g>`,
       ].join("\n")
-    : shadowFilter
-      ? `<g${shadowFilter}>${svgImage(g.photoHref, x, y, w, h)}</g>`
-      : svgImage(g.photoHref, x, y, w, h);
+    : svgImage(g.photoHref, x, y, w, h);
+  // Shadow filter must wrap the clipped image in an outer group — applying
+  // filter and clip-path to the same element causes the clip to mask the shadow.
+  const image = hasShadow ? `<g filter="url(#pb-photo-shadow)">${clipped}</g>` : clipped;
   const border = args.frameParams.photoBorder;
   if (!border || args.frameParams.photoBorderStyle === "none") return image;
   const strokeWidth = Math.min(border * g.scale, Math.min(w, h) / 12);
