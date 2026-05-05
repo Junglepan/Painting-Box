@@ -239,7 +239,7 @@ function buildBottomBarSvg(args: SvgArgs, mode: "classic-bottom" | "magazine") {
   const photoArea = { x: margin, y: topMargin, w: g.canvasW - margin * 2, h: g.canvasH - topMargin - bottomSafety - barH };
   const placed = fitPhoto(compact ? widthTunablePhotoArea(args, photoArea) : tunablePhotoArea(args, photoArea), args.photoW, args.photoH);
   const lines = root(g);
-  lines.push(backgroundElements(args, g));
+  lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="${backgroundFill(args.frameParams)}"/>`);
   lines.push(photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
   if (g.watermarkActive) {
     const y = placed.y + placed.h + barH * (compact ? 0.55 : 0.35);

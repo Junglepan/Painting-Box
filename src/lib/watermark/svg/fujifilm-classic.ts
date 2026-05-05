@@ -2,7 +2,7 @@ import { normalizeModel } from "@/lib/exif/brand";
 import type { ExifData, FrameParams, TemplateConfig } from "@/stores/types";
 import { cleanDisplayText, formatTakenAt, sanitizeCustomLines } from "../classic-bottom";
 import { fitPhoto, getCanvasRatio, paramsLine } from "../renderer-utils";
-import { applySvgWidthRatio, blurBackgroundSvg, closeSvg, isPortraitPhoto, makeSvgResponsive, shouldStackMetadata, SVG_PHOTO_PLACEHOLDER, svgFontFamily, svgImage, xmlEscape } from "./shared";
+import { applySvgWidthRatio, closeSvg, isPortraitPhoto, makeSvgResponsive, shouldStackMetadata, SVG_PHOTO_PLACEHOLDER, svgFontFamily, svgImage, xmlEscape } from "./shared";
 
 export const FUJI_PHOTO_PLACEHOLDER = SVG_PHOTO_PLACEHOLDER;
 
@@ -39,14 +39,7 @@ export function buildFujifilmClassicSvg(
 
   const lines: string[] = [];
   lines.push(`<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${canvasW}" height="${canvasH}" viewBox="0 0 ${canvasW} ${canvasH}">`);
-  if (frameParams.background === "blur") {
-    lines.push(blurBackgroundSvg(photoHref, canvasW, canvasH, frameParams.blurRadius, scale));
-  } else {
-    const bg = frameParams.background === "black" ? "#111827"
-      : frameParams.background === "custom" ? frameParams.bgColor
-      : FUJI_PAPER;
-    lines.push(`<rect width="${canvasW}" height="${canvasH}" fill="${bg}"/>`);
-  }
+  lines.push(`<rect width="${canvasW}" height="${canvasH}" fill="${FUJI_PAPER}"/>`);
   lines.push(svgImage(photoHref, placed.x, placed.y, placed.w, placed.h));
 
   if (!watermarkActive) {
