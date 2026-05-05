@@ -28,6 +28,7 @@ pub fn render_svg_export(
     let photo_bytes = Arc::new(jpeg_buf);
 
     let mut db = usvg::fontdb::Database::new();
+    db.load_system_fonts();
     #[cfg(bundled_inter)]
     {
         db.load_font_data(include_bytes!("../../fonts/inter-regular.ttf").to_vec());
@@ -121,6 +122,47 @@ mod tests {
         assert!(center[0] > 180, "expected red photo pixel, got {center:?}");
         assert!(center[1] < 100, "expected low green channel, got {center:?}");
         assert!(center[2] < 100, "expected low blue channel, got {center:?}");
+
+        let _ = std::fs::remove_file(source);
+        let _ = std::fs::remove_file(output);
+    }
+
+    #[test]
+    fn renders_svg_text_with_bundled_fonts() {
+        let dir = std::env::temp_dir();
+        let suffix = format!(
+            "{}-{}",
+            std::process::id(),
+            std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .expect("clock before unix epoch")
+                .as_nanos()
+        );
+        let source = dir.join(format!("painting-box-svg-text-source-{suffix}.png"));
+        let output = dir.join(format!("painting-box-svg-text-output-{suffix}.png"));
+
+        let source_image = RgbaImage::from_pixel(8, 8, Rgba([255, 255, 255, 255]));
+        source_image.save(&source).expect("write source image");
+
+        let svg = r##"<svg xmlns="http://www.w3.org/2000/svg" width="240" height="80" viewBox="0 0 240 80">
+  <rect x="0" y="0" width="240" height="80" fill="#ffffff"/>
+  <text x="12" y="52" font-family="PingFang SC, Noto Sans SC, sans-serif" font-weight="700" font-size="40" fill="#111827">Z 7II</text>
+</svg>"##;
+
+        render_svg_export(
+            &source.to_string_lossy(),
+            svg,
+            &output.to_string_lossy(),
+            92,
+        )
+        .expect("render svg export");
+
+        let rendered = image::open(&output).expect("read rendered image").to_rgba8();
+        let dark_pixels = rendered
+            .pixels()
+            .filter(|pixel| pixel[0] < 80 && pixel[1] < 90 && pixel[2] < 110)
+            .count();
+        assert!(dark_pixels > 80, "expected rendered text pixels, got {dark_pixels}");
 
         let _ = std::fs::remove_file(source);
         let _ = std::fs::remove_file(output);

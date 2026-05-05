@@ -73,15 +73,15 @@ export function applySvgMainImageRatio(area: SvgRect, ratioPercent: number): Svg
 export function svgFontFamily(fontFamily: WatermarkFontFamily): string {
   switch (fontFamily) {
     case "noto-sans-sc":
-      return "Noto Sans SC, PingFang SC, sans-serif";
+      return "Noto Sans SC, PingFang SC, Inter, sans-serif";
     case "pingfang-sc":
-      return "PingFang SC, Noto Sans SC, sans-serif";
+      return "PingFang SC, Noto Sans SC, Inter, sans-serif";
     case "playfair-display":
-      return "Playfair Display, Georgia, serif";
+      return "Playfair Display, Georgia, Inter, serif";
     case "bebas-neue":
-      return "Bebas Neue, Arial Narrow, sans-serif";
+      return "Bebas Neue, Arial Narrow, Inter, sans-serif";
     case "arial":
-      return "Arial, Helvetica Neue, sans-serif";
+      return "Arial, Helvetica Neue, Inter, sans-serif";
     case "inter":
     default:
       return "Inter, sans-serif";
