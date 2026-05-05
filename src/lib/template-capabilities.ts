@@ -29,7 +29,7 @@ type TemplateFrameCapabilities = {
 };
 
 const COMMON_CANVAS_CONTROLS = {
-  fontSize: { min: 9, max: 18, step: 1 },
+  fontSize: { min: 3, max: 18, step: 1 },
   fontFamily: true,
   textColor: true,
 } satisfies TemplateFrameCapabilities["controls"];
@@ -38,13 +38,13 @@ const PHOTO_SHADOW_CONTROLS = {
   shadow: true,
   shadowBlur: { min: 0, max: 48, step: 1 },
   shadowOffsetY: { min: 0, max: 8, step: 0.1 },
-  shadowOpacity: { min: 0, max: 40, step: 1 },
+  shadowOpacity: { min: 0, max: 80, step: 1 },
 } satisfies TemplateFrameCapabilities["controls"];
 
 const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilities> = {
   "classic-bottom": {
     controls: {
-      mainImageWidthRatio: { min: 74, max: 92, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       minTopBottomMargin: { min: 0, max: 7, step: 0.1 },
       innerRadius: { min: 0, max: 28, step: 1 },
       photoBorder: { min: 0, max: 12, step: 1 },
@@ -58,7 +58,7 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
   },
   magazine: {
     controls: {
-      mainImageWidthRatio: { min: 85, max: 95, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       minTopBottomMargin: { min: 1, max: 5, step: 0.1 },
       innerRadius: { min: 0, max: 24, step: 1 },
       photoBorder: { min: 0, max: 10, step: 1 },
@@ -71,40 +71,40 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
   },
   "minimal-corner": {
     controls: {
-      mainImageWidthRatio: { min: 82, max: 96, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       minTopBottomMargin: { min: 1, max: 6, step: 0.1 },
       innerRadius: { min: 0, max: 24, step: 1 },
-      fontSize: { min: 8, max: 14, step: 1 },
+      fontSize: { min: 3, max: 18, step: 1 },
       textColor: true,
     },
   },
   cinematic: {
     controls: {
-      mainImageWidthRatio: { min: 90, max: 100, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       infoBarHeight: { min: 72, max: 112, step: 1 },
-      fontSize: { min: 9, max: 16, step: 1 },
+      fontSize: { min: 3, max: 18, step: 1 },
       textColor: true,
     },
   },
   "film-strip": {
     controls: {
-      mainImageWidthRatio: { min: 85, max: 95, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       infoBarHeight: { min: 76, max: 118, step: 1 },
-      fontSize: { min: 8, max: 14, step: 1 },
+      fontSize: { min: 3, max: 18, step: 1 },
       textColor: true,
     },
   },
   "xiaomi-leica": {
     controls: {
-      mainImageWidthRatio: { min: 92, max: 100, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       infoBarHeight: { min: 96, max: 140, step: 1 },
-      fontSize: { min: 9, max: 16, step: 1 },
+      fontSize: { min: 3, max: 18, step: 1 },
       textColor: true,
     },
   },
   "photo-album": {
     controls: {
-      mainImageWidthRatio: { min: 84, max: 94, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       minTopBottomMargin: { min: 1, max: 6, step: 0.1 },
       infoBarHeight: { min: 0, max: 80, step: 1 },
       photoBorder: { min: 2, max: 12, step: 1 },
@@ -114,15 +114,15 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
   },
   "crop-marks": {
     controls: {
-      mainImageWidthRatio: { min: 80, max: 90, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       minTopBottomMargin: { min: 5, max: 10, step: 0.1 },
-      fontSize: { min: 8, max: 14, step: 1 },
+      fontSize: { min: 3, max: 18, step: 1 },
       textColor: true,
     },
   },
   "fujifilm-classic": {
     controls: {
-      mainImageWidthRatio: { min: 85, max: 95, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       minTopBottomMargin: { min: 0, max: 6, step: 0.1 },
       infoBarHeight: { min: 64, max: 132, step: 1 },
       background: true,
@@ -131,7 +131,7 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
   },
   hasselblad: {
     controls: {
-      mainImageWidthRatio: { min: 85, max: 95, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       minTopBottomMargin: { min: 0, max: 6, step: 0.1 },
       infoBarHeight: { min: 64, max: 132, step: 1 },
       background: true,
@@ -140,7 +140,7 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
   },
   "darkroom-proof": {
     controls: {
-      mainImageWidthRatio: { min: 84, max: 94, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       minTopBottomMargin: { min: 1, max: 5, step: 0.1 },
       infoBarHeight: { min: 56, max: 112, step: 1 },
       photoBorder: { min: 2, max: 12, step: 1 },
@@ -150,10 +150,10 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
   },
   "contact-sheet": {
     controls: {
-      mainImageWidthRatio: { min: 86, max: 96, step: 1 },
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       infoBarHeight: { min: 56, max: 100, step: 1 },
       photoBorder: { min: 0, max: 6, step: 1 },
-      fontSize: { min: 8, max: 14, step: 1 },
+      fontSize: { min: 3, max: 18, step: 1 },
       textColor: true,
     },
   },
