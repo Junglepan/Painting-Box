@@ -59,8 +59,8 @@ export function buildClassicBottomSvg(args: SvgArgs) {
   lines.push(photoElement(args, g, plan.imageX, plan.imageY, plan.photoW, plan.photoH));
   if (watermarkActive) {
     const readable = resolveReadableTextAndDivider({
-      autoTextContrast: false,
-      averageLuminance: 255,
+      autoTextContrast: args.frameParams.autoTextContrast,
+      averageLuminance: backgroundLuminance(args.frameParams),
       fallbackTextColor: args.frameParams.textColor,
       fallbackDividerColor: args.frameParams.dividerColor,
     });
@@ -280,6 +280,14 @@ function backgroundFill(frameParams: FrameParams) {
   if (frameParams.background === "custom") return frameParams.bgColor;
   if (frameParams.background === "blur") return "#eef1f6";
   return "#ffffff";
+}
+
+function backgroundLuminance(frameParams: FrameParams): number {
+  const hex = backgroundFill(frameParams).replace("#", "");
+  const r = parseInt(hex.slice(0, 2), 16);
+  const g = parseInt(hex.slice(2, 4), 16);
+  const b = parseInt(hex.slice(4, 6), 16);
+  return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
 function scaledBarH(args: SvgArgs, g: ReturnType<typeof base>, fallback: number) {
