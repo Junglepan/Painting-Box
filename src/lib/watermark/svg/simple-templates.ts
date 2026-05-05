@@ -55,7 +55,6 @@ export function buildClassicBottomSvg(args: SvgArgs) {
   });
   const lines = root(g);
   lines.push(backgroundElements(args, g));
-  lines.push(photoShadowDefs(args, g, plan.imageX, plan.imageY, plan.photoW, plan.photoH));
   lines.push(photoElement(args, g, plan.imageX, plan.imageY, plan.photoW, plan.photoH));
   if (watermarkActive) {
     const readable = resolveReadableTextAndDivider({
@@ -316,16 +315,18 @@ function widthTunablePhotoArea(args: SvgArgs, area: SvgRect) {
 
 function photoElement(args: SvgArgs, g: ReturnType<typeof base>, x: number, y: number, w: number, h: number) {
   const radius = Math.min(args.frameParams.innerRadius * g.scale, Math.min(w, h) / 8);
-  const hasShadow = Boolean(photoShadowDefs(args, g, x, y, w, h));
+  const shadowDefs = photoShadowDefs(args, g, x, y, w, h);
   const clipped = radius > 0
     ? [
         `<defs><clipPath id="pb-photo-clip"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${radius}" ry="${radius}"/></clipPath></defs>`,
         `<g clip-path="url(#pb-photo-clip)">${svgImage(g.photoHref, x, y, w, h)}</g>`,
       ].join("\n")
     : svgImage(g.photoHref, x, y, w, h);
-  // Shadow filter must wrap the clipped image in an outer group — applying
-  // filter and clip-path to the same element causes the clip to mask the shadow.
-  const image = hasShadow ? `<g filter="url(#pb-photo-shadow)">${clipped}</g>` : clipped;
+  // Include shadow <defs> inline so photoElement is self-contained regardless
+  // of which template calls it. Outer <g> wraps clip so shadow extends past clip boundary.
+  const image = shadowDefs
+    ? [shadowDefs, `<g filter="url(#pb-photo-shadow)">${clipped}</g>`].join("\n")
+    : clipped;
   const border = args.frameParams.photoBorder;
   if (!border || args.frameParams.photoBorderStyle === "none") return image;
   const strokeWidth = Math.min(border * g.scale, Math.min(w, h) / 12);
