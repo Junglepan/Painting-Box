@@ -27,9 +27,26 @@ pub fn render_svg_export(
     }
     let photo_bytes = Arc::new(jpeg_buf);
 
-    let fonts_dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("fonts");
     let mut db = usvg::fontdb::Database::new();
-    db.load_fonts_dir(&fonts_dir);
+    #[cfg(bundled_inter)]
+    {
+        db.load_font_data(include_bytes!("../../fonts/inter-regular.ttf").to_vec());
+        db.load_font_data(include_bytes!("../../fonts/inter-bold.ttf").to_vec());
+    }
+    #[cfg(bundled_noto_sans_sc)]
+    {
+        db.load_font_data(include_bytes!("../../fonts/noto-sans-sc-regular.ttf").to_vec());
+        db.load_font_data(include_bytes!("../../fonts/noto-sans-sc-bold.ttf").to_vec());
+    }
+    #[cfg(bundled_playfair_display)]
+    {
+        db.load_font_data(include_bytes!("../../fonts/playfair-display-regular.ttf").to_vec());
+        db.load_font_data(include_bytes!("../../fonts/playfair-display-bold.ttf").to_vec());
+    }
+    #[cfg(bundled_bebas_neue)]
+    {
+        db.load_font_data(include_bytes!("../../fonts/bebas-neue-regular.ttf").to_vec());
+    }
 
     let default_data_resolver = usvg::ImageHrefResolver::default_data_resolver();
     let default_string_resolver = usvg::ImageHrefResolver::default_string_resolver();
