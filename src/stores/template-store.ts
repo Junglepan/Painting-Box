@@ -56,7 +56,7 @@ const defaultFrameParams: FrameParams = {
 
   logoSize: 15,
   logoKey: "",
-  logoVariant: "original",
+  logoVariant: "auto",
   logoColor: "original",
   logoGap: 10,
 
