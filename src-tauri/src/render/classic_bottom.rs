@@ -100,11 +100,7 @@ pub struct ExportFrameParams {
     pub info_bar_height: u32,
     pub main_image_width_ratio: f32,
     pub min_top_bottom_margin: f32,
-    pub text_margin: f32,
-    pub watermark_top_padding: f32,
-    pub watermark_bottom_padding: f32,
     pub inner_radius: u32,
-    pub outer_radius: u32,
     pub shadow: bool,
     pub shadow_blur: u32,
     pub shadow_offset_y: f32,
@@ -184,8 +180,6 @@ pub(crate) fn build_render_plan(
     let spec = watermark_layout_spec();
     let resolution_scale = source_w as f32 / 900.0;
     let bottom_bar_mode = is_bottom_bar_template(template_kind);
-    let top_margin =
-        ((source_w as f32) * (frame.min_top_bottom_margin.max(0.0) / 100.0)).round() as u32;
     let extra_line_gap = (spec.base_line_gap_px * resolution_scale)
         .round()
         .max(spec.base_line_gap_px) as u32;
@@ -209,7 +203,8 @@ pub(crate) fn build_render_plan(
                 .round() as u32;
             acc + line_h + if index == 0 { 0 } else { extra_line_gap }
         });
-    let min_info_bar_h = text_block_h + (12.0 * resolution_scale).round() as u32;
+    // Match JS: reserve ≥16px design-coords padding above/below text block.
+    let min_info_bar_h = text_block_h + (32.0 * resolution_scale).round() as u32;
     // infoBarHeight is in 900px canvas-pixel space; scale to full resolution.
     let scaled_info_bar_h = (frame.info_bar_height as f32 * resolution_scale).round() as u32;
     // When watermark is off the info bar disappears → image fills the full canvas.
@@ -225,6 +220,10 @@ pub(crate) fn build_render_plan(
     let canvas_w = source_w;
     let canvas_ratio = parse_canvas_ratio(&frame.canvas_ratio, &frame.canvas_orientation);
     let canvas_h = ((source_w as f32) / canvas_ratio).round().max(1.0) as u32;
+    // Vertical margin uses canvas height, not width — matches the JS render plan
+    // calculation in classic-bottom.ts (buildPreviewRenderPlan).
+    let top_margin =
+        ((canvas_h as f32) * (frame.min_top_bottom_margin.max(0.0) / 100.0)).round() as u32;
     let bar_top = canvas_h.saturating_sub(info_bar_h);
     let avail_h = if bottom_bar_mode {
         bar_top.saturating_sub(top_margin.saturating_mul(2)).max(1)
@@ -602,7 +601,10 @@ fn compute_watermark_block_top(
     total_text_h: f32,
     offset_y: f32,
 ) -> f32 {
-    let centered_top = image_bottom + (canvas_h - image_bottom - total_text_h) / 2.0;
+    // Center text within the infoBar, not in the gap above it. Matches the JS
+    // computeWatermarkBlockTop in classic-bottom.ts.
+    let info_bar_h = canvas_h - bar_top;
+    let centered_top = bar_top + (info_bar_h - total_text_h) / 2.0;
     let preferred_top = centered_top + offset_y;
     let min_top = bar_top.max(image_bottom);
     let max_top = min_top.max(canvas_h - total_text_h);
@@ -1274,11 +1276,7 @@ mod tests {
             info_bar_height: 72,
             main_image_width_ratio: 85.0,
             min_top_bottom_margin: 2.4,
-            text_margin: 0.0,
-            watermark_top_padding: 12.0,
-            watermark_bottom_padding: 64.0,
             inner_radius: 16,
-            outer_radius: 0,
             shadow: true,
             shadow_blur: 20,
             shadow_offset_y: 0.06,
@@ -1307,7 +1305,8 @@ mod tests {
 
         assert!(plan.bottom_bar_mode);
         assert_eq!(plan.canvas_w, 4032);
-        assert_eq!(plan.top_margin, 97);
+        // canvas_h × 2.4% = 2688 × 0.024 = 64.5 → 65
+        assert_eq!(plan.top_margin, 65);
         assert!(plan.photo_h > 0);
         assert!(plan.image_top >= plan.top_margin);
         assert!(plan.block_top >= plan.bar_top as f32);
@@ -1320,11 +1319,7 @@ mod tests {
             info_bar_height: 72,
             main_image_width_ratio: 85.0,
             min_top_bottom_margin: 2.4,
-            text_margin: 0.0,
-            watermark_top_padding: 12.0,
-            watermark_bottom_padding: 64.0,
             inner_radius: 16,
-            outer_radius: 0,
             shadow: true,
             shadow_blur: 20,
             shadow_offset_y: 0.06,
@@ -1380,11 +1375,7 @@ mod tests {
                     info_bar_height: 0,
                     main_image_width_ratio: 94.0,
                     min_top_bottom_margin: 1.4,
-                    text_margin: 0.0,
-                    watermark_top_padding: 12.0,
-                    watermark_bottom_padding: 64.0,
                     inner_radius: 12,
-                    outer_radius: 0,
                     shadow: false,
                     shadow_blur: 20,
                     shadow_offset_y: 0.06,
@@ -1413,11 +1404,7 @@ mod tests {
                     info_bar_height: 148,
                     main_image_width_ratio: 82.0,
                     min_top_bottom_margin: 2.0,
-                    text_margin: 0.0,
-                    watermark_top_padding: 12.0,
-                    watermark_bottom_padding: 64.0,
                     inner_radius: 0,
-                    outer_radius: 0,
                     shadow: false,
                     shadow_blur: 20,
                     shadow_offset_y: 0.06,
@@ -1446,11 +1433,7 @@ mod tests {
                     info_bar_height: 72,
                     main_image_width_ratio: 85.0,
                     min_top_bottom_margin: 2.4,
-                    text_margin: 0.0,
-                    watermark_top_padding: 12.0,
-                    watermark_bottom_padding: 64.0,
                     inner_radius: 16,
-                    outer_radius: 0,
                     shadow: true,
                     shadow_blur: 20,
                     shadow_offset_y: 0.06,

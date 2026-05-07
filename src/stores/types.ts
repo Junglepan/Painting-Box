@@ -146,19 +146,10 @@ export type WatermarkFontFamily =
 
 export type FrameParams = {
   // Layout
-  paddingTop: number;
-  paddingRight: number;
-  paddingBottom: number;
-  paddingLeft: number;
-  paddingLocked: boolean;
-  outerRadius: number;
   innerRadius: number;
   infoBarHeight: number;
   mainImageWidthRatio: number;
   minTopBottomMargin: number;
-  textMargin: number;
-  watermarkTopPadding: number;
-  watermarkBottomPadding: number;
 
   // Background
   background: FrameBackground;

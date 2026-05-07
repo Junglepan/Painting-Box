@@ -7,13 +7,13 @@
     "expected": {
       "canvasW": 4032,
       "canvasH": 2688,
-      "topMargin": 97,
+      "topMargin": 65,
       "barTop": 2365,
-      "photoW": 2895,
-      "photoH": 2171,
-      "imageLeft": 568,
-      "imageTop": 97,
-      "blockTop": 2395
+      "photoW": 2980,
+      "photoH": 2235,
+      "imageLeft": 526,
+      "imageTop": 65,
+      "blockTop": 2444
     }
   },
   "minimalCornerDefault4032x3024LogoOnly": {
@@ -24,13 +24,13 @@
     "expected": {
       "canvasW": 4032,
       "canvasH": 2688,
-      "topMargin": 56,
-      "barTop": 2562,
-      "photoW": 3267,
-      "photoH": 2450,
-      "imageLeft": 382,
-      "imageTop": 56,
-      "blockTop": 2562
+      "topMargin": 38,
+      "barTop": 2473,
+      "photoW": 3196,
+      "photoH": 2397,
+      "imageLeft": 418,
+      "imageTop": 38,
+      "blockTop": 2473
     }
   },
   "classicBottomDefault4032x3024LogoOnly": {
@@ -41,13 +41,13 @@
     "expected": {
       "canvasW": 4032,
       "canvasH": 2688,
-      "topMargin": 97,
+      "topMargin": 65,
       "barTop": 2365,
-      "photoW": 2895,
-      "photoH": 2171,
-      "imageLeft": 568,
-      "imageTop": 97,
-      "blockTop": 2442
+      "photoW": 2980,
+      "photoH": 2235,
+      "imageLeft": 526,
+      "imageTop": 65,
+      "blockTop": 2491
     }
   }
 }

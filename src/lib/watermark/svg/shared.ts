@@ -95,12 +95,22 @@ export function blurBackgroundSvg(
   blurRadius: number,
   scale: number,
 ): string {
+  // sRGB interpolation prevents linearRGB color shift at edges. The fractalNoise
+  // dither layer at ~5% opacity masks 8-bit quantization banding in smooth blurred
+  // gradients — same trick Instagram/Apple system blur uses to hide stepping.
   const std = Math.max(1, Math.round(blurRadius * scale * 0.45));
   const safeHref = xmlEscape(photoHref);
   return [
-    `<defs><filter id="pb-bg-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${std}"/></filter></defs>`,
+    `<defs>`,
+    `<filter id="pb-bg-blur" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="${std}"/></filter>`,
+    `<filter id="pb-bg-dither" x="0%" y="0%" width="100%" height="100%" color-interpolation-filters="sRGB">`,
+    `<feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" stitchTiles="stitch" seed="3"/>`,
+    `<feColorMatrix values="0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0.33 0.33 0.33 0 0  0 0 0 1 0"/>`,
+    `</filter>`,
+    `</defs>`,
     `<image x="0" y="0" width="${canvasW}" height="${canvasH}" href="${safeHref}" xlink:href="${safeHref}" preserveAspectRatio="xMidYMid slice" filter="url(#pb-bg-blur)"/>`,
     `<rect width="${canvasW}" height="${canvasH}" fill="rgba(0,0,0,0.22)"/>`,
+    `<rect width="${canvasW}" height="${canvasH}" filter="url(#pb-bg-dither)" opacity="0.05"/>`,
   ].join("\n");
 }
 

@@ -162,20 +162,20 @@ describe("template capabilities", () => {
         ...frameParams,
         mainImageWidthRatio: 120,
       }).mainImageWidthRatio,
-    ).toBe(92);
+    ).toBe(100);
 
     expect(
       applyTemplateFrameConstraints("classic-bottom", {
         ...frameParams,
         mainImageWidthRatio: 20,
       }).mainImageWidthRatio,
-    ).toBe(74);
+    ).toBe(80);
   });
 
   test("declares bounded frame controls per template", () => {
     expect(getTemplateFrameCapabilities("classic-bottom").controls.mainImageWidthRatio).toEqual({
-      min: 74,
-      max: 92,
+      min: 80,
+      max: 100,
       step: 1,
     });
     expect(getTemplateFrameCapabilities("classic-bottom").controls.shadow).toBe(true);
@@ -187,13 +187,13 @@ describe("template capabilities", () => {
     expect(getTemplateFrameCapabilities("crop-marks").controls.infoBarHeight).toBeUndefined();
     expect(getTemplateFrameCapabilities("crop-marks").controls.shadow).toBeUndefined();
     expect(getTemplateFrameCapabilities("film-strip").controls.fontSize).toEqual({
-      min: 8,
-      max: 14,
+      min: 3,
+      max: 18,
       step: 1,
     });
     expect(getTemplateFrameCapabilities("film-strip").controls.mainImageWidthRatio).toEqual({
-      min: 85,
-      max: 95,
+      min: 80,
+      max: 100,
       step: 1,
     });
     expect(getTemplateFrameCapabilities("photo-album").controls.photoBorder).toEqual({
@@ -202,18 +202,18 @@ describe("template capabilities", () => {
       step: 1,
     });
     expect(getTemplateFrameCapabilities("photo-album").controls.mainImageWidthRatio).toEqual({
-      min: 84,
-      max: 94,
+      min: 80,
+      max: 100,
       step: 1,
     });
     expect(getTemplateFrameCapabilities("magazine").controls.mainImageWidthRatio).toEqual({
-      min: 85,
-      max: 95,
+      min: 80,
+      max: 100,
       step: 1,
     });
     expect(getTemplateFrameCapabilities("fujifilm-classic").controls.mainImageWidthRatio).toEqual({
-      min: 85,
-      max: 95,
+      min: 80,
+      max: 100,
       step: 1,
     });
     expect(getTemplateFrameCapabilities("fujifilm-classic").controls.minTopBottomMargin).toEqual({
@@ -227,8 +227,8 @@ describe("template capabilities", () => {
       step: 1,
     });
     expect(getTemplateFrameCapabilities("hasselblad").controls.mainImageWidthRatio).toEqual({
-      min: 85,
-      max: 95,
+      min: 80,
+      max: 100,
       step: 1,
     });
     expect(getTemplateFrameCapabilities("hasselblad").controls.minTopBottomMargin).toEqual({
@@ -242,8 +242,8 @@ describe("template capabilities", () => {
       step: 1,
     });
     expect(getTemplateFrameCapabilities("darkroom-proof").controls.mainImageWidthRatio).toEqual({
-      min: 84,
-      max: 94,
+      min: 80,
+      max: 100,
       step: 1,
     });
     expect(getTemplateFrameCapabilities("darkroom-proof").controls.minTopBottomMargin).toEqual({
@@ -257,8 +257,8 @@ describe("template capabilities", () => {
       step: 1,
     });
     expect(getTemplateFrameCapabilities("contact-sheet").controls.mainImageWidthRatio).toEqual({
-      min: 86,
-      max: 96,
+      min: 80,
+      max: 100,
       step: 1,
     });
     expect(getTemplateFrameCapabilities("contact-sheet").controls.infoBarHeight).toEqual({
@@ -277,8 +277,8 @@ describe("template capabilities", () => {
       fontSize: 30,
       infoBarHeight: 10,
     });
-    expect(film.mainImageWidthRatio).toBe(95);
-    expect(film.fontSize).toBe(14);
+    expect(film.mainImageWidthRatio).toBe(99);
+    expect(film.fontSize).toBe(18);
     expect(film.infoBarHeight).toBe(76);
 
     const album = applyTemplateFrameConstraints("photo-album", {
@@ -287,7 +287,7 @@ describe("template capabilities", () => {
       photoBorder: 0,
       infoBarHeight: 200,
     });
-    expect(album.mainImageWidthRatio).toBe(84);
+    expect(album.mainImageWidthRatio).toBe(80);
     expect(album.photoBorder).toBe(2);
     expect(album.infoBarHeight).toBe(80);
 
@@ -299,6 +299,6 @@ describe("template capabilities", () => {
     });
     expect(classic.shadowBlur).toBe(48);
     expect(classic.shadowOffsetY).toBe(8);
-    expect(classic.shadowOpacity).toBe(40);
+    expect(classic.shadowOpacity).toBe(80);
   });
 });

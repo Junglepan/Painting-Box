@@ -343,10 +343,46 @@ function photoShadowDefs(args: SvgArgs, g: ReturnType<typeof base>, x: number, y
   const offsetY = h * (args.frameParams.shadowOffsetY / 100);
   const opacity = Math.min(1, Math.max(0, args.frameParams.shadowOpacity / 100));
   if (blur <= 0 || opacity <= 0) return "";
-  const pad = blur * 3 + Math.abs(offsetY);
+
+  // Three-layer stack mimics how a real object casts shadows from ambient +
+  // directional light. Contact (sharp/dark) anchors the photo to the surface,
+  // ambient (medium) gives volume, far (soft/light) lifts it off the page.
+  // Effective alpha ≈ 0.75 × opacity, perceived weight matches old single-layer.
+  const farBlur = blur * 1.3;
+  const farOffset = offsetY * 0.9;
+  const farOpacity = opacity * 0.30;
+  const ambBlur = blur * 0.5;
+  const ambOffset = offsetY * 0.5;
+  const ambOpacity = opacity * 0.35;
+  const conBlur = Math.max(0.5, blur * 0.12);
+  const conOffset = offsetY * 0.15;
+  const conOpacity = opacity * 0.45;
+
+  const pad = farBlur * 3 + Math.abs(farOffset);
   return [
-    `<defs><filter id="pb-photo-shadow" x="${x - pad}" y="${y - pad}" width="${w + pad * 2}" height="${h + pad * 2}" filterUnits="userSpaceOnUse">`,
-    `<feDropShadow dx="0" dy="${offsetY}" stdDeviation="${blur}" flood-color="#111827" flood-opacity="${opacity}"/>`,
+    `<defs><filter id="pb-photo-shadow" x="${x - pad}" y="${y - pad}" width="${w + pad * 2}" height="${h + pad * 2}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">`,
+    // Far shadow — large, soft, lifts the photo off the page
+    `<feGaussianBlur in="SourceAlpha" stdDeviation="${farBlur}" result="b3"/>`,
+    `<feOffset in="b3" dx="0" dy="${farOffset}" result="o3"/>`,
+    `<feFlood flood-color="#000000" flood-opacity="${farOpacity}" result="c3"/>`,
+    `<feComposite in="c3" in2="o3" operator="in" result="s3"/>`,
+    // Ambient shadow — medium spread, gives volume
+    `<feGaussianBlur in="SourceAlpha" stdDeviation="${ambBlur}" result="b2"/>`,
+    `<feOffset in="b2" dx="0" dy="${ambOffset}" result="o2"/>`,
+    `<feFlood flood-color="#000000" flood-opacity="${ambOpacity}" result="c2"/>`,
+    `<feComposite in="c2" in2="o2" operator="in" result="s2"/>`,
+    // Contact shadow — tight, dark, anchors to surface
+    `<feGaussianBlur in="SourceAlpha" stdDeviation="${conBlur}" result="b1"/>`,
+    `<feOffset in="b1" dx="0" dy="${conOffset}" result="o1"/>`,
+    `<feFlood flood-color="#000000" flood-opacity="${conOpacity}" result="c1"/>`,
+    `<feComposite in="c1" in2="o1" operator="in" result="s1"/>`,
+    // Stack back-to-front: far behind, photo on top
+    `<feMerge>`,
+    `<feMergeNode in="s3"/>`,
+    `<feMergeNode in="s2"/>`,
+    `<feMergeNode in="s1"/>`,
+    `<feMergeNode in="SourceGraphic"/>`,
+    `</feMerge>`,
     `</filter></defs>`,
   ].join("\n");
 }

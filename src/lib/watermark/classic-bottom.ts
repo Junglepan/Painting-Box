@@ -119,7 +119,6 @@ export function buildPreviewRenderPlan({
 }): PreviewRenderPlan {
   const designScale = baseWidth / 900;
   const templateLayout = getTemplateLayout(templateKind);
-  const topBottomMargin = Math.round(baseWidth * (frameParams.minTopBottomMargin / 100));
   const primaryFontSize = Math.max(
     WATERMARK_LAYOUT_SPEC.baseMinPrimaryFontSize * designScale,
     frameParams.fontSize * WATERMARK_LAYOUT_SPEC.primaryFontScale * designScale,
@@ -130,7 +129,9 @@ export function buildPreviewRenderPlan({
   );
   const extraLineGap = WATERMARK_LAYOUT_SPEC.baseLineGapPx * designScale;
   const geometry = resolvePreviewGeometryMetrics(frameParams);
-  const minInfoBarHeight = Math.round(totalTextHeight) + 12 * designScale;
+  // Reserve at least 16px design-coords padding above AND below the text block
+  // so the watermark never visually presses against the photo or canvas bottom.
+  const minInfoBarHeight = Math.round(totalTextHeight) + 32 * designScale;
   // When watermark is off the info bar disappears entirely → image fills the canvas.
   const infoBarHeight = !showWatermark
     ? 0
@@ -139,7 +140,12 @@ export function buildPreviewRenderPlan({
       : 0;
   const canvasRatio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation ?? "landscape", photoWidth / photoHeight);
   const canvasH = baseWidth / canvasRatio;
-  const barTop = canvasH - infoBarHeight;
+  // Vertical margin uses canvas height, not width. Old behavior gave wildly
+  // different visual margins for the same % across aspect ratios.
+  const topBottomMargin = Math.round(canvasH * (frameParams.minTopBottomMargin / 100));
+  // Round to integer to keep parity with Rust's u32 arithmetic.
+  const roundedInfoBarHeight = Math.round(infoBarHeight);
+  const barTop = canvasH - roundedInfoBarHeight;
   const availableHeight = Math.max(
     1,
     (templateLayout.mode === "bottom-bar" ? barTop : canvasH) - topBottomMargin * 2,
@@ -311,8 +317,11 @@ export function computeWatermarkBlockTop({
   totalTextHeight,
   offsetY = 0,
 }: WatermarkBlockTopArgs) {
-  const centeredTop =
-    imageBottom + (contentHeight - imageBottom - totalTextHeight) / 2;
+  // Center text within the infoBar so it stays anchored to the bar regardless
+  // of photo size. Old behavior centered between imageBottom and canvasH which
+  // made text float into the gap when photo was shorter than the available area.
+  const infoBarHeight = contentHeight - barTop;
+  const centeredTop = barTop + (infoBarHeight - totalTextHeight) / 2;
   const preferredTop = centeredTop + offsetY;
   const minTop = Math.max(barTop, imageBottom);
   const maxTop = Math.max(minTop, contentHeight - totalTextHeight);
@@ -479,13 +488,31 @@ export function resolvePreviewLogoSelection(
   config: TemplateConfig,
 ) {
   if (!config.showLogo) return null;
+  let variant = frameParams.logoVariant;
+  // "auto" picks black/white logo based on background luminance.
+  if (variant === "auto") {
+    variant = computeBackgroundLuminance(frameParams) < 128 ? "white" : "black";
+  }
   const selection = resolveLogoSelection(
     frameParams.logoKey,
-    frameParams.logoVariant,
+    variant,
     exif.camera.make,
   );
   if (!selection.key) return null;
   return selection;
+}
+
+function computeBackgroundLuminance(frameParams: FrameParams): number {
+  if (frameParams.background === "blur") return 40;
+  if (frameParams.background === "black") return 17;
+  if (frameParams.background === "custom") {
+    const hex = (frameParams.bgColor || "#ffffff").replace("#", "");
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+  }
+  return 255;
 }
 
 function calcLogoInline(image: HTMLImageElement, targetHeight: number) {
