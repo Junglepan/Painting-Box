@@ -536,11 +536,34 @@ export function FrameParamsPanel() {
             />
           ) : null}
           {has("textColor") ? (
-            <ColorRow
-              label="颜色"
-              value={frameParams.textColor}
-              onChange={(v) => set({ textColor: v })}
-            />
+            <div className="flex items-center justify-between gap-2 py-1">
+              <span className="label-plain">颜色</span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  title="跟随背景对比度自动"
+                  onClick={() => set({ autoTextContrast: true })}
+                  className={cn(
+                    "chip h-6 px-1.5 text-[9px] font-medium",
+                    frameParams.autoTextContrast && "chip-active",
+                  )}
+                >
+                  自动
+                </button>
+                <input
+                  type="color"
+                  value={frameParams.textColor}
+                  onChange={(e) => set({ textColor: e.target.value, autoTextContrast: false })}
+                  className={cn(
+                    "h-6 w-8 cursor-pointer rounded-md border border-border/60 bg-transparent p-0.5",
+                    frameParams.autoTextContrast && "opacity-50",
+                  )}
+                />
+                <span className="text-[10px] font-medium tabular-nums uppercase text-muted-foreground/70">
+                  {frameParams.textColor}
+                </span>
+              </div>
+            </div>
           ) : null}
           <div className="mt-2 border-t border-border/40 pt-2">
             {displayFields.includes("showDate") && config.showDate ? (
@@ -590,12 +613,14 @@ export function FrameParamsPanel() {
           />
           <SelectRow
             label="版本"
-            value={logoVariantValue}
+            value={frameParams.logoVariant === "auto" ? "auto" : logoVariantValue}
             disabled={!effectiveLogoKey || logoVariants.length === 0}
-            options={logoVariants.map((variant) => ({
-              value: variant,
-              label: variant,
-            }))}
+            options={[
+              ...(logoVariants.includes("black") && logoVariants.includes("white")
+                ? [{ value: "auto", label: "auto（跟随背景）" }]
+                : []),
+              ...logoVariants.map((variant) => ({ value: variant, label: variant })),
+            ]}
             onChange={(value) => set({ logoVariant: value as LogoVariant })}
           />
           {logoSizeRange ? (

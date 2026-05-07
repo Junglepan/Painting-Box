@@ -488,13 +488,31 @@ export function resolvePreviewLogoSelection(
   config: TemplateConfig,
 ) {
   if (!config.showLogo) return null;
+  let variant = frameParams.logoVariant;
+  // "auto" picks black/white logo based on background luminance.
+  if (variant === "auto") {
+    variant = computeBackgroundLuminance(frameParams) < 128 ? "white" : "black";
+  }
   const selection = resolveLogoSelection(
     frameParams.logoKey,
-    frameParams.logoVariant,
+    variant,
     exif.camera.make,
   );
   if (!selection.key) return null;
   return selection;
+}
+
+function computeBackgroundLuminance(frameParams: FrameParams): number {
+  if (frameParams.background === "blur") return 40;
+  if (frameParams.background === "black") return 17;
+  if (frameParams.background === "custom") {
+    const hex = (frameParams.bgColor || "#ffffff").replace("#", "");
+    const r = parseInt(hex.slice(0, 2), 16);
+    const g = parseInt(hex.slice(2, 4), 16);
+    const b = parseInt(hex.slice(4, 6), 16);
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+  }
+  return 255;
 }
 
 function calcLogoInline(image: HTMLImageElement, targetHeight: number) {
