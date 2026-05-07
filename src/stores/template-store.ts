@@ -30,19 +30,10 @@ const defaultConfig: TemplateConfig = {
 };
 
 const defaultFrameParams: FrameParams = {
-  paddingTop: 4,
-  paddingRight: 7,
-  paddingBottom: 3,
-  paddingLeft: 7,
-  paddingLocked: false,
-  outerRadius: 0,
   innerRadius: 0,
   infoBarHeight: 72,
   mainImageWidthRatio: 85,
   minTopBottomMargin: 2.4,
-  textMargin: 0,
-  watermarkTopPadding: 12,
-  watermarkBottomPadding: 64,
 
   background: "white",
   bgColor: "#ffffff",
@@ -128,7 +119,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       textColor: "#1f2937",
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       photoBorder: 0,
       infoBarHeight: 42,
       mainImageWidthRatio: 85,
@@ -156,7 +146,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       textColor: "#ffffff",
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       mainImageWidthRatio: 85,
       minTopBottomMargin: 1.4,
       infoBarHeight: 0,
@@ -180,7 +169,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       autoTextContrast: false,
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       photoBorder: 0,
       mainImageWidthRatio: 100,
       minTopBottomMargin: 0,
@@ -205,7 +193,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       autoTextContrast: false,
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       photoBorder: 0,
       mainImageWidthRatio: 90,
       minTopBottomMargin: 0,
@@ -231,7 +218,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       autoTextContrast: false,
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       photoBorder: 0,
       mainImageWidthRatio: 96,
       minTopBottomMargin: 0,
@@ -257,7 +243,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       autoTextContrast: false,
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       photoBorder: 6,
       photoBorderColor: "#fdfaf2",
       mainImageWidthRatio: 90,
@@ -287,7 +272,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       autoTextContrast: false,
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       photoBorder: 0,
       mainImageWidthRatio: 86,
       minTopBottomMargin: 7,
@@ -313,7 +297,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       autoTextContrast: false,
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       photoBorder: 0,
       mainImageWidthRatio: 90,
       minTopBottomMargin: 0,
@@ -339,7 +322,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       autoTextContrast: false,
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       photoBorder: 0,
       mainImageWidthRatio: 90,
       minTopBottomMargin: 0,
@@ -365,7 +347,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       autoTextContrast: false,
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       photoBorder: 6,
       photoBorderColor: "#f5efe1",
       mainImageWidthRatio: 88,
@@ -392,7 +373,6 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       autoTextContrast: false,
       dividerShow: false,
       innerRadius: 0,
-      outerRadius: 0,
       photoBorder: 2,
       photoBorderColor: "#ffffff",
       mainImageWidthRatio: 90,
@@ -457,30 +437,6 @@ export const useTemplateStore = create<TemplateState>()(
       setFrameParams: (partial) =>
         set((s) => {
           clearSelectedPreset();
-          if (
-            s.frameParams.paddingLocked &&
-            (partial.paddingTop !== undefined ||
-              partial.paddingRight !== undefined ||
-              partial.paddingBottom !== undefined ||
-              partial.paddingLeft !== undefined)
-          ) {
-            const v =
-              partial.paddingTop ??
-              partial.paddingRight ??
-              partial.paddingBottom ??
-              partial.paddingLeft ??
-              0;
-            return {
-              frameParams: applyTemplateFrameConstraints(s.currentKind, {
-                ...s.frameParams,
-                paddingTop: v,
-                paddingRight: v,
-                paddingBottom: v,
-                paddingLeft: v,
-                ...partial,
-              }),
-            };
-          }
           return {
             frameParams: applyTemplateFrameConstraints(s.currentKind, {
               ...s.frameParams,
