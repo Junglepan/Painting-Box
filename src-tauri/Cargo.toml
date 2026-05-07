@@ -1,6 +1,6 @@
 [package]
 name = "painting-box"
-version = "0.1.13"
+version = "0.1.14"
 description = "Painting Box – photo watermark & frame desktop app"
 authors = ["panbokui"]
 edition = "2021"
