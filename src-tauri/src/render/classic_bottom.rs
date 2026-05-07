@@ -203,7 +203,8 @@ pub(crate) fn build_render_plan(
                 .round() as u32;
             acc + line_h + if index == 0 { 0 } else { extra_line_gap }
         });
-    let min_info_bar_h = text_block_h + (12.0 * resolution_scale).round() as u32;
+    // Match JS: reserve ≥16px design-coords padding above/below text block.
+    let min_info_bar_h = text_block_h + (32.0 * resolution_scale).round() as u32;
     // infoBarHeight is in 900px canvas-pixel space; scale to full resolution.
     let scaled_info_bar_h = (frame.info_bar_height as f32 * resolution_scale).round() as u32;
     // When watermark is off the info bar disappears → image fills the full canvas.

@@ -129,7 +129,9 @@ export function buildPreviewRenderPlan({
   );
   const extraLineGap = WATERMARK_LAYOUT_SPEC.baseLineGapPx * designScale;
   const geometry = resolvePreviewGeometryMetrics(frameParams);
-  const minInfoBarHeight = Math.round(totalTextHeight) + 12 * designScale;
+  // Reserve at least 16px design-coords padding above AND below the text block
+  // so the watermark never visually presses against the photo or canvas bottom.
+  const minInfoBarHeight = Math.round(totalTextHeight) + 32 * designScale;
   // When watermark is off the info bar disappears entirely → image fills the canvas.
   const infoBarHeight = !showWatermark
     ? 0
