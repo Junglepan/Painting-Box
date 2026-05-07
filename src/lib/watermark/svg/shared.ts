@@ -95,10 +95,12 @@ export function blurBackgroundSvg(
   blurRadius: number,
   scale: number,
 ): string {
+  // color-interpolation-filters="sRGB" prevents linearRGB color banding at
+  // high-contrast edges — the default linearRGB mode causes visible posterization.
   const std = Math.max(1, Math.round(blurRadius * scale * 0.45));
   const safeHref = xmlEscape(photoHref);
   return [
-    `<defs><filter id="pb-bg-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${std}"/></filter></defs>`,
+    `<defs><filter id="pb-bg-blur" x="-50%" y="-50%" width="200%" height="200%" color-interpolation-filters="sRGB"><feGaussianBlur stdDeviation="${std}"/></filter></defs>`,
     `<image x="0" y="0" width="${canvasW}" height="${canvasH}" href="${safeHref}" xlink:href="${safeHref}" preserveAspectRatio="xMidYMid slice" filter="url(#pb-bg-blur)"/>`,
     `<rect width="${canvasW}" height="${canvasH}" fill="rgba(0,0,0,0.22)"/>`,
   ].join("\n");
