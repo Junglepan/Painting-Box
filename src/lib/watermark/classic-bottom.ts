@@ -311,8 +311,11 @@ export function computeWatermarkBlockTop({
   totalTextHeight,
   offsetY = 0,
 }: WatermarkBlockTopArgs) {
-  const centeredTop =
-    imageBottom + (contentHeight - imageBottom - totalTextHeight) / 2;
+  // Center text within the infoBar so it stays anchored to the bar regardless
+  // of photo size. Old behavior centered between imageBottom and canvasH which
+  // made text float into the gap when photo was shorter than the available area.
+  const infoBarHeight = contentHeight - barTop;
+  const centeredTop = barTop + (infoBarHeight - totalTextHeight) / 2;
   const preferredTop = centeredTop + offsetY;
   const minTop = Math.max(barTop, imageBottom);
   const maxTop = Math.max(minTop, contentHeight - totalTextHeight);
