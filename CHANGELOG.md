@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+### 功能（feat/detail-iteration）
+- **经典底栏照片立体感升级**：照片阴影从单层 `feDropShadow` 改为三层叠加（contact + ambient + far），分别对应"贴在画面上 / 给体积感 / 抬离纸面"三种光照层次。同一组用户控件（模糊/位移/强度）驱动三层按比例缩放，视觉上对齐 macOS Big Sur / Linear / Vercel 的卡片质感，等效透明度 ≈ 0.75 × opacity，与单层观感一致但层次感显著提升。
+- **Logo 颜色自动对比度**：Logo 版本下拉新增「auto（跟随背景）」选项，按背景亮度自动选 black/white（仅当该 Logo 同时包含 black 和 white 变体时出现）。新建/重置默认值改为 `auto`，对老用户保持兼容。
+- **文字颜色「自动」开关 + 手动颜色生效修复**：文字颜色行新增「自动」按钮（与画布方向 UI 一致）。点击「自动」恢复对比度策略；用色盘选色自动关闭 auto，手动颜色立即生效。修复了之前 autoTextContrast 永远开启导致用户选色不生效的 bug。
+- **经典底栏模糊背景质量提升**：模糊背景在 `feGaussianBlur` 上添加 `color-interpolation-filters="sRGB"`（消除 linearRGB 边缘色偏），并叠加 5% fractalNoise 作为 dither 层（打散 8-bit 量化产生的色彩断层）；目标对齐 yiyin/Instagram 级模糊观感。
+
+### 修复（feat/detail-iteration）
+- **水印文字脱离 infoBar 漂浮**：照片高度小于可用区时，文字之前会浮在照片底部到画布底部之间的空白处。改为始终在 infoBar 内垂直居中，文字稳定锚定在水印栏上。
+- **`minTopBottomMargin` 单位混乱**：垂直边距从基于 `canvasW` 改为基于 `canvasH`，符合用户对"上下边距百分比"的直觉；Rust 渲染计划同步对齐。
+- **水印文字与照片/画布底部的最小留白**：`minInfoBarHeight` 保底从 `text + 12px` 提升到 `text + 32px`，文字上下至少各留 16px 设计稿留白，避免视觉拥挤。
+- **内圆角时阴影丢失**：之前 clip-path 与 filter 同时挂在一个 `<g>` 上，SVG 规范导致 clip 把投影也裁掉。改为外层 `<g filter>` 包裹内层 `<g clip-path>`，两者分层互不干扰。
+- **阴影黑色边框**：阴影矩形的 `fill="#000000"` 在子像素抗锯齿下渗出 1-2px 黑边。改为把 filter 直接挂到照片元素上，由照片的 alpha 直接投影，去掉独立黑色矩形。
+- **magazine / photo-album 等模板照片消失**：照片元素引用了 `pb-photo-shadow` filter 但 `<defs>` 没输出（仅在 classic-bottom 单独输出过），切换模板后照片不可见。改为 `photoElement` 自包含 defs。
+- **classic-bottom 自动对比度未生效**：`autoTextContrast` 在 SVG builder 里被硬编码为 false，黑色背景上仍用深色文字几乎不可见。改为读取 frameParams.autoTextContrast，并按背景颜色估算亮度。
+
+### 重构（feat/detail-iteration）
+- **死字段清理**：删除 `FrameParams` 与 Rust `ExportFrameParams` 中从未被任何渲染器读取的 5 类字段（`paddingTop/Right/Bottom/Left/Locked`、`outerRadius`、`textMargin`、`watermarkTopPadding`、`watermarkBottomPadding`），同步清理 store、setFrameParams、各模板默认值与测试 fixture。前后端共净删 77 行。
+
 ### 功能
 - **模板库收敛到 12 款稳定模板**：移除「日期戳」「宝丽来」「极简白底」「瑞士网格」「柯达幻灯片」5 个模板入口、类型枚举、默认参数、预览分发与 SVG 分发；旧持久化配置或预设若指向已移除模板，会自动回落到「经典底栏」。
 - **模板参数能力按模板释放并收窄范围**：新增模板级参数能力矩阵，每个模板只暴露自己能安全响应的参数，并为主图占比、边距、底栏高度、圆角、照片边框、字号、Logo 间距等控制项设置模板专属范围；剩余模板的默认参数和可调范围重新收敛，优先保证图片内容占比舒适、不越界、不拥挤。
