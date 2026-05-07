@@ -119,7 +119,6 @@ export function buildPreviewRenderPlan({
 }): PreviewRenderPlan {
   const designScale = baseWidth / 900;
   const templateLayout = getTemplateLayout(templateKind);
-  const topBottomMargin = Math.round(baseWidth * (frameParams.minTopBottomMargin / 100));
   const primaryFontSize = Math.max(
     WATERMARK_LAYOUT_SPEC.baseMinPrimaryFontSize * designScale,
     frameParams.fontSize * WATERMARK_LAYOUT_SPEC.primaryFontScale * designScale,
@@ -139,7 +138,12 @@ export function buildPreviewRenderPlan({
       : 0;
   const canvasRatio = getCanvasRatio(frameParams.canvasRatio, frameParams.canvasOrientation ?? "landscape", photoWidth / photoHeight);
   const canvasH = baseWidth / canvasRatio;
-  const barTop = canvasH - infoBarHeight;
+  // Vertical margin uses canvas height, not width. Old behavior gave wildly
+  // different visual margins for the same % across aspect ratios.
+  const topBottomMargin = Math.round(canvasH * (frameParams.minTopBottomMargin / 100));
+  // Round to integer to keep parity with Rust's u32 arithmetic.
+  const roundedInfoBarHeight = Math.round(infoBarHeight);
+  const barTop = canvasH - roundedInfoBarHeight;
   const availableHeight = Math.max(
     1,
     (templateLayout.mode === "bottom-bar" ? barTop : canvasH) - topBottomMargin * 2,

@@ -341,9 +341,12 @@ describe("watermark SVG templates", () => {
       900,
     );
 
-    expect(svg).toContain("feDropShadow");
+    // Three-layer shadow stack uses feGaussianBlur + feOffset + feFlood + feMerge.
+    // Effective opacity per layer = 0.14 × (0.30, 0.35, 0.45) = 0.042, 0.049, 0.063.
     expect(svg).toContain('filter="url(#pb-photo-shadow)"');
-    expect(svg).toContain('flood-opacity="0.14"');
+    expect(svg).toContain("feGaussianBlur");
+    expect(svg).toContain("feMerge");
+    expect(svg).toContain('flood-opacity="0.042"');
   });
 
   test("classic-bottom SVG clips the photo image when inner radius is configured", () => {

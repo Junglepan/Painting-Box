@@ -74,14 +74,15 @@ describe("classic bottom preview lines", () => {
     expect(buildRenderableLines([], false)).toEqual([]);
   });
 
-  test("keeps the watermark block centered between image bottom and canvas bottom", () => {
+  test("centers the watermark block within the infoBar", () => {
+    // bar 占 300-600 区间（高度 300），文本 40 高，应居中 → top = 300 + (300-40)/2 = 430
     const centered = computeWatermarkBlockTop({
       barTop: 300,
       contentHeight: 600,
       imageBottom: 420,
       totalTextHeight: 40,
     });
-    expect(centered).toBe(490);
+    expect(centered).toBe(430);
   });
 
   test("renders minimal-corner in the bottom watermark area instead of overlaying the photo", () => {
