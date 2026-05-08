@@ -344,19 +344,19 @@ function photoShadowDefs(args: SvgArgs, g: ReturnType<typeof base>, x: number, y
   const opacity = Math.min(1, Math.max(0, args.frameParams.shadowOpacity / 100));
   if (blur <= 0 || opacity <= 0) return "";
 
-  // Three-layer stack mimics how a real object casts shadows from ambient +
-  // directional light. Contact (sharp/dark) anchors the photo to the surface,
-  // ambient (medium) gives volume, far (soft/light) lifts it off the page.
-  // Effective alpha ≈ 0.75 × opacity, perceived weight matches old single-layer.
-  const farBlur = blur * 1.3;
+  // Three-layer stack: contact (sharp/dark) + ambient (medium) + far (soft).
+  // Far multiplier is bounded so stdDeviation stays tractable for resvg's CPU
+  // Gaussian blur — large multipliers caused batch exports to appear stuck on
+  // 24MP+ canvases (filter region O(W·H·r), kernel radius ≈ 3·stdDev).
+  const farBlur = Math.min(blur * 0.8, 60);
   const farOffset = offsetY * 0.9;
-  const farOpacity = opacity * 0.30;
-  const ambBlur = blur * 0.5;
+  const farOpacity = opacity * 0.32;
+  const ambBlur = Math.min(blur * 0.4, 40);
   const ambOffset = offsetY * 0.5;
-  const ambOpacity = opacity * 0.35;
-  const conBlur = Math.max(0.5, blur * 0.12);
+  const ambOpacity = opacity * 0.38;
+  const conBlur = Math.max(0.5, Math.min(blur * 0.15, 12));
   const conOffset = offsetY * 0.15;
-  const conOpacity = opacity * 0.45;
+  const conOpacity = opacity * 0.50;
 
   const pad = farBlur * 3 + Math.abs(farOffset);
   return [

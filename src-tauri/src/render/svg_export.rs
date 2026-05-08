@@ -1,11 +1,42 @@
 use std::path::Path;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use resvg::{tiny_skia, usvg};
 
 use crate::images::{decode_image, supported_extension};
 
 const PHOTO_PLACEHOLDER: &str = "__FUJI_PHOTO__";
+
+/// Cached fontdb loaded once and shared across all export jobs. Building a fresh
+/// fontdb per photo (with several `include_bytes!` font files) burned cycles on
+/// every batch worker for no benefit.
+fn shared_fontdb() -> Arc<usvg::fontdb::Database> {
+    static DB: OnceLock<Arc<usvg::fontdb::Database>> = OnceLock::new();
+    DB.get_or_init(|| {
+        let mut db = usvg::fontdb::Database::new();
+        #[cfg(bundled_inter)]
+        {
+            db.load_font_data(include_bytes!("../../fonts/inter-regular.ttf").to_vec());
+            db.load_font_data(include_bytes!("../../fonts/inter-bold.ttf").to_vec());
+        }
+        #[cfg(bundled_noto_sans_sc)]
+        {
+            db.load_font_data(include_bytes!("../../fonts/noto-sans-sc-regular.ttf").to_vec());
+            db.load_font_data(include_bytes!("../../fonts/noto-sans-sc-bold.ttf").to_vec());
+        }
+        #[cfg(bundled_playfair_display)]
+        {
+            db.load_font_data(include_bytes!("../../fonts/playfair-display-regular.ttf").to_vec());
+            db.load_font_data(include_bytes!("../../fonts/playfair-display-bold.ttf").to_vec());
+        }
+        #[cfg(bundled_bebas_neue)]
+        {
+            db.load_font_data(include_bytes!("../../fonts/bebas-neue-regular.ttf").to_vec());
+        }
+        Arc::new(db)
+    })
+    .clone()
+}
 
 /// Load photo from `photo_path`, resolve `__FUJI_PHOTO__` as an in-memory image,
 /// render the SVG template via resvg, and write the result to `output_path`.
@@ -18,33 +49,14 @@ pub fn render_svg_export(
     let source_path = Path::new(photo_path);
     let photo_kind = photo_placeholder_kind(source_path)?;
 
-    let mut db = usvg::fontdb::Database::new();
-    #[cfg(bundled_inter)]
-    {
-        db.load_font_data(include_bytes!("../../fonts/inter-regular.ttf").to_vec());
-        db.load_font_data(include_bytes!("../../fonts/inter-bold.ttf").to_vec());
-    }
-    #[cfg(bundled_noto_sans_sc)]
-    {
-        db.load_font_data(include_bytes!("../../fonts/noto-sans-sc-regular.ttf").to_vec());
-        db.load_font_data(include_bytes!("../../fonts/noto-sans-sc-bold.ttf").to_vec());
-    }
-    #[cfg(bundled_playfair_display)]
-    {
-        db.load_font_data(include_bytes!("../../fonts/playfair-display-regular.ttf").to_vec());
-        db.load_font_data(include_bytes!("../../fonts/playfair-display-bold.ttf").to_vec());
-    }
-    #[cfg(bundled_bebas_neue)]
-    {
-        db.load_font_data(include_bytes!("../../fonts/bebas-neue-regular.ttf").to_vec());
-    }
+    let db = shared_fontdb();
 
     let default_data_resolver = usvg::ImageHrefResolver::default_data_resolver();
     let default_string_resolver = usvg::ImageHrefResolver::default_string_resolver();
     let photo_resolver_kind = photo_kind.clone();
 
     let opt = usvg::Options {
-        fontdb: Arc::new(db),
+        fontdb: db,
         font_family: "Inter".to_string(),
         image_href_resolver: usvg::ImageHrefResolver {
             resolve_data: default_data_resolver,
