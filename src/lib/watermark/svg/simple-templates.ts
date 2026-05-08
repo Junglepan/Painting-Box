@@ -344,45 +344,15 @@ function photoShadowDefs(args: SvgArgs, g: ReturnType<typeof base>, x: number, y
   const opacity = Math.min(1, Math.max(0, args.frameParams.shadowOpacity / 100));
   if (blur <= 0 || opacity <= 0) return "";
 
-  // Three-layer stack: contact (sharp/dark) + ambient (medium) + far (soft).
-  // Far multiplier is bounded so stdDeviation stays tractable for resvg's CPU
-  // Gaussian blur — large multipliers caused batch exports to appear stuck on
-  // 24MP+ canvases (filter region O(W·H·r), kernel radius ≈ 3·stdDev).
-  const farBlur = Math.min(blur * 0.8, 60);
-  const farOffset = offsetY * 0.9;
-  const farOpacity = opacity * 0.32;
-  const ambBlur = Math.min(blur * 0.4, 40);
-  const ambOffset = offsetY * 0.5;
-  const ambOpacity = opacity * 0.38;
-  const conBlur = Math.max(0.5, Math.min(blur * 0.15, 12));
-  const conOffset = offsetY * 0.15;
-  const conOpacity = opacity * 0.50;
-
-  const pad = farBlur * 3 + Math.abs(farOffset);
+  // Single feDropShadow — same approach yiyin uses (libvips/Sharp drop shadow).
+  // Capped stdDeviation keeps resvg's Gaussian convolution bounded on 24MP+
+  // canvases; visual effect is "lift photo off page" rather than precise depth.
+  const std = Math.min(blur, 40);
+  const dy = Math.min(offsetY, w * 0.05);
+  const pad = std * 3 + Math.abs(dy);
   return [
     `<defs><filter id="pb-photo-shadow" x="${x - pad}" y="${y - pad}" width="${w + pad * 2}" height="${h + pad * 2}" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">`,
-    // Far shadow — large, soft, lifts the photo off the page
-    `<feGaussianBlur in="SourceAlpha" stdDeviation="${farBlur}" result="b3"/>`,
-    `<feOffset in="b3" dx="0" dy="${farOffset}" result="o3"/>`,
-    `<feFlood flood-color="#000000" flood-opacity="${farOpacity}" result="c3"/>`,
-    `<feComposite in="c3" in2="o3" operator="in" result="s3"/>`,
-    // Ambient shadow — medium spread, gives volume
-    `<feGaussianBlur in="SourceAlpha" stdDeviation="${ambBlur}" result="b2"/>`,
-    `<feOffset in="b2" dx="0" dy="${ambOffset}" result="o2"/>`,
-    `<feFlood flood-color="#000000" flood-opacity="${ambOpacity}" result="c2"/>`,
-    `<feComposite in="c2" in2="o2" operator="in" result="s2"/>`,
-    // Contact shadow — tight, dark, anchors to surface
-    `<feGaussianBlur in="SourceAlpha" stdDeviation="${conBlur}" result="b1"/>`,
-    `<feOffset in="b1" dx="0" dy="${conOffset}" result="o1"/>`,
-    `<feFlood flood-color="#000000" flood-opacity="${conOpacity}" result="c1"/>`,
-    `<feComposite in="c1" in2="o1" operator="in" result="s1"/>`,
-    // Stack back-to-front: far behind, photo on top
-    `<feMerge>`,
-    `<feMergeNode in="s3"/>`,
-    `<feMergeNode in="s2"/>`,
-    `<feMergeNode in="s1"/>`,
-    `<feMergeNode in="SourceGraphic"/>`,
-    `</feMerge>`,
+    `<feDropShadow dx="0" dy="${dy}" stdDeviation="${std}" flood-color="#000000" flood-opacity="${opacity}"/>`,
     `</filter></defs>`,
   ].join("\n");
 }
