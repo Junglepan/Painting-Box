@@ -188,7 +188,7 @@ describe("template capabilities", () => {
     expect(getTemplateFrameCapabilities("crop-marks").controls.shadow).toBeUndefined();
     expect(getTemplateFrameCapabilities("film-strip").controls.fontSize).toEqual({
       min: 3,
-      max: 50,
+      max: 18,
       step: 1,
     });
     expect(getTemplateFrameCapabilities("film-strip").controls.mainImageWidthRatio).toEqual({
@@ -278,7 +278,7 @@ describe("template capabilities", () => {
       infoBarHeight: 10,
     });
     expect(film.mainImageWidthRatio).toBe(99);
-    expect(film.fontSize).toBe(30);
+    expect(film.fontSize).toBe(18);
     expect(film.infoBarHeight).toBe(76);
 
     const album = applyTemplateFrameConstraints("photo-album", {
