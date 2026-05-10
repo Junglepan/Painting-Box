@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GithubIcon } from "@/components/icons/github-icon";
-import { GITHUB_URL } from "@/lib/app-meta";
+import { SOCIAL_LINKS } from "@/lib/app-meta";
+import { cn } from "@/lib/utils";
 import { usePhotoStore } from "@/stores/photo-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { EMPTY_EXIF, effectiveShowWatermark } from "@/stores/types";
@@ -185,20 +186,42 @@ export function PreviewPane() {
 
   return (
     <div className="flex h-full w-full flex-col gap-2">
-      <div className="flex shrink-0 items-center justify-between px-1">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-1 px-1">
         <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
           预览
         </span>
-        <a
-          href={GITHUB_URL}
-          target="_blank"
-          rel="noreferrer"
-          title="在 GitHub 查看源码"
-          className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-        >
-          <GithubIcon className="h-3 w-3" />
-          <span className="font-medium">Junglepan/Painting-Box</span>
-        </a>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] text-muted-foreground">
+          {SOCIAL_LINKS.map((s, i) => (
+            <span key={s.platform} className="flex items-center gap-2">
+              {i > 0 ? <span className="text-muted-foreground/40">·</span> : null}
+              <a
+                href={s.url}
+                target="_blank"
+                rel="noreferrer"
+                title={s.title}
+                className="flex items-center gap-1 rounded-md px-1 py-0.5 transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                {s.platform === "GitHub" ? (
+                  <GithubIcon className="h-3 w-3" />
+                ) : (
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "flex h-3 w-3 items-center justify-center rounded-[3px] text-[8px] font-bold leading-none text-white",
+                      s.platform === "小红书" && "bg-[#ff2442]",
+                      s.platform === "bilibili" && "bg-[#fb7299]",
+                      s.platform === "抖音" && "bg-[#000000] dark:bg-[#27272a]",
+                    )}
+                  >
+                    {s.platform === "小红书" ? "小" : s.platform === "bilibili" ? "B" : "D"}
+                  </span>
+                )}
+                <span>{s.short}</span>
+                <span className="font-medium text-foreground/80">@{s.handle}</span>
+              </a>
+            </span>
+          ))}
+        </div>
       </div>
       <div
         ref={containerRef}
