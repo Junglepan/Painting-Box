@@ -29,7 +29,7 @@ type TemplateFrameCapabilities = {
 };
 
 const COMMON_CANVAS_CONTROLS = {
-  fontSize: { min: 3, max: 18, step: 1 },
+  fontSize: { min: 3, max: 50, step: 1 },
   fontFamily: true,
   textColor: true,
 } satisfies TemplateFrameCapabilities["controls"];
@@ -74,7 +74,7 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
       mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       minTopBottomMargin: { min: 1, max: 6, step: 0.1 },
       innerRadius: { min: 0, max: 24, step: 1 },
-      fontSize: { min: 3, max: 18, step: 1 },
+      fontSize: { min: 3, max: 50, step: 1 },
       textColor: true,
     },
   },
@@ -82,7 +82,7 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
     controls: {
       mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       infoBarHeight: { min: 72, max: 112, step: 1 },
-      fontSize: { min: 3, max: 18, step: 1 },
+      fontSize: { min: 3, max: 50, step: 1 },
       textColor: true,
       logoSize: { min: 10, max: 25, step: 1 },
       logoGap: { min: 0, max: 30, step: 1 },
@@ -92,7 +92,7 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
     controls: {
       mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       infoBarHeight: { min: 76, max: 118, step: 1 },
-      fontSize: { min: 3, max: 18, step: 1 },
+      fontSize: { min: 3, max: 50, step: 1 },
       textColor: true,
     },
   },
@@ -100,7 +100,7 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
     controls: {
       mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       infoBarHeight: { min: 96, max: 140, step: 1 },
-      fontSize: { min: 3, max: 18, step: 1 },
+      fontSize: { min: 3, max: 50, step: 1 },
       textColor: true,
     },
   },
@@ -118,7 +118,7 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
     controls: {
       mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       minTopBottomMargin: { min: 5, max: 10, step: 0.1 },
-      fontSize: { min: 3, max: 18, step: 1 },
+      fontSize: { min: 3, max: 50, step: 1 },
       textColor: true,
     },
   },
@@ -155,7 +155,7 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
       mainImageWidthRatio: { min: 80, max: 100, step: 1 },
       infoBarHeight: { min: 56, max: 100, step: 1 },
       photoBorder: { min: 0, max: 6, step: 1 },
-      fontSize: { min: 3, max: 18, step: 1 },
+      fontSize: { min: 3, max: 50, step: 1 },
       textColor: true,
     },
   },
