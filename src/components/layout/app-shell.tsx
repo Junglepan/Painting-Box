@@ -7,6 +7,7 @@ import { TemplateGallery } from "@/components/gallery/template-gallery";
 import { PresetGallery } from "@/components/gallery/preset-gallery";
 import { AppHeader } from "@/components/layout/app-header";
 import { ResizeHandle } from "@/components/layout/resize-handle";
+import { useTheme } from "@/lib/use-theme";
 import { isImportablePath } from "@/lib/import/accept";
 import { createImportedPhotos } from "@/lib/import/records";
 import { isTauri } from "@/lib/env";
@@ -34,6 +35,7 @@ function loadListWidth(): number {
 }
 
 export function AppShell() {
+  useTheme();
   const [listWidth, setListWidth] = useState<number>(() => loadListWidth());
   const photos = usePhotoStore((s) => s.photos);
   const selectedId = usePhotoStore((s) => s.selectedId);

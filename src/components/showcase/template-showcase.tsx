@@ -11,8 +11,8 @@ const SAMPLE_W = 1536;
 const SAMPLE_H = 1024;
 
 const SAMPLE_EXIF: ExifData = {
-  camera: { make: "Painting Box", model: "@panbokui" },
-  lens: "github.com/panbokui/painting-box",
+  camera: { make: "Painting Box", model: "@Junglepan" },
+  lens: "github.com/Junglepan/Painting-Box",
   focalLength: 35,
   aperture: 1.8,
   shutterSpeed: "1/250",

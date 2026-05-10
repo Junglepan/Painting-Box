@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { GithubIcon } from "@/components/icons/github-icon";
+import { GITHUB_URL } from "@/lib/app-meta";
 import { usePhotoStore } from "@/stores/photo-store";
 import { useTemplateStore } from "@/stores/template-store";
 import { EMPTY_EXIF, effectiveShowWatermark } from "@/stores/types";
@@ -10,8 +12,8 @@ import { getLogoSvg } from "@/lib/tauri/logo";
 
 // Branding data used when no photo is selected.
 const MOCK_EXIF: ExifData = {
-  camera: { make: "Painting Box", model: "@panbokui" },
-  lens: "github.com/panbokui/painting-box",
+  camera: { make: "Painting Box", model: "@Junglepan" },
+  lens: "github.com/Junglepan/Painting-Box",
   focalLength: 0,
   aperture: 0,
   shutterSpeed: "",
@@ -182,18 +184,35 @@ export function PreviewPane() {
   }
 
   return (
-    <div
-      ref={containerRef}
-      className="surface-inset relative flex h-full w-full items-center justify-center overflow-hidden p-4"
-    >
-      {svgPreviewUrl ? (
-        <img
-          src={svgPreviewUrl}
-          alt=""
-          className="block h-full w-full object-contain shadow-[0_10px_24px_rgba(148,163,184,0.14)]"
-          draggable={false}
-        />
-      ) : null}
+    <div className="flex h-full w-full flex-col gap-2">
+      <div className="flex shrink-0 items-center justify-between px-1">
+        <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70">
+          预览
+        </span>
+        <a
+          href={GITHUB_URL}
+          target="_blank"
+          rel="noreferrer"
+          title="在 GitHub 查看源码"
+          className="flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+        >
+          <GithubIcon className="h-3 w-3" />
+          <span className="font-medium">Junglepan/Painting-Box</span>
+        </a>
+      </div>
+      <div
+        ref={containerRef}
+        className="surface-inset relative flex flex-1 items-center justify-center overflow-hidden p-4"
+      >
+        {svgPreviewUrl ? (
+          <img
+            src={svgPreviewUrl}
+            alt=""
+            className="block h-full w-full object-contain shadow-[0_10px_24px_rgba(148,163,184,0.14)]"
+            draggable={false}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
