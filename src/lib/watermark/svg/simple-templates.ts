@@ -69,7 +69,18 @@ export function buildClassicBottomSvg(args: SvgArgs) {
       if (index > 0) cursorY += extraLineGap;
       const fontSize = index === 0 ? primaryFontSize : secondaryFontSize;
       if (index === 0 && logo) {
-        lines.push(inlineLogoAndText(logo, centerX, cursorY, fontSize, line, fontSize, readable.textColor, "middle", g.scale, args.frameParams.logoSize, args.frameParams.logoGap));
+        // Logo + line 1 centered together. Logo bottom-edge baseline-aligned
+        // with line 1 → logo grows upward when enlarged, never overlaps line 2.
+        const logoFontScale = Math.max(0.5, primaryFontSize / (WATERMARK_LAYOUT_SPEC.logoFontScaleBase * g.scale));
+        const logoH = Math.max(12 * g.scale, args.frameParams.logoSize * WATERMARK_LAYOUT_SPEC.logoVisualScale * logoFontScale * g.scale);
+        const logoW = logoH * logo.aspectRatio;
+        const logoGap = args.frameParams.logoGap * g.scale;
+        const textW = line.length * fontSize * 0.55;
+        const groupW = logoW + logoGap + textW;
+        const startX = centerX - groupW / 2;
+        const baselineY = cursorY + fontSize;
+        lines.push(svgContainedImage(logo.href, startX, baselineY - logoH, logoW, logoH));
+        lines.push(text(startX + logoW + logoGap, baselineY, line, fontSize, "700", readable.textColor, "start"));
       } else {
         lines.push(text(centerX, cursorY + fontSize, line, fontSize, "700", readable.textColor, "middle"));
       }

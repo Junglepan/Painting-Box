@@ -157,6 +157,81 @@
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+.dark {
+  --background: #0d1117;
+  --background-gradient: radial-gradient(
+      1200px 800px at 20% 0%,
+      rgba(47, 111, 237, 0.10),
+      transparent 60%
+    ),
+    radial-gradient(
+      1000px 700px at 100% 100%,
+      rgba(47, 111, 237, 0.06),
+      transparent 55%
+    ),
+    #0d1117;
+  --foreground: #e5e9f0;
+  --card: #161b22;
+  --card-foreground: #e5e9f0;
+  --popover: #1c2128;
+  --popover-foreground: #e5e9f0;
+  --primary: #4d8aff;
+  --primary-foreground: #0d1117;
+  --secondary: #21262d;
+  --secondary-foreground: #e5e9f0;
+  --muted: #1c2128;
+  --muted-foreground: #8b949e;
+  --accent: #1f3b8f;
+  --accent-foreground: #dde7ff;
+  --destructive: #f17171;
+  --destructive-foreground: #0d1117;
+  --success: #4caf6c;
+  --warning: #d4a64f;
+  --border: #2d333b;
+  --input: #2d333b;
+  --ring: #4d8aff;
+
+  --shadow-apple-card: 0 0 0 0.5px rgba(255, 255, 255, 0.06),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 6px 16px rgba(0, 0, 0, 0.5),
+    0 16px 40px rgba(0, 0, 0, 0.4);
+  --shadow-apple-elevated: 0 0 0 0.5px rgba(255, 255, 255, 0.07),
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 12px 28px rgba(0, 0, 0, 0.55),
+    0 28px 60px rgba(0, 0, 0, 0.4);
+  --shadow-apple-popover: 0 0 0 0.5px rgba(255, 255, 255, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.55),
+    0 32px 80px rgba(0, 0, 0, 0.5);
+
+  --shadow-neu-raised: 0 1px 1px rgba(0, 0, 0, 0.4),
+    0 2px 6px rgba(0, 0, 0, 0.5),
+    0 8px 20px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-neu-raised-hover: 0 2px 3px rgba(0, 0, 0, 0.5),
+    0 6px 14px rgba(0, 0, 0, 0.6),
+    0 16px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  --shadow-neu-pressed: inset 0 2px 4px rgba(0, 0, 0, 0.55),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    0 1px 1px rgba(0, 0, 0, 0.3);
+  --shadow-neu-inset: inset 0 1px 3px rgba(0, 0, 0, 0.5),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+
+  --shadow-primary-raised: 0 1px 0 rgba(255, 255, 255, 0.15) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.3) inset,
+    0 2px 6px rgba(77, 138, 255, 0.4),
+    0 8px 20px rgba(77, 138, 255, 0.32);
+  --shadow-primary-hover: 0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 -1px 0 rgba(0, 0, 0, 0.32) inset,
+    0 4px 10px rgba(77, 138, 255, 0.46),
+    0 14px 28px rgba(77, 138, 255, 0.36);
+  --shadow-primary-pressed: inset 0 2px 4px rgba(0, 0, 0, 0.4),
+    0 1px 2px rgba(77, 138, 255, 0.28);
+
+  --ring-selected: 0 0 0 1px rgba(13, 17, 23, 1),
+    0 0 0 3px rgba(77, 138, 255, 0.5);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);

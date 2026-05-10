@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+### 功能（feat/iteration-r3）
+- **顶部栏品牌区显示版本号**：Painting Box 标题旁出现版本徽章 `v0.x.y`，自动检查 GitHub 最新 release（6 小时缓存）。检测到新版本时徽章高亮 + 下载图标，点击直达对应 release；常规状态点击进入 latest release 页查看更新历史。
+- **手动检查更新按钮**：版本徽章右侧新增 RefreshCw 按钮，点击立即重新检查（绕过 6h 缓存）。检查中旋转动画，失败显示警告图标可重试。
+- **GitHub 仓库快捷入口**：顶部栏新增 GitHub 图标按钮直达 https://github.com/Junglepan/Painting-Box；预览区上方同时显示完整社交矩阵：GitHub @Junglepan · 小红书 @土豆怪 · B站 @土豆怪725 · 抖音 @土豆怪。每个平台都是可点击外链跳转，非 GitHub 平台用品牌色字符标识。
+- **客户端外观切换**：顶部栏新增主题切换器（亮色 / 暗色 / 跟随系统），完整暗色 token 套件应用全部组件（背景、卡片、阴影、选择环），系统切换实时跟随。配置持久化到 localStorage。
+- **使用说明对话框**：顶部栏新增 HelpCircle 按钮，点击弹出按区域分组的中文说明（顶栏 / 照片列表 / 预览 / 参数面板 / 预设），覆盖每个按钮的用途。Esc 或点击窗口外可关闭。
+- **Logo 尺寸独立扩展到 10-50**：从原 10-25 扩展，方便单独调大 logo 而不影响字号；字号保持 3-18。
+
+### 修复（feat/iteration-r3）
+- **MOCK/SAMPLE EXIF 默认地址纠正**：之前预览样图水印里的 `github.com/panbokui/painting-box`（错的）改为 `github.com/Junglepan/Painting-Box`，model 同步从 `@panbokui` 改为 `@Junglepan`。
+- **Logo 增大时与水印对齐**：经典底栏 logo 改为底边基线对齐第一行 baseline，logo 放大时向上延伸，不再与下方第二行文字重叠。每行独立水平居中，logo + 第一行作为整体居中。
+
 ### 功能（feat/detail-iteration）
 - **经典底栏照片立体感升级**：照片阴影从单层 `feDropShadow` 改为三层叠加（contact + ambient + far），分别对应"贴在画面上 / 给体积感 / 抬离纸面"三种光照层次。同一组用户控件（模糊/位移/强度）驱动三层按比例缩放，视觉上对齐 macOS Big Sur / Linear / Vercel 的卡片质感，等效透明度 ≈ 0.75 × opacity，与单层观感一致但层次感显著提升。
 - **Logo 颜色自动对比度**：Logo 版本下拉新增「auto（跟随背景）」选项，按背景亮度自动选 black/white（仅当该 Logo 同时包含 black 和 white 变体时出现）。新建/重置默认值改为 `auto`，对老用户保持兼容。
