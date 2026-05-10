@@ -14,7 +14,7 @@ import { getLogoSvg } from "@/lib/tauri/logo";
 // Branding data used when no photo is selected.
 const MOCK_EXIF: ExifData = {
   camera: { make: "Painting Box", model: "@Junglepan" },
-  lens: "",
+  lens: "github.com/Junglepan/Painting-Box",
   focalLength: 0,
   aperture: 0,
   shutterSpeed: "",
