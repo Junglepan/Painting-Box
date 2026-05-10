@@ -18,9 +18,9 @@ export const SOCIAL_LINKS = [
   {
     platform: "小红书",
     short: "小红书",
-    handle: "StudentPanbk",
+    handle: "土豆怪",
     url: "https://www.xiaohongshu.com/search_result?keyword=StudentPanbk&type=51",
-    title: "小红书 @StudentPanbk",
+    title: "小红书 @土豆怪 · 搜索 ID: StudentPanbk",
   },
   {
     platform: "bilibili",
