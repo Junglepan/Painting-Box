@@ -63,41 +63,29 @@ export function buildClassicBottomSvg(args: SvgArgs) {
       fallbackTextColor: args.frameParams.textColor,
       fallbackDividerColor: args.frameParams.dividerColor,
     });
-    if (logo) {
-      // Logo bottom-edge baseline-aligned with line 1: when logo grows, it
-      // extends upward (into the bar's headroom), never overlaps line 2+.
-      // [logo + text column] form one group, horizontally centered as a whole.
-      const logoFontScale = Math.max(0.5, primaryFontSize / (WATERMARK_LAYOUT_SPEC.logoFontScaleBase * g.scale));
-      const logoH = Math.max(12 * g.scale, args.frameParams.logoSize * WATERMARK_LAYOUT_SPEC.logoVisualScale * logoFontScale * g.scale);
-      const logoW = logoH * logo.aspectRatio;
-      const logoGap = args.frameParams.logoGap * g.scale;
-      const widestText = renderLines.reduce((max, line, i) => {
-        const sz = i === 0 ? primaryFontSize : secondaryFontSize;
-        return Math.max(max, line.length * sz * 0.55);
-      }, 0);
-      const groupW = logoW + logoGap + widestText;
-      const groupStartX = (g.canvasW - groupW) / 2;
-      const textX = groupStartX + logoW + logoGap;
-      const line1BaselineY = plan.blockTop + primaryFontSize;
-      const logoY = line1BaselineY - logoH;
-      lines.push(svgContainedImage(logo.href, groupStartX, logoY, logoW, logoH));
-      let cursorY = plan.blockTop;
-      renderLines.forEach((line, index) => {
-        if (index > 0) cursorY += extraLineGap;
-        const fontSize = index === 0 ? primaryFontSize : secondaryFontSize;
-        lines.push(text(textX, cursorY + fontSize, line, fontSize, "700", readable.textColor, "start"));
-        cursorY += fontSize;
-      });
-    } else {
-      const centerX = g.canvasW / 2;
-      let cursorY = plan.blockTop;
-      renderLines.forEach((line, index) => {
-        if (index > 0) cursorY += extraLineGap;
-        const fontSize = index === 0 ? primaryFontSize : secondaryFontSize;
+    const centerX = g.canvasW / 2;
+    let cursorY = plan.blockTop;
+    renderLines.forEach((line, index) => {
+      if (index > 0) cursorY += extraLineGap;
+      const fontSize = index === 0 ? primaryFontSize : secondaryFontSize;
+      if (index === 0 && logo) {
+        // Logo + line 1 centered together. Logo bottom-edge baseline-aligned
+        // with line 1 → logo grows upward when enlarged, never overlaps line 2.
+        const logoFontScale = Math.max(0.5, primaryFontSize / (WATERMARK_LAYOUT_SPEC.logoFontScaleBase * g.scale));
+        const logoH = Math.max(12 * g.scale, args.frameParams.logoSize * WATERMARK_LAYOUT_SPEC.logoVisualScale * logoFontScale * g.scale);
+        const logoW = logoH * logo.aspectRatio;
+        const logoGap = args.frameParams.logoGap * g.scale;
+        const textW = line.length * fontSize * 0.55;
+        const groupW = logoW + logoGap + textW;
+        const startX = centerX - groupW / 2;
+        const baselineY = cursorY + fontSize;
+        lines.push(svgContainedImage(logo.href, startX, baselineY - logoH, logoW, logoH));
+        lines.push(text(startX + logoW + logoGap, baselineY, line, fontSize, "700", readable.textColor, "start"));
+      } else {
         lines.push(text(centerX, cursorY + fontSize, line, fontSize, "700", readable.textColor, "middle"));
-        cursorY += fontSize;
-      });
-    }
+      }
+      cursorY += fontSize;
+    });
   }
   return closeTemplate(lines);
 }
