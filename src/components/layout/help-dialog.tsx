@@ -7,6 +7,7 @@ const HELP_SECTIONS: { title: string; items: { label: string; desc: string }[] }
     title: "顶部栏",
     items: [
       { label: "Painting Box · 版本徽章", desc: "点击跳转到 GitHub 最新发行页，可以下载最新安装包。" },
+      { label: "刷新图标（版本徽章右侧）", desc: "手动检查更新；在线检查时旋转动画，失败显示警告图标。无操作时也会在启动 6 小时后自动复检。" },
       { label: "GitHub 图标", desc: "打开仓库主页查看源码、提交 Issue 或星标项目。" },
       { label: "外观开关", desc: "切换亮色 / 暗色 / 跟随系统三种主题模式。" },
       { label: "帮助按钮", desc: "打开本说明窗口，查看每个按钮的用途。" },

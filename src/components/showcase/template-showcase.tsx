@@ -12,7 +12,7 @@ const SAMPLE_H = 1024;
 
 const SAMPLE_EXIF: ExifData = {
   camera: { make: "Painting Box", model: "@Junglepan" },
-  lens: "github.com/Junglepan/Painting-Box",
+  lens: "",
   focalLength: 35,
   aperture: 1.8,
   shutterSpeed: "1/250",

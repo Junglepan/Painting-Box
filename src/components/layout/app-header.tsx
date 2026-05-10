@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Camera, CheckCheck, Globe, HelpCircle, Loader2, Download } from "lucide-react";
+import { Camera, CheckCheck, Globe, HelpCircle, Loader2, Download, RefreshCw, AlertCircle } from "lucide-react";
 import { GithubIcon } from "@/components/icons/github-icon";
 import { useExportStore } from "@/stores/export-store";
 import { isTauri } from "@/lib/env";
@@ -56,29 +56,57 @@ function ExportBadge() {
 }
 
 function VersionBadge() {
-  const release = useLatestRelease();
+  const { release, status, refresh } = useLatestRelease();
   const hasUpdate = Boolean(release?.hasUpdate);
+  const checking = status === "checking";
+  const errored = status === "error";
   const href = hasUpdate ? release!.htmlUrl : GITHUB_LATEST_RELEASE_URL;
-  const title = hasUpdate
+  const linkTitle = hasUpdate
     ? `当前 v${APP_VERSION}，新版本 v${release!.version} 可用 — 点击下载`
     : `当前 v${APP_VERSION}（已是最新）— 点击查看 Release`;
+  const checkTitle = checking
+    ? "正在检查更新…"
+    : errored
+      ? "检查失败，点击重试"
+      : release
+        ? `已检查：远端 v${release.version}\n点击重新检查更新`
+        : "点击检查更新";
 
   return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noreferrer"
-      title={title}
-      className={cn(
-        "flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium transition-colors",
-        hasUpdate
-          ? "bg-primary/12 text-primary hover:bg-primary/18"
-          : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-      )}
-    >
-      v{APP_VERSION}
-      {hasUpdate ? <Download className="h-2.5 w-2.5" /> : null}
-    </a>
+    <span className="flex items-center gap-0.5">
+      <a
+        href={href}
+        target="_blank"
+        rel="noreferrer"
+        title={linkTitle}
+        className={cn(
+          "flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium transition-colors",
+          hasUpdate
+            ? "bg-primary/12 text-primary hover:bg-primary/18"
+            : "bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+        )}
+      >
+        v{APP_VERSION}
+        {hasUpdate ? <Download className="h-2.5 w-2.5" /> : null}
+      </a>
+      <button
+        type="button"
+        title={checkTitle}
+        aria-label="检查更新"
+        disabled={checking}
+        onClick={() => void refresh(true)}
+        className={cn(
+          "flex h-5 w-5 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground disabled:cursor-not-allowed disabled:opacity-60",
+          errored && "text-destructive",
+        )}
+      >
+        {errored ? (
+          <AlertCircle className="h-3 w-3" />
+        ) : (
+          <RefreshCw className={cn("h-3 w-3", checking && "animate-spin")} />
+        )}
+      </button>
+    </span>
   );
 }
 
