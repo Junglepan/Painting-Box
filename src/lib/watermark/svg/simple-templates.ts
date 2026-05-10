@@ -63,18 +63,43 @@ export function buildClassicBottomSvg(args: SvgArgs) {
       fallbackTextColor: args.frameParams.textColor,
       fallbackDividerColor: args.frameParams.dividerColor,
     });
-    const centerX = g.canvasW / 2;
-    let cursorY = plan.blockTop;
-    renderLines.forEach((line, index) => {
-      if (index > 0) cursorY += extraLineGap;
-      const fontSize = index === 0 ? primaryFontSize : secondaryFontSize;
-      if (index === 0 && logo) {
-        lines.push(inlineLogoAndText(logo, centerX, cursorY, fontSize, line, fontSize, readable.textColor, "middle", g.scale, args.frameParams.logoSize, args.frameParams.logoGap));
-      } else {
+    if (logo) {
+      // Treat [logo + multi-line text column] as one group: logo on the left,
+      // text column left-aligned to its right, both vertically centered relative
+      // to whichever is taller. Group as a whole is horizontally centered.
+      const logoFontScale = Math.max(0.5, primaryFontSize / (WATERMARK_LAYOUT_SPEC.logoFontScaleBase * g.scale));
+      const logoH = Math.max(12 * g.scale, args.frameParams.logoSize * WATERMARK_LAYOUT_SPEC.logoVisualScale * logoFontScale * g.scale);
+      const logoW = logoH * logo.aspectRatio;
+      const logoGap = args.frameParams.logoGap * g.scale;
+      const widestText = renderLines.reduce((max, line, i) => {
+        const sz = i === 0 ? primaryFontSize : secondaryFontSize;
+        return Math.max(max, line.length * sz * 0.55);
+      }, 0);
+      const groupW = logoW + logoGap + widestText;
+      const groupStartX = (g.canvasW - groupW) / 2;
+      const textX = groupStartX + logoW + logoGap;
+      const blockH = Math.max(totalTextHeight, logoH);
+      const blockTop = plan.blockTop + (totalTextHeight - blockH) / 2;
+      const logoY = blockTop + (blockH - logoH) / 2;
+      const textTop = blockTop + (blockH - totalTextHeight) / 2;
+      lines.push(svgContainedImage(logo.href, groupStartX, logoY, logoW, logoH));
+      let cursorY = textTop;
+      renderLines.forEach((line, index) => {
+        if (index > 0) cursorY += extraLineGap;
+        const fontSize = index === 0 ? primaryFontSize : secondaryFontSize;
+        lines.push(text(textX, cursorY + fontSize, line, fontSize, "700", readable.textColor, "start"));
+        cursorY += fontSize;
+      });
+    } else {
+      const centerX = g.canvasW / 2;
+      let cursorY = plan.blockTop;
+      renderLines.forEach((line, index) => {
+        if (index > 0) cursorY += extraLineGap;
+        const fontSize = index === 0 ? primaryFontSize : secondaryFontSize;
         lines.push(text(centerX, cursorY + fontSize, line, fontSize, "700", readable.textColor, "middle"));
-      }
-      cursorY += fontSize;
-    });
+        cursorY += fontSize;
+      });
+    }
   }
   return closeTemplate(lines);
 }
