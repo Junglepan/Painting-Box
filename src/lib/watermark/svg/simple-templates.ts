@@ -64,9 +64,9 @@ export function buildClassicBottomSvg(args: SvgArgs) {
       fallbackDividerColor: args.frameParams.dividerColor,
     });
     if (logo) {
-      // Treat [logo + multi-line text column] as one group: logo on the left,
-      // text column left-aligned to its right, both vertically centered relative
-      // to whichever is taller. Group as a whole is horizontally centered.
+      // Logo bottom-edge baseline-aligned with line 1: when logo grows, it
+      // extends upward (into the bar's headroom), never overlaps line 2+.
+      // [logo + text column] form one group, horizontally centered as a whole.
       const logoFontScale = Math.max(0.5, primaryFontSize / (WATERMARK_LAYOUT_SPEC.logoFontScaleBase * g.scale));
       const logoH = Math.max(12 * g.scale, args.frameParams.logoSize * WATERMARK_LAYOUT_SPEC.logoVisualScale * logoFontScale * g.scale);
       const logoW = logoH * logo.aspectRatio;
@@ -78,12 +78,10 @@ export function buildClassicBottomSvg(args: SvgArgs) {
       const groupW = logoW + logoGap + widestText;
       const groupStartX = (g.canvasW - groupW) / 2;
       const textX = groupStartX + logoW + logoGap;
-      const blockH = Math.max(totalTextHeight, logoH);
-      const blockTop = plan.blockTop + (totalTextHeight - blockH) / 2;
-      const logoY = blockTop + (blockH - logoH) / 2;
-      const textTop = blockTop + (blockH - totalTextHeight) / 2;
+      const line1BaselineY = plan.blockTop + primaryFontSize;
+      const logoY = line1BaselineY - logoH;
       lines.push(svgContainedImage(logo.href, groupStartX, logoY, logoW, logoH));
-      let cursorY = textTop;
+      let cursorY = plan.blockTop;
       renderLines.forEach((line, index) => {
         if (index > 0) cursorY += extraLineGap;
         const fontSize = index === 0 ? primaryFontSize : secondaryFontSize;
