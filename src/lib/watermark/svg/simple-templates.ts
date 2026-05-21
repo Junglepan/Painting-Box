@@ -8,8 +8,8 @@ import {
   resolveReadableTextAndDivider,
 } from "../classic-bottom";
 import { WATERMARK_LAYOUT_SPEC } from "../layout-spec";
-import { fitPhoto, getCanvasRatio, paramsLine } from "../renderer-utils";
-import { applySvgMainImageRatio, applySvgWidthRatio, isPortraitPhoto, shouldStackMetadata, SVG_PHOTO_PLACEHOLDER, svgContainedImage, svgFontFamily, svgImage, xmlEscape, type SvgLogoAsset, type SvgRect } from "./shared";
+import { cropPhoto, fitPhoto, getCanvasRatio, paramsLine } from "../renderer-utils";
+import { applySvgMainImageRatio, applySvgWidthRatio, isPortraitPhoto, shouldStackMetadata, SVG_PHOTO_PLACEHOLDER, svgContainedImage, svgCroppedImage, svgFontFamily, svgImage, xmlEscape, type SvgLogoAsset, type SvgRect } from "./shared";
 
 type SvgArgs = {
   photoW: number;
@@ -44,8 +44,8 @@ export function buildClassicBottomSvg(args: SvgArgs) {
     0,
   );
   const plan = buildPreviewRenderPlan({
-    photoWidth: args.photoW,
-    photoHeight: args.photoH,
+    photoWidth: g.effectiveW,
+    photoHeight: g.effectiveH,
     frameParams: args.frameParams,
     templateKind: "classic-bottom",
     totalTextHeight,
@@ -106,7 +106,7 @@ export function buildMinimalCornerSvg(args: SvgArgs) {
     w: g.canvasW - margin * 2,
     h: Math.max(1, g.canvasH - margin * 2 - watermarkH),
   };
-  const placed = fitPhoto(tunablePhotoArea(args, area), args.photoW, args.photoH);
+  const placed = fitPhoto(tunablePhotoArea(args, area), g.effectiveW, g.effectiveH);
   const lines = root(g);
   lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="#ffffff"/>`, photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
   if (g.watermarkActive && watermarkContentH > 0) {
@@ -130,7 +130,7 @@ export function buildCinematicSvg(args: SvgArgs) {
   const g = base(args, "#000000");
   const topBarH = g.canvasH * 0.09;
   const bottomBarH = g.watermarkActive ? scaledBarH(args, g, g.canvasH * 0.14) : topBarH;
-  const placed = fitPhoto(tunablePhotoArea(args, { x: 0, y: topBarH, w: g.canvasW, h: g.canvasH - topBarH - bottomBarH }), args.photoW, args.photoH);
+  const placed = fitPhoto(tunablePhotoArea(args, { x: 0, y: topBarH, w: g.canvasW, h: g.canvasH - topBarH - bottomBarH }), g.effectiveW, g.effectiveH);
   const lines = root(g);
   lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="#000000"/>`, photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
   if (g.watermarkActive) {
@@ -148,10 +148,31 @@ export function buildCinematicSvg(args: SvgArgs) {
   return closeTemplate(lines);
 }
 
+export function buildCinemaScopeSvg(args: SvgArgs) {
+  const g = base(args, "#000000");
+  const placed = fitPhoto(tunablePhotoArea(args, { x: 0, y: 0, w: g.canvasW, h: g.canvasH }), g.effectiveW, g.effectiveH);
+  const bottomBarH = g.watermarkActive ? Math.max(scaledBarH(args, g, g.canvasH * 0.10), (g.canvasH - placed.y - placed.h)) : 0;
+  const lines = root(g);
+  lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="#000000"/>`, photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
+  if (g.watermarkActive && bottomBarH > 0) {
+    const size = Math.max(11 * g.scale, args.frameParams.fontSize * g.scale);
+    const y = g.canvasH - bottomBarH / 2;
+    const left = brandLine(args.exif, args.config);
+    const right = args.config.showParams ? paramsLine(args.exif, "  ·  ") : "";
+    if (args.logo && args.config.showLogo) {
+      const logoH = logoHeight(args, g.scale, size);
+      lines.push(svgContainedImage(args.logo.href, 32 * g.scale, y - logoH / 2, logoH * args.logo.aspectRatio, logoH));
+      if (left) lines.push(text(32 * g.scale + logoH * args.logo.aspectRatio + args.frameParams.logoGap * g.scale, y, left, size, "600", args.frameParams.textColor || "#f5f5f5", "start", "middle"));
+    } else if (left) lines.push(text(32 * g.scale, y, left, size, "600", args.frameParams.textColor || "#f5f5f5", "start", "middle"));
+    if (right) lines.push(text(g.canvasW - 32 * g.scale, y, right, size, "400", args.frameParams.textColor || "#f5f5f5", "end", "middle"));
+  }
+  return closeTemplate(lines);
+}
+
 export function buildCropMarksSvg(args: SvgArgs) {
   const g = base(args, "#ffffff");
   const margin = Math.max(g.canvasW * 0.06, g.canvasW * (args.frameParams.minTopBottomMargin / 100));
-  const placed = fitPhoto(tunablePhotoArea(args, { x: margin, y: margin, w: g.canvasW - margin * 2, h: g.canvasH - margin * 2 }), args.photoW, args.photoH);
+  const placed = fitPhoto(tunablePhotoArea(args, { x: margin, y: margin, w: g.canvasW - margin * 2, h: g.canvasH - margin * 2 }), g.effectiveW, g.effectiveH);
   const lines = root(g);
   lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="#ffffff"/>`, photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
   if (g.watermarkActive) {
@@ -171,7 +192,7 @@ export function buildContactSheetSvg(args: SvgArgs) {
   const perfH = Math.max(12 * g.scale, g.canvasH * 0.026);
   const side = g.canvasW * 0.04;
   const captionH = g.watermarkActive ? Math.max(args.frameParams.infoBarHeight * g.scale * 0.45, 34 * g.scale, g.canvasH * 0.045) : g.canvasH * 0.025;
-  const placed = fitPhoto(widthTunablePhotoArea(args, { x: side, y: perfH + g.canvasH * 0.018, w: g.canvasW - side * 2, h: g.canvasH - perfH * 2 - captionH - g.canvasH * 0.025 }), args.photoW, args.photoH);
+  const placed = fitPhoto(widthTunablePhotoArea(args, { x: side, y: perfH + g.canvasH * 0.018, w: g.canvasW - side * 2, h: g.canvasH - perfH * 2 - captionH - g.canvasH * 0.025 }), g.effectiveW, g.effectiveH);
   const lines = root(g);
   lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="#0a0a0a"/>`, sprocketRow(0, 0, g.canvasW, perfH, g.scale), sprocketRow(0, g.canvasH - perfH, g.canvasW, perfH, g.scale));
   lines.push(`<rect x="${placed.x - 4 * g.scale}" y="${placed.y - 4 * g.scale}" width="${placed.w + 8 * g.scale}" height="${placed.h + 8 * g.scale}" fill="#ffffff"/>`, photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
@@ -188,7 +209,7 @@ export function buildPhotoAlbumSvg(args: SvgArgs) {
   const margin = Math.max(g.canvasW * 0.025, g.canvasW * (args.frameParams.minTopBottomMargin / 100));
   const topMargin = Math.max(g.canvasH * 0.035, margin);
   const bottomMargin = Math.max(g.canvasH * 0.04, margin);
-  const placed = fitPhoto(tunablePhotoArea(args, { x: margin, y: topMargin, w: g.canvasW - margin * 2, h: g.canvasH - topMargin - bottomMargin }), args.photoW, args.photoH);
+  const placed = fitPhoto(tunablePhotoArea(args, { x: margin, y: topMargin, w: g.canvasW - margin * 2, h: g.canvasH - topMargin - bottomMargin }), g.effectiveW, g.effectiveH);
   const lines = root(g);
   lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="#ede2cc"/>`, `<rect x="${placed.x - 6 * g.scale}" y="${placed.y - 6 * g.scale}" width="${placed.w + 12 * g.scale}" height="${placed.h + 12 * g.scale}" fill="#fdfaf2"/>`, photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
   cornerTriangles(lines, placed.x, placed.y, placed.w, placed.h, Math.max(28 * g.scale, Math.min(placed.w, placed.h) * 0.075));
@@ -204,7 +225,7 @@ export function buildDarkroomProofSvg(args: SvgArgs) {
   const insetX = g.canvasW * 0.04;
   const insetTop = g.canvasH * 0.045;
   const proofReserve = g.watermarkActive ? scaledBarH(args, g, g.canvasH * 0.12) : g.canvasH * 0.035;
-  const placed = fitPhoto(widthTunablePhotoArea(args, { x: paperX + insetX, y: paperY + insetTop, w: paperW - insetX * 2, h: paperH - insetTop - proofReserve }), args.photoW, args.photoH);
+  const placed = fitPhoto(widthTunablePhotoArea(args, { x: paperX + insetX, y: paperY + insetTop, w: paperW - insetX * 2, h: paperH - insetTop - proofReserve }), g.effectiveW, g.effectiveH);
   const lines = root(g);
   lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="#0d0d0d"/>`, `<rect x="${paperX}" y="${paperY}" width="${paperW}" height="${paperH}" fill="#f5efe1"/>`, photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
   if (g.watermarkActive) {
@@ -224,6 +245,7 @@ export function buildGenericSvgForKind(kind: TemplateKind, args: SvgArgs): strin
     case "magazine": return buildMagazineSvg(args);
     case "minimal-corner": return buildMinimalCornerSvg(args);
     case "cinematic": return buildCinematicSvg(args);
+    case "cinema-scope": return buildCinemaScopeSvg(args);
     case "photo-album": return buildPhotoAlbumSvg(args);
     case "crop-marks": return buildCropMarksSvg(args);
     case "darkroom-proof": return buildDarkroomProofSvg(args);
@@ -247,7 +269,7 @@ function buildBottomBarSvg(args: SvgArgs, mode: "classic-bottom" | "magazine") {
   const bottomSafety = compact ? g.canvasH * 0.01 : g.canvasH * 0.1;
   const barH = g.watermarkActive ? scaledBarH(args, g, compact ? g.canvasH * 0.07 : g.canvasH * 0.14) : g.canvasH * 0.04;
   const photoArea = { x: margin, y: topMargin, w: g.canvasW - margin * 2, h: g.canvasH - topMargin - bottomSafety - barH };
-  const placed = fitPhoto(compact ? widthTunablePhotoArea(args, photoArea) : tunablePhotoArea(args, photoArea), args.photoW, args.photoH);
+  const placed = fitPhoto(compact ? widthTunablePhotoArea(args, photoArea) : tunablePhotoArea(args, photoArea), g.effectiveW, g.effectiveH);
   const lines = root(g);
   lines.push(`<rect width="${g.canvasW}" height="${g.canvasH}" fill="${backgroundFill(args.frameParams)}"/>`);
   lines.push(photoElement(args, g, placed.x, placed.y, placed.w, placed.h));
@@ -274,14 +296,20 @@ function buildBottomBarSvg(args: SvgArgs, mode: "classic-bottom" | "magazine") {
 
 function base(args: SvgArgs, bg: string) {
   const canvasW = Math.max(320, Math.round(args.canvasBaseWidth ?? 900));
+  const crop = cropPhoto(args.photoW, args.photoH, args.frameParams.cropRatio ?? "original", args.frameParams.cropPosition ?? 50);
+  const effectiveW = crop.sw;
+  const effectiveH = crop.sh;
   return {
     bg,
     canvasW,
-    canvasH: canvasW / getCanvasRatio(args.frameParams.canvasRatio, args.frameParams.canvasOrientation, args.photoW / args.photoH),
+    canvasH: canvasW / getCanvasRatio(args.frameParams.canvasRatio, args.frameParams.canvasOrientation, effectiveW / effectiveH),
     scale: canvasW / 900,
     fontFamily: svgFontFamily(args.frameParams.fontFamily),
     photoHref: args.photoHref ?? SVG_PHOTO_PLACEHOLDER,
     watermarkActive: args.config.showWatermark ?? true,
+    crop,
+    effectiveW,
+    effectiveH,
   };
 }
 
@@ -327,12 +355,16 @@ function widthTunablePhotoArea(args: SvgArgs, area: SvgRect) {
 function photoElement(args: SvgArgs, g: ReturnType<typeof base>, x: number, y: number, w: number, h: number) {
   const radius = Math.min(args.frameParams.innerRadius * g.scale, Math.min(w, h) / 8);
   const shadowDefs = photoShadowDefs(args, g, x, y, w, h);
+  const isCropped = g.crop.sw !== args.photoW || g.crop.sh !== args.photoH;
+  const imageTag = isCropped
+    ? svgCroppedImage(g.photoHref, x, y, w, h, g.crop, args.photoW, args.photoH, "pb-crop-clip")
+    : svgImage(g.photoHref, x, y, w, h);
   const clipped = radius > 0
     ? [
         `<defs><clipPath id="pb-photo-clip"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${radius}" ry="${radius}"/></clipPath></defs>`,
-        `<g clip-path="url(#pb-photo-clip)">${svgImage(g.photoHref, x, y, w, h)}</g>`,
+        `<g clip-path="url(#pb-photo-clip)">${imageTag}</g>`,
       ].join("\n")
-    : svgImage(g.photoHref, x, y, w, h);
+    : imageTag;
   // Include shadow <defs> inline so photoElement is self-contained regardless
   // of which template calls it. Outer <g> wraps clip so shadow extends past clip boundary.
   const image = shadowDefs

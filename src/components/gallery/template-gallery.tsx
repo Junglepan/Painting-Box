@@ -127,6 +127,20 @@ function TemplateThumbnail({ kind }: { kind: TemplateKind }) {
           </div>
         </div>
       );
+    case "cinema-scope":
+      return (
+        <div className="flex h-full w-full flex-col justify-center bg-black">
+          <div className="h-[28%] bg-black" />
+          <div className="h-[36%] bg-muted-foreground/30" />
+          <div className="flex h-[28%] flex-col items-center justify-center bg-black">
+            <div className="flex w-4/5 items-center justify-between">
+              <div className="h-0.5 w-3 rounded-sm bg-white/70" />
+              <div className="h-0.5 w-4 rounded-sm bg-white/40" />
+            </div>
+          </div>
+          <div className="h-[8%] bg-black" />
+        </div>
+      );
     case "film-strip":
       return (
         <div className="flex h-full w-full bg-[#0a0a0a]">

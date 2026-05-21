@@ -3,6 +3,7 @@ import { usePhotoStore } from "@/stores/photo-store";
 import { useTemplateStore } from "@/stores/template-store";
 import type {
   CanvasRatio,
+  CropRatio,
   DateFormat,
   ExifData,
   FrameBackground,
@@ -76,6 +77,15 @@ const CANVAS_RATIOS: { value: CanvasRatio; label: string }[] = [
   { value: "16:9",   label: "16:9"   },
   { value: "21:9",   label: "21:9"   },
   { value: "2.35:1", label: "2.35:1" },
+];
+
+const CROP_RATIOS: { value: CropRatio; label: string }[] = [
+  { value: "original", label: "原图" },
+  { value: "2.35:1",   label: "2.35:1" },
+  { value: "16:9",     label: "16:9" },
+  { value: "4:3",      label: "4:3" },
+  { value: "3:2",      label: "3:2" },
+  { value: "1:1",      label: "1:1" },
 ];
 
 const FIELDS: {
@@ -268,6 +278,39 @@ export function FrameParamsPanel() {
               })}
             </div>
           </div>
+          {has("cropRatio") ? (
+            <div className="mb-3">
+              <span className="label-plain mb-2">照片裁切</span>
+              <div className="mt-1.5 grid grid-cols-3 gap-1.5">
+                {CROP_RATIOS.map((r) => (
+                  <button
+                    key={r.value}
+                    type="button"
+                    onClick={() => set({ cropRatio: r.value })}
+                    className={cn(
+                      "chip text-[10px]",
+                      (frameParams.cropRatio ?? "original") === r.value && "chip-active",
+                    )}
+                  >
+                    {r.label}
+                  </button>
+                ))}
+              </div>
+              {range("cropPosition") && (frameParams.cropRatio ?? "original") !== "original" ? (
+                <div className="mt-1.5">
+                  <SliderRow
+                    hint="裁切位置"
+                    min={range("cropPosition")!.min}
+                    max={range("cropPosition")!.max}
+                    step={range("cropPosition")!.step}
+                    value={frameParams.cropPosition ?? 50}
+                    unit="%"
+                    onChange={(v) => set({ cropPosition: v })}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
           {showLayoutFineControls ? (
             <div className="space-y-1.5">
               {mainImageRange ? (

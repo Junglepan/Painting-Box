@@ -81,6 +81,7 @@ export type TemplateKind =
   | "minimal-corner"
   | "magazine"
   | "cinematic"
+  | "cinema-scope"
   | "film-strip"
   | "xiaomi-leica"
   | "photo-album"
@@ -119,6 +120,14 @@ export type TemplateConfig = {
   customLines: string[];
   watermarkTemplate?: string[];
 };
+
+export type CropRatio =
+  | "original"
+  | "2.35:1"
+  | "16:9"
+  | "4:3"
+  | "3:2"
+  | "1:1";
 
 // All ratios are in landscape-first (w:h, w >= h) form.
 // canvasOrientation controls whether to flip to portrait.
@@ -188,6 +197,10 @@ export type FrameParams = {
   // Canvas ratio & orientation
   canvasRatio: CanvasRatio;
   canvasOrientation: CanvasOrientation;
+
+  // Photo crop (applied before canvas placement)
+  cropRatio: CropRatio;
+  cropPosition: number;
 
 };
 

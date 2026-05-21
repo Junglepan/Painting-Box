@@ -5,7 +5,7 @@ import {
   applyTemplateFrameConstraints,
 } from "@/lib/template-capabilities";
 import { usePresetStore } from "./preset-store";
-import type { CanvasOrientation, CanvasRatio, FrameParams, Preset, TemplateConfig, TemplateKind } from "./types";
+import type { CanvasOrientation, CanvasRatio, CropRatio, FrameParams, Preset, TemplateConfig, TemplateKind } from "./types";
 
 type TemplateState = {
   currentKind: TemplateKind;
@@ -65,6 +65,9 @@ const defaultFrameParams: FrameParams = {
 
   canvasRatio: "3:2" as CanvasRatio,
   canvasOrientation: "auto" as CanvasOrientation,
+
+  cropRatio: "original" as CropRatio,
+  cropPosition: 50,
 };
 
 type TemplateBaseState = {
@@ -77,6 +80,7 @@ const ACTIVE_TEMPLATE_KINDS: readonly TemplateKind[] = [
   "magazine",
   "minimal-corner",
   "cinematic",
+  "cinema-scope",
   "film-strip",
   "xiaomi-leica",
   "photo-album",
@@ -177,6 +181,34 @@ const TEMPLATE_BASES: Record<TemplateKind, TemplateBaseState> = {
       logoSize: 13,
       logoGap: 10,
       shadow: false,
+    },
+    {
+      showLogo: false,
+      showCamera: true,
+      showLens: false,
+      showParams: true,
+    },
+  ),
+  "cinema-scope": createTemplateBase(
+    {
+      background: "black",
+      bgColor: "#000000",
+      textColor: "#f5f5f5",
+      autoTextContrast: false,
+      dividerShow: false,
+      innerRadius: 0,
+      photoBorder: 0,
+      mainImageWidthRatio: 100,
+      minTopBottomMargin: 0,
+      infoBarHeight: 84,
+      fontSize: 11,
+      logoSize: 13,
+      logoGap: 10,
+      shadow: false,
+      canvasRatio: "16:9" as CanvasRatio,
+      canvasOrientation: "landscape" as CanvasOrientation,
+      cropRatio: "2.35:1" as CropRatio,
+      cropPosition: 50,
     },
     {
       showLogo: false,
@@ -464,7 +496,7 @@ export const useTemplateStore = create<TemplateState>()(
     }),
     {
       name: "painting-box-template-config",
-      version: 5,
+      version: 6,
       migrate: (persisted, version) => {
         const s = persisted as Record<string, unknown>;
         if (version < 3 && s.currentKind === "classic-white") {
@@ -480,6 +512,12 @@ export const useTemplateStore = create<TemplateState>()(
           const fp = (s.frameParams ?? {}) as Record<string, unknown>;
           if (fp.photoBorderStyle === undefined) fp.photoBorderStyle = "solid";
           if (fp.photoBorderColor === undefined) fp.photoBorderColor = "#ffffff";
+          s.frameParams = fp;
+        }
+        if (version < 6) {
+          const fp = (s.frameParams ?? {}) as Record<string, unknown>;
+          if (fp.cropRatio === undefined) fp.cropRatio = "original";
+          if (fp.cropPosition === undefined) fp.cropPosition = 50;
           s.frameParams = fp;
         }
         return s;

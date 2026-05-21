@@ -1,3 +1,4 @@
+pub mod cinema_scope;
 pub mod cinematic;
 pub mod classic_bottom;
 pub mod contact_sheet;

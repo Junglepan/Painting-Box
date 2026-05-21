@@ -21,6 +21,7 @@ export const SVG_TEMPLATE_KINDS = new Set<TemplateKind>([
   "magazine",
   "minimal-corner",
   "cinematic",
+  "cinema-scope",
   "film-strip",
   "xiaomi-leica",
   "photo-album",

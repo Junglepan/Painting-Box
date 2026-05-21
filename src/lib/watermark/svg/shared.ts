@@ -21,6 +21,27 @@ export function svgContainedImage(href: string, x: number, y: number, width: num
   return `<image x="${x}" y="${y}" width="${width}" height="${height}" href="${safeHref}" xlink:href="${safeHref}" preserveAspectRatio="xMidYMid meet"/>`;
 }
 
+/** Render only the cropped sub-region of a photo into a destination rect via clipPath. */
+export function svgCroppedImage(
+  photoHref: string,
+  destX: number, destY: number, destW: number, destH: number,
+  crop: { sx: number; sy: number; sw: number; sh: number },
+  fullW: number, fullH: number,
+  clipId: string,
+): string {
+  const href = xmlEscape(photoHref);
+  const scaleX = destW / crop.sw;
+  const scaleY = destH / crop.sh;
+  const imgX = destX - crop.sx * scaleX;
+  const imgY = destY - crop.sy * scaleY;
+  const imgW = fullW * scaleX;
+  const imgH = fullH * scaleY;
+  return [
+    `<defs><clipPath id="${clipId}"><rect x="${destX}" y="${destY}" width="${destW}" height="${destH}"/></clipPath></defs>`,
+    `<image x="${imgX}" y="${imgY}" width="${imgW}" height="${imgH}" href="${href}" xlink:href="${href}" preserveAspectRatio="none" clip-path="url(#${clipId})"/>`,
+  ].join("\n");
+}
+
 export type SvgLogoAsset = {
   href: string;
   aspectRatio: number;

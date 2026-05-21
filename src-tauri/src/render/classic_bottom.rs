@@ -125,6 +125,53 @@ pub struct ExportFrameParams {
     pub canvas_ratio: String,
     pub canvas_orientation: String, // "landscape" | "portrait"
     pub export_quality: u8,
+    #[serde(default = "default_crop_ratio")]
+    pub crop_ratio: String,
+    #[serde(default = "default_crop_position")]
+    pub crop_position: f32,
+}
+
+fn default_crop_ratio() -> String {
+    "original".to_string()
+}
+
+fn default_crop_position() -> f32 {
+    50.0
+}
+
+pub(crate) fn crop_source(source: DynamicImage, crop_ratio: &str, crop_position: f32) -> DynamicImage {
+    if crop_ratio == "original" || crop_ratio.is_empty() {
+        return source;
+    }
+    let parts: Vec<&str> = crop_ratio.split(':').collect();
+    let (rw, rh) = match (parts.first().and_then(|s| s.parse::<f64>().ok()), parts.get(1).and_then(|s| s.parse::<f64>().ok())) {
+        (Some(w), Some(h)) if w > 0.0 && h > 0.0 => (w, h),
+        _ => return source,
+    };
+    let target = rw / rh;
+    let src_w = source.width() as f64;
+    let src_h = source.height() as f64;
+    let current = src_w / src_h;
+    let pos = (crop_position / 100.0).clamp(0.0, 1.0) as f64;
+
+    let (cx, cy, cw, ch) = if current > target {
+        let cw = src_h * target;
+        let cx = (src_w - cw) * pos;
+        (cx, 0.0, cw, src_h)
+    } else {
+        let ch = src_w / target;
+        let cy = (src_h - ch) * pos;
+        (0.0, cy, src_w, ch)
+    };
+
+    let x = cx.round() as u32;
+    let y = cy.round() as u32;
+    let w = (cw.round() as u32).min(source.width().saturating_sub(x));
+    let h = (ch.round() as u32).min(source.height().saturating_sub(y));
+    if w == 0 || h == 0 {
+        return source;
+    }
+    source.crop_imm(x, y, w, h)
 }
 
 #[derive(Debug, Clone)]

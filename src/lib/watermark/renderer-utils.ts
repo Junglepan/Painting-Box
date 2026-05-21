@@ -1,4 +1,4 @@
-import type { ExifData, FrameParams } from "@/stores/types";
+import type { CropRatio, ExifData, FrameParams } from "@/stores/types";
 
 /** Map FrameParams canvas ratio + orientation → numeric width/height ratio.
  *  photoAspect (photoW/photoH) is required when orientation === "auto". */
@@ -14,6 +14,30 @@ export function getCanvasRatio(
       ? photoAspect !== undefined && photoAspect < 1 ? "portrait" : "landscape"
       : orientation;
   return effective === "portrait" ? rh / rw : rw / rh;
+}
+
+/** Compute the visible sub-rectangle after cropping to a target ratio.
+ *  cropPosition: 0 = top/left edge, 50 = center, 100 = bottom/right edge. */
+export function cropPhoto(
+  photoW: number,
+  photoH: number,
+  cropRatio: CropRatio,
+  cropPosition: number,
+): { sx: number; sy: number; sw: number; sh: number } {
+  if (cropRatio === "original") return { sx: 0, sy: 0, sw: photoW, sh: photoH };
+  const [rw, rh] = cropRatio.split(":").map(Number);
+  if (!rw || !rh) return { sx: 0, sy: 0, sw: photoW, sh: photoH };
+  const target = rw / rh;
+  const current = photoW / photoH;
+  const pos = Math.max(0, Math.min(100, cropPosition)) / 100;
+  if (current > target) {
+    const sw = photoH * target;
+    const sx = (photoW - sw) * pos;
+    return { sx, sy: 0, sw, sh: photoH };
+  }
+  const sh = photoW / target;
+  const sy = (photoH - sh) * pos;
+  return { sx: 0, sy, sw: photoW, sh };
 }
 
 /** Letterbox-fit a photo into an area, returning the centered draw rect. */

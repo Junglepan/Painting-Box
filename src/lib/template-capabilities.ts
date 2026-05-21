@@ -16,7 +16,9 @@ export type FrameControlKey =
   | "shadowOffsetY"
   | "shadowOpacity"
   | "logoSize"
-  | "logoGap";
+  | "logoGap"
+  | "cropRatio"
+  | "cropPosition";
 
 export type NumericFrameControl = {
   min: number;
@@ -86,6 +88,18 @@ const TEMPLATE_FRAME_CAPABILITIES: Record<TemplateKind, TemplateFrameCapabilitie
       textColor: true,
       logoSize: { min: 10, max: 50, step: 1 },
       logoGap: { min: 0, max: 30, step: 1 },
+    },
+  },
+  "cinema-scope": {
+    controls: {
+      mainImageWidthRatio: { min: 80, max: 100, step: 1 },
+      infoBarHeight: { min: 0, max: 112, step: 1 },
+      fontSize: { min: 3, max: 18, step: 1 },
+      textColor: true,
+      logoSize: { min: 10, max: 50, step: 1 },
+      logoGap: { min: 0, max: 30, step: 1 },
+      cropRatio: true,
+      cropPosition: { min: 0, max: 100, step: 1 },
     },
   },
   "film-strip": {

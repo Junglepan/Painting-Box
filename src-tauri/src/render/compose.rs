@@ -6,7 +6,7 @@ use crate::commands::photos::ExportSinglePhotoRequest;
 use crate::exif::read_exif;
 use crate::images::decode_image;
 use crate::render::classic_bottom::{
-    build_lines, build_render_lines, build_render_plan, load_logo_rgba, save_image,
+    build_lines, build_render_lines, build_render_plan, crop_source, load_logo_rgba, save_image,
     ExportExif, ExportFrameParams, ExportTemplateConfig,
 };
 use crate::render::text::TextRenderer;
@@ -54,10 +54,13 @@ pub fn compose(
     text: Option<&TextRenderer>,
     template_kind: &str,
 ) -> RgbaImage {
+    let source = crop_source(source, &frame.crop_ratio, frame.crop_position);
+
     use crate::render::templates;
     match template_kind {
         "magazine" => return templates::magazine::compose_magazine(source, frame, exif, config, text),
         "cinematic" => return templates::cinematic::compose_cinematic(source, frame, exif, config, text),
+        "cinema_scope" => return templates::cinema_scope::compose_cinema_scope(source, frame, exif, config, text),
         "film_strip" => return templates::film_strip::compose_film_strip(source, frame, exif, config, text),
         "xiaomi_leica" => return templates::xiaomi_leica::compose_xiaomi_leica(source, frame, exif, config, text),
         "fujifilm_classic" => return templates::fujifilm_classic::compose_fujifilm_classic(source, frame, exif, config, text),

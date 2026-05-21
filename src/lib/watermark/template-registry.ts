@@ -75,6 +75,17 @@ export const TEMPLATE_REGISTRY: Record<TemplateKind, TemplateRegistryEntry> = {
     configLocks: null,
     liftLogoOnly: false,
   },
+  "cinema-scope": {
+    kind: "cinema-scope",
+    name: "2.35:1黑边",
+    desc: "2.35:1 裁切 + 16:9 画布，上下黑边带文字",
+    mode: "letterbox",
+    placement: "center",
+    exposedInLibrary: true,
+    displayFields: ["showLogo", "showCamera", "showLens", "showParams", "showDate"],
+    configLocks: null,
+    liftLogoOnly: false,
+  },
   "film-strip": {
     kind: "film-strip",
     name: "胶片齿孔",
