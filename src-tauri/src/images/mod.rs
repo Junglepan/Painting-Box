@@ -1,9 +1,12 @@
 use std::{
+    env,
     fs,
-    path::Path,
+    path::{Path, PathBuf},
+    process::Command,
 };
 
 use image::{DynamicImage, ImageReader};
+use uuid::Uuid;
 
 pub fn decode_image(path: &Path) -> Result<DynamicImage, String> {
     if is_heic(path) {
@@ -90,4 +93,8 @@ fn decode_heic(path: &Path) -> Result<DynamicImage, String> {
         let _ = path;
         Err("当前构建暂未接入 HEIC 解码".to_string())
     }
+}
+
+fn temp_png_path() -> PathBuf {
+    env::temp_dir().join(format!("painting-box-{}.png", Uuid::new_v4()))
 }
