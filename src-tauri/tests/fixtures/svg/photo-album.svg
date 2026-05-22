@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="900" height="600" viewBox="0 0 900 600">
+<g font-family="Inter, sans-serif">
+<rect width="900" height="600" fill="#ede2cc"/>
+<rect x="111.89999999999998" y="44.17499999999998" width="676.2" height="510.15000000000003" fill="#fdfaf2"/>
+<defs><filter id="pb-photo-shadow" x="51.70073999999998" y="-16.024260000000012" width="796.59852" height="630.54852" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feDropShadow dx="0" dy="0.19926000000000002" stdDeviation="22" flood-color="#000000" flood-opacity="0.18"/>
+</filter></defs>
+<g filter="url(#pb-photo-shadow)"><image x="117.89999999999998" y="50.17499999999998" width="664.2" height="498.15000000000003" href="__FUJI_PHOTO__" xlink:href="__FUJI_PHOTO__" preserveAspectRatio="none"/></g>
+<rect x="120.89999999999998" y="53.17499999999998" width="658.2" height="492.15000000000003" rx="0" ry="0" fill="none" stroke="#fdfaf2" stroke-width="6"/>
+<path d="M 117.89999999999998 50.17499999999998 H 155.26124999999996 V 50.17499999999998 L 117.89999999999998 87.53624999999998 Z" fill="#241c14"/>
+<path d="M 782.1 50.17499999999998 H 744.73875 V 50.17499999999998 L 782.1 87.53624999999998 Z" fill="#241c14"/>
+<path d="M 117.89999999999998 548.325 H 155.26124999999996 V 548.325 L 117.89999999999998 510.96375000000006 Z" fill="#241c14"/>
+<path d="M 782.1 548.325 H 744.73875 V 548.325 L 782.1 510.96375000000006 Z" fill="#241c14"/>
+</g>
+</svg>

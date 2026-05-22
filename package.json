@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "test": "bun test",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "bake-svg-fixtures": "bun run scripts/bake-svg-fixtures.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

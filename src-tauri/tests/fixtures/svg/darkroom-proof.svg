@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="900" height="600" viewBox="0 0 900 600">
+<g font-family="Inter, sans-serif">
+<rect width="900" height="600" fill="#0d0d0d"/>
+<rect x="27" y="18" width="846" height="564" fill="#f5efe1"/>
+<image x="145.33333333333337" y="45" width="609.3333333333333" height="457" href="__FUJI_PHOTO__" xlink:href="__FUJI_PHOTO__" preserveAspectRatio="none"/>
+<rect x="148.33333333333337" y="48" width="603.3333333333333" height="451" rx="0" ry="0" fill="none" stroke="#f5efe1" stroke-width="6"/>
+<g transform="translate(145.33333333333337 535) rotate(-8)">
+<rect x="-6" y="-32.489999999999995" width="140.21999999999997" height="42.74999999999999" fill="none" stroke="#b22222" stroke-width="2"/>
+<text x="0" y="0" text-anchor="start" font-weight="900" font-size="34.199999999999996" fill="#b22222">PROOF</text>
+</g>
+</g>
+</svg>
