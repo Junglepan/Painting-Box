@@ -1,13 +1,14 @@
 {
   "name": "painting-box",
   "private": true,
-  "version": "0.1.17",
+  "version": "0.1.18",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "test": "bun test",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "bake-svg-fixtures": "bun run scripts/bake-svg-fixtures.ts"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

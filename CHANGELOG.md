@@ -4,6 +4,18 @@
 
 ## [Unreleased]
 
+## [0.1.18] — 2026-05-22
+
+### 重构
+- **移除不可达的 Rust 模板渲染器（-4470 行）**：自 SVG 迁移（v0.1.7，commit `1c0cb81`）以来，前端为每张照片预生成 SVG 模板，Rust 端通过 resvg 渲染；原 image-crate 路径（`render/templates/*.rs` 12 个文件 + `render/classic_bottom.rs` 1714 行 + `render/text.rs` + `render/layout_spec.rs`）实际上从未执行。本次清理：
+  - IPC 类型迁移到独立模块：`ExportFrameParams`/`ExportExif`/`ExportTemplateConfig`/`ExportCamera` → `render/types.rs`；`save_image()` → `render/io.rs`；`resolve_logo_svg_bytes()` 与 `embedded_logos()` 合并到 `render/logo_assets.rs`。
+  - `render_to_path()` 收紧合约：缺失 `svg_template` 时直接返回错误，避免静默 fallback。
+  - 移除 `ab_glyph` 字体依赖（仅被已删的 `TextRenderer` 引用）。
+  - 删除遗留 POC 测试：`tests/svg_resvg_poc.rs`、`tests/pixel_diff.rs`、`tests/fujifilm_classic_svg_e2e.rs`（SVG 迁移完成后已无价值）。`cargo check` 与 `cargo clippy -- -D warnings` 均零警告。
+
+### 测试
+- **新增 13 款模板的视觉回归基线**：`scripts/bake-svg-fixtures.ts` 将每款模板的 SVG 输出烘焙到 `src-tauri/tests/fixtures/svg/<kind>.svg`；`tests/visual_regression.rs` 通过 resvg 渲染每个 SVG 并比对 SHA256 哈希基线（13 个 `<kind>.png.sha256` 文件，总占用 < 1KB）。检测到漂移时实际 PNG 写入 `target/visual-regression/<kind>.png` 便于人工检查；意图变更可通过 `PB_UPDATE_FIXTURES=1 cargo test --test visual_regression` 重新烘焙。新增 `bun run bake-svg-fixtures` 脚本同步刷新 SVG 输入。
+
 ### 功能（feat/template-iteration）
 - **新增「2.35:1黑边」模板**：照片裁切为 2.35:1 宽银幕比例，输出 16:9 画布，上下自然黑边，底部黑边区域展示水印文字（机身、镜头、参数、日期等），还原电影画幅质感。
 - **通用裁切功能**：新增 `cropRatio`（裁切比例）和 `cropPosition`（裁切位置）两个参数，支持将照片裁切为 2.35:1 / 16:9 / 4:3 / 3:2 / 1:1 等比例后再放入画布，裁切位置可通过 slider 自由调节（0=顶部，50=居中，100=底部）。裁切与画布比例正交独立，不影响现有模板行为。

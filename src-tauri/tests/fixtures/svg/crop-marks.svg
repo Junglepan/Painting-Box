@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="900" height="600" viewBox="0 0 900 600">
+<g font-family="Inter, sans-serif">
+<rect width="900" height="600" fill="#ffffff"/>
+<image x="178.24" y="96.18" width="543.52" height="407.64" href="__FUJI_PHOTO__" xlink:href="__FUJI_PHOTO__" preserveAspectRatio="none"/>
+<path d="M 146.24 88.18 H 170.24 V 64.18 M 753.76 88.18 H 729.76 V 64.18 M 146.24 511.82 H 170.24 V 535.8199999999999 M 753.76 511.82 H 729.76 V 535.8199999999999" fill="none" stroke="#0a0a0a" stroke-width="1"/>
+<rect x="178.24" y="543.8199999999999" width="24" height="24" fill="#00b0f0"/>
+<rect x="205.24" y="543.8199999999999" width="24" height="24" fill="#e83e8c"/>
+<rect x="232.24" y="543.8199999999999" width="24" height="24" fill="#ffe600"/>
+<rect x="259.24" y="543.8199999999999" width="24" height="24" fill="#0a0a0a"/>
+<text x="296.24" y="555.8199999999999" text-anchor="start" dominant-baseline="middle" font-weight="400" font-size="10" fill="#404040">x-t5</text>
+<text x="721.76" y="555.8199999999999" text-anchor="end" dominant-baseline="middle" font-weight="400" font-size="10" fill="#404040">35mm  ·  f/1.8  ·  1/250 s  ·  ISO200</text>
+</g>
+</svg>

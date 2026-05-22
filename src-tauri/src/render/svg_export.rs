@@ -81,7 +81,7 @@ pub fn render_svg_export(
     let rgba = image::RgbaImage::from_raw(size.width(), size.height(), pixmap.take())
         .ok_or_else(|| "pixmap→image conversion failed".to_string())?;
 
-    crate::render::classic_bottom::save_image(&rgba, Path::new(output_path), quality)
+    crate::render::io::save_image(&rgba, Path::new(output_path), quality)
 }
 
 fn photo_placeholder_kind(photo_path: &Path) -> Result<usvg::ImageKind, String> {

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="900" height="600" viewBox="0 0 900 600">
+<g font-family="Inter, sans-serif">
+<rect width="900" height="600" fill="#ffffff"/>
+<defs><filter id="pb-photo-shadow" x="25.200000000000003" y="-52.8" width="849.6" height="669.6" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feDropShadow dx="0" dy="10.8" stdDeviation="18" flood-color="#000000" flood-opacity="0.14"/>
+</filter></defs>
+<g filter="url(#pb-photo-shadow)"><image x="90" y="12" width="720" height="540" href="__FUJI_PHOTO__" xlink:href="__FUJI_PHOTO__" preserveAspectRatio="none"/></g>
+<text x="90" y="575.1" text-anchor="start" font-weight="700" font-size="14.850000000000001" fill="#1f2937">x-t5</text>
+<text x="810" y="575.1" text-anchor="end" font-weight="500" font-size="11" fill="#1f2937">35mm  /  f/1.8  /  1/250 s  /  ISO200</text>
+</g>
+</svg>
