@@ -1,4 +1,4 @@
-use crate::render::classic_bottom::resolve_logo_svg_bytes;
+use crate::render::logo_assets::resolve_logo_svg_bytes;
 
 /// Serve embedded SVG bytes as a UTF-8 string so the frontend can construct
 /// a data URL without relying on Tauri's asset server — which fails on

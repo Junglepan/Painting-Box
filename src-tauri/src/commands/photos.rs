@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::exif::{read_exif, ExifData};
 use crate::images::{decode_image, supported_extension};
-use crate::render::classic_bottom::{ExportExif, ExportFrameParams, ExportTemplateConfig};
+use crate::render::types::{ExportExif, ExportFrameParams, ExportTemplateConfig};
 use crate::render::compose::render_to_path;
 
 #[derive(Debug, Serialize)]

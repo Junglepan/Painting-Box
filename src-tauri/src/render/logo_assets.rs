@@ -1,4 +1,33 @@
 use std::collections::HashMap;
+use std::sync::OnceLock;
+
+/// Look up an embedded SVG logo by (brand key, variant) with fallback chain.
+/// Used by both the Tauri command (web demo mode) and downstream renderers.
+pub fn resolve_logo_svg_bytes(key: &str, variant: &str) -> Option<&'static [u8]> {
+    static LOGOS: OnceLock<HashMap<(&'static str, &'static str), &'static [u8]>> = OnceLock::new();
+    let logos = LOGOS.get_or_init(embedded_logos);
+
+    let lookup_keys: &[&str] = match key {
+        "panasonic" => &["panasonic", "lumix"],
+        "sony" => &["sony", "sonyalpha"],
+        _ => &[key],
+    };
+    let fallbacks = ["original", "black", "white", "icon-original", "icon-black", "icon-white"];
+
+    for &k in lookup_keys {
+        if let Some(&bytes) = logos.get(&(k, variant)) {
+            return Some(bytes);
+        }
+    }
+    for &k in lookup_keys {
+        for &fb in &fallbacks {
+            if let Some(&bytes) = logos.get(&(k, fb)) {
+                return Some(bytes);
+            }
+        }
+    }
+    None
+}
 
 pub fn embedded_logos() -> HashMap<(&'static str, &'static str), &'static [u8]> {
     let mut m: HashMap<(&'static str, &'static str), &'static [u8]> = HashMap::new();
