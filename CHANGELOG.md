@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [0.1.18] — 2026-05-22
+
 ### 重构
 - **移除不可达的 Rust 模板渲染器（-4470 行）**：自 SVG 迁移（v0.1.7，commit `1c0cb81`）以来，前端为每张照片预生成 SVG 模板，Rust 端通过 resvg 渲染；原 image-crate 路径（`render/templates/*.rs` 12 个文件 + `render/classic_bottom.rs` 1714 行 + `render/text.rs` + `render/layout_spec.rs`）实际上从未执行。本次清理：
   - IPC 类型迁移到独立模块：`ExportFrameParams`/`ExportExif`/`ExportTemplateConfig`/`ExportCamera` → `render/types.rs`；`save_image()` → `render/io.rs`；`resolve_logo_svg_bytes()` 与 `embedded_logos()` 合并到 `render/logo_assets.rs`。
