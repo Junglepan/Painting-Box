@@ -32,7 +32,7 @@
 
 ## 预览
 
-![preview](img_1.png)
+![preview](docs/preview.png)
 
 ## 下载
 
