@@ -126,7 +126,30 @@ bunx tauri build
 
 ## 作者
 
-[Junglepan](https://github.com/Junglepan) · B 站 [@土豆怪725](https://search.bilibili.com/all?keyword=%E5%9C%9F%E8%B1%86%E6%80%AA725&search_type=bili_user) · 小红书 @土豆怪 · 抖音 @土豆怪
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/Junglepan">
+        <img src="https://github.com/Junglepan.png" width="80" style="border-radius:50%;" alt="Junglepan">
+        <br>
+        <b>Junglepan</b>
+      </a>
+    </td>
+    <td>
+      <p>
+        <a href="https://github.com/Junglepan">GitHub @Junglepan</a>
+        <br>
+        <a href="https://search.bilibili.com/all?keyword=%E5%9C%9F%E8%B1%86%E6%80%AA725&search_type=bili_user">B 站 @土豆怪725</a>
+        <br>
+        <a href="https://www.xiaohongshu.com/search_result?keyword=StudentPanbk&type=51">小红书 @土豆怪</a>
+        <br>
+        <a href="https://www.douyin.com/search/914189405?type=user">抖音 @土豆怪</a>
+      </p>
+    </td>
+  </tr>
+</table>
+
+如果觉得好用，欢迎 Star 支持一下 :)
 
 ## License
 
